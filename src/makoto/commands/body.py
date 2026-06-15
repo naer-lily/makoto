@@ -1,4 +1,7 @@
-"""身体测量记录命令。"""
+"""身体测量记录命令。
+
+每个日期仅允许一条记录（晨起空腹测量）。
+"""
 
 from __future__ import annotations
 
@@ -19,7 +22,7 @@ store = JsonlStore(body_logs_path(), BodyLog)
 @body_app.command()
 def log(
     log_date: str = typer.Option(
-        ..., "--date", "-d", help="测量日期 (YYYY-MM-DD)"
+        ..., "--date", "-d", help="测量日期 (YYYY-MM-DD)，每天仅一条"
     ),
     weight: float = typer.Option(..., "--weight", "-w", min=0, help="体重（公斤）"),
     body_fat: float = typer.Option(
@@ -30,13 +33,19 @@ def log(
     thigh: float | None = typer.Option(None, "--thigh", min=0, help="大腿围（厘米）"),
     note: str | None = typer.Option(None, "--note", "-n", help="备注"),
 ) -> None:
-    """记录晨起身体测量数据。"""
+    """记录晨起身体测量数据（每天仅一条）。"""
     console = get_console()
     try:
         parsed_date = date.fromisoformat(log_date)
     except ValueError as e:
         console.print(f"[red]日期格式无效 '{log_date}'，请使用 YYYY-MM-DD。[/red]")
         raise typer.Exit(1) from e
+
+    if store.find_one(lambda r: r.log_date == parsed_date) is not None:
+        console.print(
+            f"[red]{log_date} 已有记录，请先 delete 再重新录入。[/red]"
+        )
+        raise typer.Exit(1)
 
     record = BodyLog(
         log_date=parsed_date,
@@ -51,6 +60,28 @@ def log(
     console.print(
         f"[green]已记录 {log_date} 身体数据: {weight} kg / {body_fat}%[/green]"
     )
+
+
+@body_app.command()
+def delete(
+    log_date: str = typer.Option(
+        ..., "--date", "-d", help="要删除的测量日期 (YYYY-MM-DD)"
+    ),
+) -> None:
+    """删除指定日期的身体测量记录。"""
+    console = get_console()
+    try:
+        parsed_date = date.fromisoformat(log_date)
+    except ValueError as e:
+        console.print(f"[red]日期格式无效 '{log_date}'。[/red]")
+        raise typer.Exit(1) from e
+
+    deleted = store.delete_many(lambda r: r.log_date == parsed_date)
+    if deleted == 0:
+        console.print(f"[red]{log_date} 无记录。[/red]")
+        raise typer.Exit(1)
+
+    console.print(f"[green]已删除 {log_date} 身体测量记录。[/green]")
 
 
 @body_app.command(name="list")

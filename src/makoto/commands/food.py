@@ -59,6 +59,20 @@ def add(
     console.print(f"[green]已注册食物: {name}[/green]")
 
 
+@food_app.command()
+def delete(
+    name: str = typer.Argument(..., help="要删除的食物名称"),
+) -> None:
+    """删除已注册的食物。"""
+    console = get_console()
+    if store.find_one(lambda f: f.name == name) is None:
+        console.print(f"[red]食物 '{name}' 不存在。[/red]")
+        raise typer.Exit(1)
+
+    store.delete_many(lambda f: f.name == name)
+    console.print(f"[green]已删除食物: {name}[/green]")
+
+
 @food_app.command(name="list")
 def list_foods() -> None:
     """列出所有已注册食物。"""

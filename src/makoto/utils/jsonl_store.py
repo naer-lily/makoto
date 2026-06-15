@@ -98,3 +98,25 @@ class JsonlStore(Generic[T]):
     def count(self) -> int:
         """返回文件中有效记录的数量。"""
         return len(self.read_all())
+
+    def delete_many(self, predicate: Callable[[T], bool]) -> int:
+        """删除所有满足条件的记录。
+
+        重写整个文件以移除匹配行。
+
+        Args:
+            predicate: 接收模型实例，返回 True 表示应删除。
+
+        Returns:
+            实际删除的记录数量。
+        """
+        all_records = self.read_all()
+        kept = [r for r in all_records if not predicate(r)]
+        deleted = len(all_records) - len(kept)
+        if deleted > 0:
+            self._filepath.parent.mkdir(parents=True, exist_ok=True)
+            with open(self._filepath, "w", encoding="utf-8") as f:
+                for record in kept:
+                    f.write(record.model_dump_json() + "\n")
+            logger.debug(f"已从 {self._filepath.name} 删除 {deleted} 条记录")
+        return deleted

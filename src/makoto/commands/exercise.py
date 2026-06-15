@@ -1,4 +1,7 @@
-"""运动记录命令。"""
+"""运动记录命令。
+
+同一时间仅允许一条记录（需相差至少 1 秒）。
+"""
 
 from __future__ import annotations
 
@@ -11,6 +14,7 @@ from makoto.utils.console import get_console
 from makoto.utils.console import render_table
 from makoto.utils.data_paths import exercise_logs_path
 from makoto.utils.jsonl_store import JsonlStore
+from makoto.utils.tz import ensure_aware
 from makoto.utils.tz import format_local
 
 exercise_app = typer.Typer(no_args_is_help=True)
@@ -24,7 +28,7 @@ def log(
         "--time",
         "-t",
         formats=["%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M"],
-        help="运动时间",
+        help="运动时间（同秒不可重复）",
     ),
     name: str = typer.Option(..., "--name", "-n", help="运动名称"),
     duration: str = typer.Option(..., "--duration", "-d", help="时长/组数/数量"),
@@ -33,10 +37,17 @@ def log(
     ),
     note: str | None = typer.Option(None, "--note", help="备注"),
 ) -> None:
-    """记录一次运动。"""
+    """记录一次运动（同秒不可重复）。"""
     console = get_console()
+    log_time_aware = ensure_aware(log_time)
+    if store.find_one(lambda r: r.log_time == log_time_aware) is not None:
+        console.print(
+            f"[red]{format_local(log_time)} 已有记录，请错开至少 1 秒。[/red]"
+        )
+        raise typer.Exit(1)
+
     record = ExerciseLog(
-        log_time=log_time,
+        log_time=log_time_aware,
         exercise_name=name,
         duration_desc=duration,
         calories_kcal=calories,
@@ -46,6 +57,27 @@ def log(
     console.print(
         f"[green]已记录运动: {name} {duration} / {calories:.0f} kcal[/green]"
     )
+
+
+@exercise_app.command()
+def delete(
+    log_time: datetime = typer.Option(
+        ...,
+        "--time",
+        "-t",
+        formats=["%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M"],
+        help="要删除的运动时间",
+    ),
+) -> None:
+    """删除指定时间的运动记录。"""
+    console = get_console()
+    log_time_aware = ensure_aware(log_time)
+    deleted = store.delete_many(lambda r: r.log_time == log_time_aware)
+    if deleted == 0:
+        console.print(f"[red]{format_local(log_time)} 无记录。[/red]")
+        raise typer.Exit(1)
+
+    console.print(f"[green]已删除 {format_local(log_time)} 运动记录。[/green]")
 
 
 @exercise_app.command(name="list")

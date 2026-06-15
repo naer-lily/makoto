@@ -1,4 +1,7 @@
-"""饮食记录命令。"""
+"""饮食记录命令。
+
+同一时间仅允许一条记录（需相差至少 1 秒）。
+"""
 
 from __future__ import annotations
 
@@ -13,6 +16,7 @@ from makoto.utils.console import render_table
 from makoto.utils.data_paths import diet_logs_path
 from makoto.utils.data_paths import foods_path
 from makoto.utils.jsonl_store import JsonlStore
+from makoto.utils.tz import ensure_aware
 from makoto.utils.tz import format_local
 
 diet_app = typer.Typer(no_args_is_help=True)
@@ -27,19 +31,26 @@ def log(
         "--time",
         "-t",
         formats=["%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M"],
-        help="进餐时间",
+        help="进餐时间（同秒不可重复）",
     ),
     food_name: str = typer.Option(..., "--food", "-f", help="食物名称（须已注册）"),
     grams: float = typer.Option(..., "--grams", "-g", min=0, help="摄入克数"),
     note: str | None = typer.Option(None, "--note", "-n", help="备注"),
 ) -> None:
-    """记录一次饮食。"""
+    """记录一次饮食（同秒不可重复）。"""
     console = get_console()
+    log_time_aware = ensure_aware(log_time)
     if food_store.find_one(lambda f: f.name == food_name) is None:
         console.print(f"[red]食物 '{food_name}' 未注册，请先 makoto food add。[/red]")
         raise typer.Exit(1)
 
-    record = DietLog(log_time=log_time, food_name=food_name, grams=grams, note=note)
+    if diet_store.find_one(lambda r: r.log_time == log_time_aware) is not None:
+        console.print(
+            f"[red]{format_local(log_time)} 已有记录，请错开至少 1 秒。[/red]"
+        )
+        raise typer.Exit(1)
+
+    record = DietLog(log_time=log_time_aware, food_name=food_name, grams=grams, note=note)
     diet_store.append(record)
 
     food = food_store.find_one(lambda f: f.name == food_name)
@@ -52,6 +63,27 @@ def log(
         f"C:{nutrition['carbs_g']:.1f}g  "
         f"F:{nutrition['fat_g']:.1f}g[/green]"
     )
+
+
+@diet_app.command()
+def delete(
+    log_time: datetime = typer.Option(
+        ...,
+        "--time",
+        "-t",
+        formats=["%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M"],
+        help="要删除的进餐时间",
+    ),
+) -> None:
+    """删除指定时间的饮食记录。"""
+    console = get_console()
+    log_time_aware = ensure_aware(log_time)
+    deleted = diet_store.delete_many(lambda r: r.log_time == log_time_aware)
+    if deleted == 0:
+        console.print(f"[red]{format_local(log_time)} 无记录。[/red]")
+        raise typer.Exit(1)
+
+    console.print(f"[green]已删除 {format_local(log_time)} 饮食记录。[/green]")
 
 
 @diet_app.command(name="list")
