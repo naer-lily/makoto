@@ -74,6 +74,7 @@ ignore = [
     "B008",    # typer.Option 默认值（装饰器模式必需）
     "UP040",   # 暂不迁移到 PEP 695 type 语句（mypy 不支持）
     "UP046",   # 暂不迁移到 PEP 695 泛型语法（mypy 不支持）
+    "UP047",   # 暂不迁移到 PEP 695 泛型函数（mypy 不支持）
 ]
 
 [tool.ruff.lint.isort]
