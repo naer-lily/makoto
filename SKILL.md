@@ -17,23 +17,15 @@ makoto (CLI) --httpx--> FastAPI Server --aiosqlite--> SQLite (data/makoto.db)
 - `makoto-server` — FastAPI 服务端，操作 SQLite 数据库，提供 REST API
 - 鉴权：Bearer Token（环境变量 `MAKOTO_TOKEN`）
 
-## 安装与启动
+## 安装
 
 ```bash
 pip install makoto
 ```
 
-先启动服务端：
+## 环境配置
 
-```bash
-# 未设 MAKOTO_TOKEN 会自动生成随机 token 并打印
-MAKOTO_TOKEN=your-secret-token makoto-server
-
-# 或 Docker
-docker-compose up -d
-```
-
-然后设置 CLI 客户端环境变量：
+使用前需配置以下环境变量指向已运行的服务端：
 
 ```bash
 export MAKOTO_ENDPOINT=http://127.0.0.1:8000
@@ -177,19 +169,9 @@ makoto dashboard report -r week --json
 makoto food list --plain
 ```
 
-## 服务端配置
+## 环境变量
 
-| 环境变量 | 用途 | 默认值 |
-|----------|------|--------|
-| `MAKOTO_HOST` | 服务端监听地址 | `0.0.0.0` |
-| `MAKOTO_PORT` | 服务端监听端口 | `8000` |
-| `MAKOTO_TOKEN` | 鉴权 token（未设自动生成） | 随机 |
-| `MAKOTO_DATA_DIR` | 数据目录路径 | 项目根 `data/` |
-
-## 客户端配置
-
-| 环境变量 | 用途 | 默认值 |
-|----------|------|--------|
+| 变量 | 用途 | 默认值 |
+|------|------|--------|
 | `MAKOTO_ENDPOINT` | API 地址 | `http://127.0.0.1:8000` |
 | `MAKOTO_TOKEN` | 鉴权 token | 空 |
-| `MAKOTO_DATA_DIR` | 数据目录（仅 `version` 命令不需） | 项目根 `data/` |
