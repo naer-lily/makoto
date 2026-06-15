@@ -1,7 +1,6 @@
 """数据文件路径配置。
 
-默认存储在项目运行目录下的 data/ 目录中。
-可通过环境变量 MAKOTO_DATA_DIR 覆盖。
+未设 MAKOTO_DATA_DIR 时，默认使用项目根目录下的 data/ 目录。
 """
 
 from __future__ import annotations
@@ -9,13 +8,16 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+# 项目根目录 = 本文件往上 4 层 (utils → makoto → src → 项目根)
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+
 
 def _data_dir() -> Path:
     """返回数据目录路径，可通过 MAKOTO_DATA_DIR 环境变量覆盖。"""
     env_val = os.environ.get("MAKOTO_DATA_DIR")
     if env_val:
         return Path(env_val)
-    return Path("data")
+    return _PROJECT_ROOT / "data"
 
 
 def foods_path() -> Path:
