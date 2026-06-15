@@ -47,3 +47,8 @@ def diet_logs_path() -> Path:
 def exercise_logs_path() -> Path:
     """返回运动记录文件路径。"""
     return _data_config.data_dir / "exercise_logs.jsonl"
+
+
+def profile_path() -> Path:
+    """返回用户画像文件路径。"""
+    return _data_config.data_dir / "profile.json"

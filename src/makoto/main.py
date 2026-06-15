@@ -6,6 +6,7 @@ from makoto.commands.body import body_app
 from makoto.commands.diet import diet_app
 from makoto.commands.exercise import exercise_app
 from makoto.commands.food import food_app
+from makoto.commands.profile import profile_app
 from makoto.utils import console as console_utils
 
 app = typer.Typer(
@@ -25,6 +26,7 @@ def callback(
     console_utils.set_plain(plain)
 
 
+app.add_typer(profile_app, name="profile", help="用户画像（设置/查看）")
 app.add_typer(food_app, name="food", help="食物库管理（注册、搜索、查看）")
 app.add_typer(body_app, name="body", help="身体测量记录")
 app.add_typer(diet_app, name="diet", help="饮食记录")
