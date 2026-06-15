@@ -1,26 +1,16 @@
-"""食物管理命令。"""
+"""食物管理命令（CLI 客户端）。"""
 
 from __future__ import annotations
 
 import typer
 
-from makoto.models.records import Food
+from makoto.client.api import ClientError
+from makoto.client.api import get_client
+from makoto.server.models import nutrition_for
 from makoto.utils.console import get_console
 from makoto.utils.console import render_table
-from makoto.utils.data_paths import foods_path
-from makoto.utils.jsonl_store import JsonlStore
-from makoto.utils.search import search_foods as do_search
 
 food_app = typer.Typer(no_args_is_help=True)
-store = JsonlStore(foods_path(), Food)
-
-
-def _build_index() -> dict[str, list[str]]:
-    """构建搜索索引：{name: keywords}。"""
-    index: dict[str, list[str]] = {}
-    for food in store.read_all():
-        index[food.name] = food.search_keywords
-    return index
 
 
 @food_app.command()
@@ -41,21 +31,21 @@ def add(
 ) -> None:
     """注册一种新食物。"""
     console = get_console()
-    if store.find_one(lambda f: f.name == name):
-        console.print(f"[red]食物 '{name}' 已存在。[/red]")
-        raise typer.Exit(1)
-
     kw_list = [k.strip() for k in keywords.split(",") if k.strip()] if keywords else []
-    food = Food(
-        name=name,
-        calories_per_100g=calories,
-        protein_per_100g=protein,
-        carbs_per_100g=carbs,
-        fat_per_100g=fat,
-        search_keywords=kw_list,
-        note=note,
-    )
-    store.append(food)
+    cli = get_client()
+    try:
+        cli.add_food({
+            "name": name,
+            "calories_per_100g": calories,
+            "protein_per_100g": protein,
+            "carbs_per_100g": carbs,
+            "fat_per_100g": fat,
+            "search_keywords": kw_list,
+            "note": note,
+        })
+    except ClientError as e:
+        console.print(f"[red]请求失败: {e.detail}[/red]")
+        raise typer.Exit(1) from e
     console.print(f"[green]已注册食物: {name}[/green]")
 
 
@@ -65,11 +55,23 @@ def delete(
 ) -> None:
     """删除已注册的食物。"""
     console = get_console()
-    if store.find_one(lambda f: f.name == name) is None:
+    cli = get_client()
+    try:
+        foods = cli.list_foods()
+    except ClientError as e:
+        console.print(f"[red]请求失败: {e.detail}[/red]")
+        raise typer.Exit(1) from e
+
+    target = next((f for f in foods if f["name"] == name), None)
+    if target is None:
         console.print(f"[red]食物 '{name}' 不存在。[/red]")
         raise typer.Exit(1)
 
-    store.delete_many(lambda f: f.name == name)
+    try:
+        cli.delete_food(target["id"])
+    except ClientError as e:
+        console.print(f"[red]请求失败: {e.detail}[/red]")
+        raise typer.Exit(1) from e
     console.print(f"[green]已删除食物: {name}[/green]")
 
 
@@ -77,7 +79,13 @@ def delete(
 def list_foods() -> None:
     """列出所有已注册食物。"""
     console = get_console()
-    foods = store.read_all()
+    cli = get_client()
+    try:
+        foods = cli.list_foods()
+    except ClientError as e:
+        console.print(f"[red]请求失败: {e.detail}[/red]")
+        raise typer.Exit(1) from e
+
     if not foods:
         console.print("[dim]暂无已注册食物。[/dim]")
         return
@@ -86,12 +94,12 @@ def list_foods() -> None:
         columns=["名称", "热量/100g", "蛋白质/100g", "碳水/100g", "脂肪/100g", "关键词"],
         rows=[
             [
-                f.name,
-                f"{f.calories_per_100g:.0f} kcal",
-                f"{f.protein_per_100g:.1f} g",
-                f"{f.carbs_per_100g:.1f} g",
-                f"{f.fat_per_100g:.1f} g",
-                ", ".join(f.search_keywords),
+                f["name"],
+                f"{f['calories_per_100g']:.0f} kcal",
+                f"{f['protein_per_100g']:.1f} g",
+                f"{f['carbs_per_100g']:.1f} g",
+                f"{f['fat_per_100g']:.1f} g",
+                ", ".join(f.get("search_keywords", [])),
             ]
             for f in foods
         ],
@@ -107,27 +115,41 @@ def show(
 ) -> None:
     """查看食物详细营养信息。"""
     console = get_console()
-    food = store.find_one(lambda f: f.name == name)
-    if food is None:
+    cli = get_client()
+    try:
+        foods = cli.list_foods()
+    except ClientError as e:
+        console.print(f"[red]请求失败: {e.detail}[/red]")
+        raise typer.Exit(1) from e
+
+    target = next((f for f in foods if f["name"] == name), None)
+    if target is None:
         console.print(f"[red]未找到食物 '{name}'。[/red]")
         raise typer.Exit(1)
 
-    console.print(f"\n[bold cyan]{food.name}[/bold cyan]")
-    console.print(f"  每 100g 热量:     {food.calories_per_100g:.0f} kcal")
-    console.print(f"  每 100g 蛋白质:   {food.protein_per_100g:.1f} g")
-    console.print(f"  每 100g 碳水:     {food.carbs_per_100g:.1f} g")
-    console.print(f"  每 100g 脂肪:     {food.fat_per_100g:.1f} g")
-    if food.search_keywords:
-        console.print(f"  关键词:           {', '.join(food.search_keywords)}")
-    if food.note:
-        console.print(f"  备注:             {food.note}")
+    f = target
+    console.print(f"\n[bold cyan]{f['name']}[/bold cyan]")
+    console.print(f"  每 100g 热量:     {f['calories_per_100g']:.0f} kcal")
+    console.print(f"  每 100g 蛋白质:   {f['protein_per_100g']:.1f} g")
+    console.print(f"  每 100g 碳水:     {f['carbs_per_100g']:.1f} g")
+    console.print(f"  每 100g 脂肪:     {f['fat_per_100g']:.1f} g")
+    if f.get("search_keywords"):
+        console.print(f"  关键词:           {', '.join(f['search_keywords'])}")
+    if f.get("note"):
+        console.print(f"  备注:             {f['note']}")
 
     console.print("\n[bold]常见份量参考:[/bold]")
     ref_rows: list[list[str]] = []
     for grams in [50, 100, 150, 200, 250, 300]:
-        n = food.nutrition_for(grams)
+        n = nutrition_for(
+            float(f["calories_per_100g"]),
+            float(f["protein_per_100g"]),
+            float(f["carbs_per_100g"]),
+            float(f["fat_per_100g"]),
+            grams,
+        )
         ref_rows.append([
-            f"{grams}",
+            str(grams),
             f"{n['calories_kcal']:.0f} kcal",
             f"{n['protein_g']:.1f} g",
             f"{n['carbs_g']:.1f} g",
@@ -149,12 +171,13 @@ def search(
 ) -> None:
     """模糊搜索食物（按名称和关键词）。"""
     console = get_console()
-    index = _build_index()
-    if not index:
-        console.print("[dim]食物库为空，请先注册食物。[/dim]")
-        return
+    cli = get_client()
+    try:
+        results = cli.search_foods(query, limit)
+    except ClientError as e:
+        console.print(f"[red]请求失败: {e.detail}[/red]")
+        raise typer.Exit(1) from e
 
-    results = do_search(query, index, max_results=limit)
     if not results:
         console.print(f"[dim]未找到与 '{query}' 相关的食物。[/dim]")
         return
@@ -163,8 +186,8 @@ def search(
     render_table(
         columns=["#", "名称", "编辑距离"],
         rows=[
-            [str(i), name, str(dist)]
-            for i, (dist, name) in enumerate(results, 1)
+            [str(i), r["name"], str(r["distance"])]
+            for i, r in enumerate(results, 1)
         ],
         align=["right", "left", "right"],
         col_styles=["dim", "cyan", ""],

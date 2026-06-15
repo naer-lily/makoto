@@ -5,12 +5,12 @@ build-backend = "hatchling.build"
 [project]
 name = "makoto"
 version = "0.1.0"
-description = "CLI 健身助手 — 记录身体数据、饮食与运动，生成统计数据"
+description = "CLI + API 健身助手 — 记录身体数据、饮食与运动，生成统计数据"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.12"
 authors = [{ name = "naer-lily" }]
-keywords = ["fitness", "cli", "health", "tracking"]
+keywords = ["fitness", "cli", "api", "health", "tracking"]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Environment :: Console",
@@ -25,6 +25,11 @@ dependencies = [
     "typer>=0.15.0",
     "loguru>=0.7.0",
     "rich>=14.0.0",
+    "httpx>=0.28.0",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+    "pydantic>=2.0.0",
+    "aiosqlite>=0.20.0",
 ]
 
 [project.optional-dependencies]
@@ -39,6 +44,7 @@ dev = [
 
 [project.scripts]
 makoto = "makoto.main:app"
+makoto-server = "makoto.server.app:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/makoto"]
@@ -53,26 +59,26 @@ line-length = 100
 
 [tool.ruff.lint]
 select = [
-    "E",   # pycodestyle errors
-    "W",   # pycodestyle warnings
-    "F",   # pyflakes
-    "I",   # isort
-    "N",   # pep8-naming
-    "B",   # flake8-bugbear
-    "C4",  # flake8-comprehensions
-    "SIM", # flake8-simplify
-    "UP",  # pyupgrade
-    "RUF", # ruff-specific
-    "TID", # tidy imports
+    "E",
+    "W",
+    "F",
+    "I",
+    "N",
+    "B",
+    "C4",
+    "SIM",
+    "UP",
+    "RUF",
+    "TID",
 ]
 ignore = [
-    "RUF001",  # 中文全角标点
-    "RUF002",  # 中文全角括号
-    "RUF003",  # 注释中的中文标点
-    "B008",    # typer.Option 默认值（装饰器模式必需）
-    "UP040",   # 暂不迁移到 PEP 695 type 语句（mypy 不支持）
-    "UP046",   # 暂不迁移到 PEP 695 泛型语法（mypy 不支持）
-    "UP047",   # 暂不迁移到 PEP 695 泛型函数（mypy 不支持）
+    "RUF001",
+    "RUF002",
+    "RUF003",
+    "B008",
+    "UP040",
+    "UP046",
+    "UP047",
 ]
 
 [tool.ruff.lint.isort]

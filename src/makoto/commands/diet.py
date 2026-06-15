@@ -1,7 +1,4 @@
-"""饮食记录命令。
-
-同一分钟仅允许一条记录（需相差至少 1 分钟）。
-"""
+"""饮食记录命令（CLI 客户端）。"""
 
 from __future__ import annotations
 
@@ -9,19 +6,14 @@ from datetime import datetime
 
 import typer
 
-from makoto.models.records import DietLog
-from makoto.models.records import Food
+from makoto.client.api import ClientError
+from makoto.client.api import get_client
 from makoto.utils.console import get_console
 from makoto.utils.console import render_table
-from makoto.utils.data_paths import diet_logs_path
-from makoto.utils.data_paths import foods_path
-from makoto.utils.jsonl_store import JsonlStore
 from makoto.utils.tz import ensure_aware
 from makoto.utils.tz import format_local
 
 diet_app = typer.Typer(no_args_is_help=True)
-diet_store = JsonlStore(diet_logs_path(), DietLog)
-food_store = JsonlStore(foods_path(), Food)
 
 
 @diet_app.command()
@@ -40,28 +32,24 @@ def log(
     """记录一次饮食（同分钟不可重复）。"""
     console = get_console()
     log_time_aware = ensure_aware(log_time)
-    if food_store.find_one(lambda f: f.name == food_name) is None:
-        console.print(f"[red]食物 '{food_name}' 未注册，请先 makoto food add。[/red]")
-        raise typer.Exit(1)
+    cli = get_client()
+    try:
+        result = cli.create_diet_log({
+            "log_time": log_time_aware.isoformat(),
+            "food_name": food_name,
+            "grams": grams,
+            "note": note,
+        })
+    except ClientError as e:
+        console.print(f"[red]请求失败: {e.detail}[/red]")
+        raise typer.Exit(1) from e
 
-    if diet_store.find_one(lambda r: r.log_time == log_time_aware) is not None:
-        console.print(
-            f"[red]{format_local(log_time)} 已有记录，请错开至少 1 分钟。[/red]"
-        )
-        raise typer.Exit(1)
-
-    record = DietLog(log_time=log_time_aware, food_name=food_name, grams=grams, note=note)
-    diet_store.append(record)
-
-    food = food_store.find_one(lambda f: f.name == food_name)
-    assert food is not None
-    nutrition = food.nutrition_for(grams)
     console.print(
         f"[green]已记录: {food_name} {grams}g | "
-        f"{nutrition['calories_kcal']:.0f} kcal  "
-        f"P:{nutrition['protein_g']:.1f}g  "
-        f"C:{nutrition['carbs_g']:.1f}g  "
-        f"F:{nutrition['fat_g']:.1f}g[/green]"
+        f"{result['calories_kcal']:.0f} kcal  "
+        f"P:{result['protein_g']:.1f}g  "
+        f"C:{result['carbs_g']:.1f}g  "
+        f"F:{result['fat_g']:.1f}g[/green]"
     )
 
 
@@ -78,11 +66,30 @@ def delete(
     """删除指定时间的饮食记录。"""
     console = get_console()
     log_time_aware = ensure_aware(log_time)
-    deleted = diet_store.delete_many(lambda r: r.log_time == log_time_aware)
-    if deleted == 0:
+    time_str = log_time_aware.isoformat()
+    cli = get_client()
+    try:
+        logs = cli.list_diet_logs(limit=9999)
+    except ClientError as e:
+        console.print(f"[red]请求失败: {e.detail}[/red]")
+        raise typer.Exit(1) from e
+
+    target = None
+    for r in logs:
+        # 比较时间字符串前缀（精确到分钟）
+        if str(r.get("log_time", "")).startswith(time_str[:16]):
+            target = r
+            break
+
+    if target is None:
         console.print(f"[red]{format_local(log_time)} 无记录。[/red]")
         raise typer.Exit(1)
 
+    try:
+        cli.delete_diet_log(target["id"])
+    except ClientError as e:
+        console.print(f"[red]请求失败: {e.detail}[/red]")
+        raise typer.Exit(1) from e
     console.print(f"[green]已删除 {format_local(log_time)} 饮食记录。[/green]")
 
 
@@ -92,9 +99,12 @@ def list_diet(
 ) -> None:
     """列出饮食记录（按时间倒序）。"""
     console = get_console()
-    logs = diet_store.read_all()
-    logs.sort(key=lambda r: r.log_time, reverse=True)
-    logs = logs[:limit]
+    cli = get_client()
+    try:
+        logs = cli.list_diet_logs(limit)
+    except ClientError as e:
+        console.print(f"[red]请求失败: {e.detail}[/red]")
+        raise typer.Exit(1) from e
 
     if not logs:
         console.print("[dim]暂无饮食记录。[/dim]")
@@ -103,25 +113,20 @@ def list_diet(
     total_cal = 0.0
     rows: list[list[str]] = []
     for r in logs:
-        food = food_store.find_one(
-            (lambda fn: lambda f: f.name == fn)(r.food_name)
-        )
-        if food is None:
-            cal, p, c, fv = 0.0, 0.0, 0.0, 0.0
-        else:
-            n = food.nutrition_for(r.grams)
-            cal, p, c, fv = n["calories_kcal"], n["protein_g"], n["carbs_g"], n["fat_g"]
-
-        total_cal += cal
+        cal = r.get("calories_kcal", 0)
+        p = r.get("protein_g", 0)
+        c = r.get("carbs_g", 0)
+        fv = r.get("fat_g", 0)
+        total_cal += float(cal)
         rows.append([
-            format_local(r.log_time),
-            r.food_name,
-            f"{r.grams:.0f}",
+            str(r.get("log_time", "")),
+            str(r.get("food_name", "")),
+            f"{r.get('grams', 0):.0f}",
             f"{cal:.0f} kcal",
             f"{p:.1f} g",
             f"{c:.1f} g",
             f"{fv:.1f} g",
-            r.note or "",
+            r.get("note") or "",
         ])
 
     render_table(

@@ -1,7 +1,4 @@
-"""身体测量记录命令。
-
-每个日期仅允许一条记录（晨起空腹测量）。
-"""
+"""身体测量记录命令（CLI 客户端）。"""
 
 from __future__ import annotations
 
@@ -9,16 +6,12 @@ from datetime import date
 
 import typer
 
-from makoto.models.records import BodyLog
+from makoto.client.api import ClientError
+from makoto.client.api import get_client
 from makoto.utils.console import get_console
 from makoto.utils.console import render_table
-from makoto.utils.data_paths import body_logs_path
-from makoto.utils.jsonl_store import JsonlStore
-from makoto.utils.profile_store import load as load_profile
-from makoto.utils.profile_store import save as save_profile
 
 body_app = typer.Typer(no_args_is_help=True)
-store = JsonlStore(body_logs_path(), BodyLog)
 
 
 @body_app.command()
@@ -38,37 +31,27 @@ def log(
     """记录晨起身体测量数据（每天仅一条）。"""
     console = get_console()
     try:
-        parsed_date = date.fromisoformat(log_date)
+        date.fromisoformat(log_date)
     except ValueError as e:
         console.print(f"[red]日期格式无效 '{log_date}'，请使用 YYYY-MM-DD。[/red]")
         raise typer.Exit(1) from e
 
-    if store.find_one(lambda r: r.log_date == parsed_date) is not None:
-        console.print(
-            f"[red]{log_date} 已有记录，请先 delete 再重新录入。[/red]"
-        )
-        raise typer.Exit(1)
+    cli = get_client()
+    try:
+        cli.create_body_log({
+            "log_date": log_date,
+            "weight_kg": weight,
+            "body_fat_pct": body_fat,
+            "waist_cm": waist,
+            "arm_cm": arm,
+            "thigh_cm": thigh,
+            "note": note,
+        })
+    except ClientError as e:
+        console.print(f"[red]请求失败: {e.detail}[/red]")
+        raise typer.Exit(1) from e
 
-    record = BodyLog(
-        log_date=parsed_date,
-        weight_kg=weight,
-        body_fat_pct=body_fat,
-        waist_cm=waist,
-        arm_cm=arm,
-        thigh_cm=thigh,
-        note=note,
-    )
-    store.append(record)
-    console.print(
-        f"[green]已记录 {parsed_date} 身体数据: {weight} kg / {body_fat}%[/green]"
-    )
-
-    # 自动更新画像中的体重和体脂率
-    profile = load_profile()
-    if profile is not None:
-        profile.weight_kg = weight
-        profile.body_fat_pct = body_fat
-        save_profile(profile)
+    console.print(f"[green]已记录 {log_date} 身体数据: {weight} kg / {body_fat}%[/green]")
 
 
 @body_app.command()
@@ -80,15 +63,28 @@ def delete(
     """删除指定日期的身体测量记录。"""
     console = get_console()
     try:
-        parsed_date = date.fromisoformat(log_date)
+        date.fromisoformat(log_date)
     except ValueError as e:
         console.print(f"[red]日期格式无效 '{log_date}'。[/red]")
         raise typer.Exit(1) from e
 
-    deleted = store.delete_many(lambda r: r.log_date == parsed_date)
-    if deleted == 0:
+    cli = get_client()
+    try:
+        logs = cli.list_body_logs()
+    except ClientError as e:
+        console.print(f"[red]请求失败: {e.detail}[/red]")
+        raise typer.Exit(1) from e
+
+    target = next((r for r in logs if r["log_date"] == log_date), None)
+    if target is None:
         console.print(f"[red]{log_date} 无记录。[/red]")
         raise typer.Exit(1)
+
+    try:
+        cli.delete_body_log(target["id"])
+    except ClientError as e:
+        console.print(f"[red]请求失败: {e.detail}[/red]")
+        raise typer.Exit(1) from e
 
     console.print(f"[green]已删除 {log_date} 身体测量记录。[/green]")
 
@@ -97,8 +93,12 @@ def delete(
 def list_body() -> None:
     """列出所有身体测量记录（按日期倒序）。"""
     console = get_console()
-    logs = store.read_all()
-    logs.sort(key=lambda r: r.log_date, reverse=True)
+    cli = get_client()
+    try:
+        logs = cli.list_body_logs()
+    except ClientError as e:
+        console.print(f"[red]请求失败: {e.detail}[/red]")
+        raise typer.Exit(1) from e
 
     if not logs:
         console.print("[dim]暂无身体测量记录。[/dim]")
@@ -108,13 +108,13 @@ def list_body() -> None:
         columns=["日期", "体重", "体脂率", "腰围", "臂围", "大腿围", "备注"],
         rows=[
             [
-                str(r.log_date),
-                f"{r.weight_kg:.1f} kg",
-                f"{r.body_fat_pct:.1f}%",
-                f"{r.waist_cm:.1f}" if r.waist_cm else "-",
-                f"{r.arm_cm:.1f}" if r.arm_cm else "-",
-                f"{r.thigh_cm:.1f}" if r.thigh_cm else "-",
-                r.note or "",
+                str(r["log_date"]),
+                f"{r['weight_kg']:.1f} kg",
+                f"{r['body_fat_pct']:.1f}%",
+                f"{r['waist_cm']:.1f}" if r.get("waist_cm") else "-",
+                f"{r['arm_cm']:.1f}" if r.get("arm_cm") else "-",
+                f"{r['thigh_cm']:.1f}" if r.get("thigh_cm") else "-",
+                r.get("note") or "",
             ]
             for r in logs
         ],

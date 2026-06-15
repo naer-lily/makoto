@@ -1,7 +1,4 @@
-"""运动记录命令。
-
-同一分钟仅允许一条记录（需相差至少 1 分钟）。
-"""
+"""运动记录命令（CLI 客户端）。"""
 
 from __future__ import annotations
 
@@ -9,16 +6,14 @@ from datetime import datetime
 
 import typer
 
-from makoto.models.records import ExerciseLog
+from makoto.client.api import ClientError
+from makoto.client.api import get_client
 from makoto.utils.console import get_console
 from makoto.utils.console import render_table
-from makoto.utils.data_paths import exercise_logs_path
-from makoto.utils.jsonl_store import JsonlStore
 from makoto.utils.tz import ensure_aware
 from makoto.utils.tz import format_local
 
 exercise_app = typer.Typer(no_args_is_help=True)
-store = JsonlStore(exercise_logs_path(), ExerciseLog)
 
 
 @exercise_app.command()
@@ -40,20 +35,19 @@ def log(
     """记录一次运动（同分钟不可重复）。"""
     console = get_console()
     log_time_aware = ensure_aware(log_time)
-    if store.find_one(lambda r: r.log_time == log_time_aware) is not None:
-        console.print(
-            f"[red]{format_local(log_time)} 已有记录，请错开至少 1 分钟。[/red]"
-        )
-        raise typer.Exit(1)
+    cli = get_client()
+    try:
+        cli.create_exercise_log({
+            "log_time": log_time_aware.isoformat(),
+            "exercise_name": name,
+            "duration_desc": duration,
+            "calories_kcal": calories,
+            "note": note,
+        })
+    except ClientError as e:
+        console.print(f"[red]请求失败: {e.detail}[/red]")
+        raise typer.Exit(1) from e
 
-    record = ExerciseLog(
-        log_time=log_time_aware,
-        exercise_name=name,
-        duration_desc=duration,
-        calories_kcal=calories,
-        note=note,
-    )
-    store.append(record)
     console.print(
         f"[green]已记录运动: {name} {duration} / {calories:.0f} kcal[/green]"
     )
@@ -72,11 +66,29 @@ def delete(
     """删除指定时间的运动记录。"""
     console = get_console()
     log_time_aware = ensure_aware(log_time)
-    deleted = store.delete_many(lambda r: r.log_time == log_time_aware)
-    if deleted == 0:
+    time_str = log_time_aware.isoformat()
+    cli = get_client()
+    try:
+        logs = cli.list_exercise_logs(limit=9999)
+    except ClientError as e:
+        console.print(f"[red]请求失败: {e.detail}[/red]")
+        raise typer.Exit(1) from e
+
+    target = None
+    for r in logs:
+        if str(r.get("log_time", "")).startswith(time_str[:16]):
+            target = r
+            break
+
+    if target is None:
         console.print(f"[red]{format_local(log_time)} 无记录。[/red]")
         raise typer.Exit(1)
 
+    try:
+        cli.delete_exercise_log(target["id"])
+    except ClientError as e:
+        console.print(f"[red]请求失败: {e.detail}[/red]")
+        raise typer.Exit(1) from e
     console.print(f"[green]已删除 {format_local(log_time)} 运动记录。[/green]")
 
 
@@ -86,9 +98,12 @@ def list_exercise(
 ) -> None:
     """列出运动记录（按时间倒序）。"""
     console = get_console()
-    logs = store.read_all()
-    logs.sort(key=lambda r: r.log_time, reverse=True)
-    logs = logs[:limit]
+    cli = get_client()
+    try:
+        logs = cli.list_exercise_logs(limit)
+    except ClientError as e:
+        console.print(f"[red]请求失败: {e.detail}[/red]")
+        raise typer.Exit(1) from e
 
     if not logs:
         console.print("[dim]暂无运动记录。[/dim]")
@@ -97,13 +112,14 @@ def list_exercise(
     total_cal = 0.0
     rows: list[list[str]] = []
     for r in logs:
-        total_cal += r.calories_kcal
+        cal = float(r.get("calories_kcal", 0))
+        total_cal += cal
         rows.append([
-            format_local(r.log_time),
-            r.exercise_name,
-            r.duration_desc,
-            f"{r.calories_kcal:.0f} kcal",
-            r.note or "",
+            str(r.get("log_time", "")),
+            str(r.get("exercise_name", "")),
+            str(r.get("duration_desc", "")),
+            f"{cal:.0f} kcal",
+            r.get("note") or "",
         ])
 
     render_table(

@@ -1,0 +1,16 @@
+version: "3.8"
+
+services:
+  makoto-server:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - MAKOTO_HOST=0.0.0.0
+      - MAKOTO_PORT=8000
+      - MAKOTO_TOKEN=${MAKOTO_TOKEN:-changeme}
+    volumes:
+      - makoto_data:/app/data
+
+volumes:
+  makoto_data:

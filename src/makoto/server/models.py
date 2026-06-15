@@ -1,0 +1,237 @@
+"""Pydantic v2 数据模型。
+
+包含所有表对应的请求/响应模型，以及 nutricion_for 计算工具。
+"""
+
+from __future__ import annotations
+
+from datetime import date
+from datetime import datetime
+from enum import StrEnum
+
+from pydantic import BaseModel
+from pydantic import Field
+
+# ── 枚举 ──
+
+
+class Gender(StrEnum):
+    MALE = "male"
+    FEMALE = "female"
+
+
+class ActivityLevel(StrEnum):
+    SEDENTARY = "sedentary"
+    LIGHT = "light"
+    MODERATE = "moderate"
+    ACTIVE = "active"
+    VERY_ACTIVE = "very_active"
+
+    @property
+    def multiplier(self) -> float:
+        return {
+            ActivityLevel.SEDENTARY: 1.2,
+            ActivityLevel.LIGHT: 1.375,
+            ActivityLevel.MODERATE: 1.55,
+            ActivityLevel.ACTIVE: 1.725,
+            ActivityLevel.VERY_ACTIVE: 1.9,
+        }[self]
+
+
+# ── 营养计算 ──
+
+
+def nutrition_for(
+    calories_per_100g: float,
+    protein_per_100g: float,
+    carbs_per_100g: float,
+    fat_per_100g: float,
+    grams: float,
+) -> dict[str, float]:
+    """计算指定克数下的营养素。
+
+    Returns:
+        {"calories_kcal": ..., "protein_g": ..., "carbs_g": ..., "fat_g": ...}
+    """
+    factor = grams / 100.0
+    return {
+        "calories_kcal": round(calories_per_100g * factor, 1),
+        "protein_g": round(protein_per_100g * factor, 1),
+        "carbs_g": round(carbs_per_100g * factor, 1),
+        "fat_g": round(fat_per_100g * factor, 1),
+    }
+
+
+# ── Profile ──
+
+
+class ProfileCreate(BaseModel):
+    name: str
+    gender: Gender
+    age: int = Field(ge=1, le=120)
+    height_cm: float = Field(ge=0)
+    weight_kg: float = Field(ge=0)
+    body_fat_pct: float = Field(ge=0, le=60)
+    target_weight_kg: float = Field(ge=0)
+    target_date: date
+    activity_level: ActivityLevel
+
+
+class ProfileResponse(ProfileCreate):
+    ffm_kg: float
+    bmr_kcal: float
+    ree_kcal: float
+    weekly_deficit_needed: float | None
+    days_remaining: int
+
+
+# ── Food ──
+
+
+class FoodCreate(BaseModel):
+    name: str
+    calories_per_100g: float = Field(default=0.0, ge=0)
+    protein_per_100g: float = Field(default=0.0, ge=0)
+    carbs_per_100g: float = Field(default=0.0, ge=0)
+    fat_per_100g: float = Field(default=0.0, ge=0)
+    search_keywords: list[str] = Field(default_factory=list)
+    note: str | None = None
+
+
+class FoodResponse(FoodCreate):
+    id: int
+    created_at: str
+
+
+class FoodSearchResult(BaseModel):
+    id: int
+    name: str
+    distance: int
+
+
+# ── Body Log ──
+
+
+class BodyLogCreate(BaseModel):
+    log_date: date
+    weight_kg: float = Field(ge=0)
+    body_fat_pct: float = Field(ge=0, le=60)
+    waist_cm: float | None = Field(default=None, ge=0)
+    arm_cm: float | None = Field(default=None, ge=0)
+    thigh_cm: float | None = Field(default=None, ge=0)
+    note: str | None = None
+
+
+class BodyLogResponse(BodyLogCreate):
+    id: int
+    created_at: str
+
+
+# ── Diet Log ──
+
+
+class DietLogCreate(BaseModel):
+    log_time: datetime
+    food_name: str
+    grams: float = Field(ge=0)
+    note: str | None = None
+
+
+class DietLogResponse(DietLogCreate):
+    id: int
+    calories_kcal: float
+    protein_g: float
+    carbs_g: float
+    fat_g: float
+    created_at: str
+
+
+# ── Exercise Log ──
+
+
+class ExerciseLogCreate(BaseModel):
+    log_time: datetime
+    exercise_name: str
+    duration_desc: str
+    calories_kcal: float = Field(ge=0)
+    note: str | None = None
+
+
+class ExerciseLogResponse(ExerciseLogCreate):
+    id: int
+    created_at: str
+
+
+# ── Dashboard ──
+
+
+class TodayBody(BaseModel):
+    weight_kg: float | None = None
+    body_fat_pct: float | None = None
+    waist_cm: float | None = None
+    arm_cm: float | None = None
+    thigh_cm: float | None = None
+    note: str | None = None
+
+
+class TodayDietItem(BaseModel):
+    food_name: str
+    grams: float
+    calories_kcal: float
+    protein_g: float
+    carbs_g: float
+    fat_g: float
+
+
+class TodayExerciseItem(BaseModel):
+    exercise_name: str
+    duration_desc: str
+    calories_kcal: float
+
+
+class TodayResponse(BaseModel):
+    date: date
+    body: TodayBody | None = None
+    diets: list[TodayDietItem] = []
+    exercises: list[TodayExerciseItem] = []
+    total_intake_kcal: float = 0.0
+    total_burned_kcal: float = 0.0
+    total_protein_g: float = 0.0
+    total_carbs_g: float = 0.0
+    total_fat_g: float = 0.0
+    ree_kcal: float = 0.0
+    net_kcal: float = 0.0
+
+
+class ReportRow(BaseModel):
+    date: str
+    weight_kg: float
+    body_fat_pct: float
+    ffm_kg: float
+    ma_weight_kg: float
+    ma_body_fat_pct: float
+    ma_ffm_kg: float
+    deficit_kcal: float
+    expected_deficit_kcal: float | None
+    is_interpolated: bool
+
+
+class ReportSummary(BaseModel):
+    weight_delta: float
+    body_fat_delta: float
+    ffm_delta: float
+    ma_weight_delta: float
+    ma_body_fat_delta: float
+    ma_ffm_delta: float
+    total_deficit_kcal: float
+    total_expected_kcal: float | None
+    met_target: bool | None
+
+
+class ReportResponse(BaseModel):
+    range: str
+    start_date: str
+    end_date: str
+    days: int
+    rows: list[ReportRow]
+    summary: ReportSummary

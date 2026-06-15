@@ -23,11 +23,7 @@ _WHITELISTED = {"profile", "version"}
 
 
 class _LazyApp:
-    """typer.Typer 懒加载代理。
-
-    仅在 subcommand 实际被调用时才 import 对应模块，
-    避免启动时加载所有命令的开销。
-    """
+    """typer.Typer 懒加载代理。"""
 
     def __init__(self, module_path: str, attr: str) -> None:
         self._module_path = module_path
@@ -56,15 +52,18 @@ def callback(
 
     sub = ctx.invoked_subcommand
     if sub is not None and sub not in _WHITELISTED:
-        # 检查画像是否存在
-        from makoto.utils.profile_store import load as load_profile
+        from makoto.client.api import ClientError
+        from makoto.client.api import get_client
 
-        if load_profile() is None:
-            console = console_utils.get_console()
-            console.print(
-                "[red]尚未设置用户画像，请先执行 makoto profile set。[/red]"
-            )
-            raise typer.Exit(1)
+        console = console_utils.get_console()
+        try:
+            get_client().get_profile()
+        except ClientError as e:
+            if e.status == 404:
+                console.print(
+                    "[red]尚未设置用户画像，请先执行 makoto profile set。[/red]"
+                )
+                raise typer.Exit(1) from e
 
 
 app.add_typer(
