@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from makoto.server.auth import get_token
 from makoto.server.database import connect
@@ -58,6 +59,11 @@ app.include_router(body.router)
 app.include_router(diet.router)
 app.include_router(exercise.router)
 app.include_router(dashboard.router)
+
+# 生产环境：挂载前端静态文件
+_web_dir = Path(__file__).resolve().parent.parent.parent.parent / "web" / "dist"
+if _web_dir.is_dir():
+    app.mount("/", StaticFiles(directory=str(_web_dir), html=True), name="web")
 
 
 def main() -> None:
