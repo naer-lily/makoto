@@ -25,11 +25,12 @@ pip install makoto
 
 ## 环境配置
 
-使用前需配置以下环境变量指向已运行的服务端：
+使用前需在项目根目录创建 `.env` 文件或设置环境变量指向已运行的服务端：
 
 ```bash
-export MAKOTO_ENDPOINT=http://127.0.0.1:8000
-export MAKOTO_TOKEN=your-secret-token
+# .env
+MAKOTO_ENDPOINT=http://127.0.0.1:8000
+MAKOTO_TOKEN=your-secret-token
 ```
 
 ## 快速上手
