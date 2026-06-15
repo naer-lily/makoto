@@ -123,8 +123,18 @@ class MakotoClient:
     def dashboard_today(self) -> dict[str, Any]:
         return self._get("/api/v1/dashboard/today")  # type: ignore[no-any-return]
 
-    def dashboard_report(self, range_val: str = "week") -> dict[str, Any]:
-        return self._get(f"/api/v1/dashboard/report?range={range_val}")  # type: ignore[no-any-return]
+    def dashboard_report(
+        self,
+        start_date: str | None = None,
+        end_date: str | None = None,
+    ) -> dict[str, Any]:
+        params = []
+        if start_date:
+            params.append(f"start_date={start_date}")
+        if end_date:
+            params.append(f"end_date={end_date}")
+        qs = "&" + "&".join(params) if params else ""
+        return self._get(f"/api/v1/dashboard/report{qs}")  # type: ignore[no-any-return]
 
 
 _client: MakotoClient | None = None

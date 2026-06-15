@@ -119,8 +119,11 @@ def today() -> None:
 
 @dashboard_app.command()
 def report(
-    range: str = typer.Option(
-        "week", "--range", "-r", help="报告范围 (week | month)"
+    start_date: str | None = typer.Option(
+        None, "--start-date", "-s", help="起始日期 (YYYY-MM-DD)，默认从首条记录开始"
+    ),
+    end_date: str | None = typer.Option(
+        None, "--end-date", "-e", help="结束日期 (YYYY-MM-DD)，默认到目标日期"
     ),
     json_output: bool = typer.Option(
         False, "--json", help="以 JSON 格式输出原始数据"
@@ -130,7 +133,7 @@ def report(
     console = get_console()
     cli = get_client()
     try:
-        data = cli.dashboard_report(range)
+        data = cli.dashboard_report(start_date, end_date)
     except ClientError as e:
         console.print(f"[red]请求失败: {e.detail}[/red]")
         raise typer.Exit(1) from e
@@ -211,10 +214,7 @@ def report(
         f"[bold]{exp_total_str}[/bold]",
     ])
 
-    if range == "week":
-        title_text = f"{data['start_date']} ~ {data['end_date']}"
-    else:
-        title_text = f"{data['start_date']} ~ {data['end_date']} ({data['days']} 天)"
+    title_text = f"{data['start_date']} ~ {data['end_date']} ({data['days']} 天)"
     render_table(
         columns=[
             "日期", "体重", "体脂率", "FFM",

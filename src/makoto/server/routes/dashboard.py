@@ -202,19 +202,37 @@ async def today_dashboard(
     "/report",
     response_model=ReportResponse,
     summary="多日趋势报告",
-    description="返回体重/体脂率/FFM 的逐日数据及七日均线，以及每日热量缺口和预期缺口汇总。",
+    description="返回体重/体脂率/FFM 的逐日数据及七日均线，每日热量缺口，周减重速率。"
+    "默认从首条记录到目标日期。支持 start_date/end_date 自定义范围。",
 )
 async def dashboard_report(
-    range: str = Query("week", alias="range"),
+    start_date_str: str | None = Query(None, alias="start_date"),
+    end_date_str: str | None = Query(None, alias="end_date"),
     _token: str = Depends(verify_token),
     db: aiosqlite.Connection = Depends(get_db),
 ) -> ReportResponse:
     profile = await _get_profile_computed(db)
-    days = 30 if range == "month" else 7
+    target_date = profile.get("target_date")
+    target_weight = profile.get("target_weight_kg")
     today_date = date.today()
-    start_date = today_date - timedelta(days=days - 1)
+
+    start_date = date.fromisoformat(start_date_str) if start_date_str else None
+    end_date = date.fromisoformat(end_date_str) if end_date_str else (
+        target_date if isinstance(target_date, date) else today_date
+    )
+    end_date_date: date = end_date  # type narrowing
+
+    if start_date is None:
+        cursor = await db.execute("SELECT MIN(log_date) FROM body_log")
+        first_row = await cursor.fetchone()
+        start_date = (
+            date.fromisoformat(str(first_row[0]))
+            if first_row and first_row[0]
+            else today_date
+        )
+
     buffer_start = start_date - timedelta(days=14)
-    all_dates = date_series(buffer_start, today_date)
+    all_dates = date_series(buffer_start, end_date_date)
 
     # 身体数据
     raw_weight: dict[date, float] = {}
@@ -242,7 +260,7 @@ async def dashboard_report(
     ma_bf_full = rolling_mean(bf_cont, window=7)
     ma_ffm_full = rolling_mean(ffm_cont, window=7)
 
-    display_dates = date_series(start_date, today_date)
+    display_dates = date_series(start_date, end_date_date)
     weight_original = {d: weight_filled[d][1] for d in display_dates if d in weight_filled}
 
     # 饮食汇总
@@ -292,6 +310,8 @@ async def dashboard_report(
         mw = ma_weight_full.get(d, 0)
         mb = ma_bf_full.get(d, 0)
         mf = ma_ffm_full.get(d, 0)
+        prev_mw = ma_weight_full.get(d - timedelta(days=7))
+        weekly_loss = round(prev_mw - mw, 2) if prev_mw is not None else None
         balance = ree + daily_exercise.get(d, 0.0) - daily_diet.get(d, 0.0)
         total_balance += balance
         exp = daily_expected if daily_expected is not None else 0
@@ -309,15 +329,17 @@ async def dashboard_report(
                 deficit_kcal=round(balance, 1),
                 expected_deficit_kcal=round(exp, 1) if daily_expected is not None else None,
                 is_interpolated=not is_orig,
+                weekly_loss_kg=weekly_loss,
             )
         )
 
-    first = data_rows[0] if data_rows else ReportRow(
+    first: ReportRow = data_rows[0] if data_rows else ReportRow(
         date="", weight_kg=0, body_fat_pct=0, ffm_kg=0,
         ma_weight_kg=0, ma_body_fat_pct=0, ma_ffm_kg=0,
         deficit_kcal=0, expected_deficit_kcal=None, is_interpolated=False,
+        weekly_loss_kg=None,
     )
-    last = data_rows[-1] if data_rows else first
+    last: ReportRow = data_rows[-1] if data_rows else first
 
     summary = ReportSummary(
         weight_delta=round(last.weight_kg - first.weight_kg, 1),
@@ -332,10 +354,11 @@ async def dashboard_report(
     )
 
     return ReportResponse(
-        range=range,
         start_date=str(start_date),
-        end_date=str(today_date),
-        days=days,
+        end_date=str(end_date_date),
+        days=(end_date_date - start_date).days + 1,
+        target_weight_kg=float(target_weight) if target_weight is not None else None,
+        target_date=str(target_date) if target_date is not None else None,
         rows=data_rows,
         summary=summary,
     )

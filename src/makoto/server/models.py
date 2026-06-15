@@ -214,6 +214,7 @@ class ReportRow(BaseModel):
     deficit_kcal: float
     expected_deficit_kcal: float | None
     is_interpolated: bool
+    weekly_loss_kg: float | None
 
 
 class ReportSummary(BaseModel):
@@ -229,9 +230,10 @@ class ReportSummary(BaseModel):
 
 
 class ReportResponse(BaseModel):
-    range: str
     start_date: str
     end_date: str
     days: int
+    target_weight_kg: float | None
+    target_date: str | None
     rows: list[ReportRow]
     summary: ReportSummary
