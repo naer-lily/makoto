@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import typer
-from rich.table import Table
 
 from makoto.models.records import Food
 from makoto.utils.console import get_console
+from makoto.utils.console import render_table
 from makoto.utils.data_paths import foods_path
 from makoto.utils.jsonl_store import JsonlStore
 from makoto.utils.search import search_foods as do_search
@@ -68,25 +68,23 @@ def list_foods() -> None:
         console.print("[dim]暂无已注册食物。[/dim]")
         return
 
-    table = Table(title="食物库")
-    table.add_column("名称", style="cyan")
-    table.add_column("热量/100g", justify="right", style="yellow")
-    table.add_column("蛋白质/100g", justify="right")
-    table.add_column("碳水/100g", justify="right")
-    table.add_column("脂肪/100g", justify="right")
-    table.add_column("关键词", style="dim")
-
-    for f in foods:
-        table.add_row(
-            f.name,
-            f"{f.calories_per_100g:.0f} kcal",
-            f"{f.protein_per_100g:.1f} g",
-            f"{f.carbs_per_100g:.1f} g",
-            f"{f.fat_per_100g:.1f} g",
-            ", ".join(f.search_keywords),
-        )
-
-    console.print(table)
+    render_table(
+        columns=["名称", "热量/100g", "蛋白质/100g", "碳水/100g", "脂肪/100g", "关键词"],
+        rows=[
+            [
+                f.name,
+                f"{f.calories_per_100g:.0f} kcal",
+                f"{f.protein_per_100g:.1f} g",
+                f"{f.carbs_per_100g:.1f} g",
+                f"{f.fat_per_100g:.1f} g",
+                ", ".join(f.search_keywords),
+            ]
+            for f in foods
+        ],
+        title="食物库",
+        align=["left", "right", "right", "right", "right", "left"],
+        col_styles=["cyan", "yellow", "", "", "", "dim"],
+    )
 
 
 @food_app.command()
@@ -111,24 +109,23 @@ def show(
         console.print(f"  备注:             {food.note}")
 
     console.print("\n[bold]常见份量参考:[/bold]")
-    ref_table = Table()
-    ref_table.add_column("克数", justify="right")
-    ref_table.add_column("热量", justify="right", style="yellow")
-    ref_table.add_column("蛋白质", justify="right")
-    ref_table.add_column("碳水", justify="right")
-    ref_table.add_column("脂肪", justify="right")
-
+    ref_rows: list[list[str]] = []
     for grams in [50, 100, 150, 200, 250, 300]:
         n = food.nutrition_for(grams)
-        ref_table.add_row(
+        ref_rows.append([
             f"{grams}",
             f"{n['calories_kcal']:.0f} kcal",
             f"{n['protein_g']:.1f} g",
             f"{n['carbs_g']:.1f} g",
             f"{n['fat_g']:.1f} g",
-        )
+        ])
 
-    console.print(ref_table)
+    render_table(
+        columns=["克数", "热量", "蛋白质", "碳水", "脂肪"],
+        rows=ref_rows,
+        align=["right", "right", "right", "right", "right"],
+        col_styles=["", "yellow", "", "", ""],
+    )
 
 
 @food_app.command()
@@ -149,13 +146,12 @@ def search(
         return
 
     console.print(f"\n[bold]搜索 '{query}' 结果（按相似度排序）:[/bold]\n")
-    table = Table()
-    table.add_column("#", justify="right", style="dim")
-    table.add_column("名称", style="cyan")
-    table.add_column("编辑距离", justify="right")
-
-    for i, (dist, name) in enumerate(results, 1):
-        dist_style = "[green]" if dist == 0 else ""
-        table.add_row(str(i), name, f"{dist_style}{dist}")
-
-    console.print(table)
+    render_table(
+        columns=["#", "名称", "编辑距离"],
+        rows=[
+            [str(i), name, str(dist)]
+            for i, (dist, name) in enumerate(results, 1)
+        ],
+        align=["right", "left", "right"],
+        col_styles=["dim", "cyan", ""],
+    )

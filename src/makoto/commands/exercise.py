@@ -5,10 +5,10 @@ from __future__ import annotations
 from datetime import datetime
 
 import typer
-from rich.table import Table
 
 from makoto.models.records import ExerciseLog
 from makoto.utils.console import get_console
+from makoto.utils.console import render_table
 from makoto.utils.data_paths import exercise_logs_path
 from makoto.utils.jsonl_store import JsonlStore
 from makoto.utils.tz import format_local
@@ -62,23 +62,24 @@ def list_exercise(
         console.print("[dim]暂无运动记录。[/dim]")
         return
 
-    table = Table(title="运动记录")
-    table.add_column("时间", style="cyan")
-    table.add_column("运动", style="green")
-    table.add_column("时长/数量")
-    table.add_column("消耗热量", justify="right", style="yellow")
-    table.add_column("备注", style="dim")
-
     total_cal = 0.0
+    rows: list[list[str]] = []
     for r in logs:
         total_cal += r.calories_kcal
-        table.add_row(
+        rows.append([
             format_local(r.log_time),
             r.exercise_name,
             r.duration_desc,
             f"{r.calories_kcal:.0f} kcal",
             r.note or "",
-        )
+        ])
 
-    console.print(table)
+    render_table(
+        columns=["时间", "运动", "时长/数量", "消耗热量", "备注"],
+        rows=rows,
+        title="运动记录",
+        align=["left", "left", "left", "right", "left"],
+        col_styles=["cyan", "green", "", "yellow", "dim"],
+    )
+
     console.print(f"[bold]显示 {len(logs)} 条，合计 {total_cal:.0f} kcal[/bold]")

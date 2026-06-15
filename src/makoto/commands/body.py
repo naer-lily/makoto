@@ -5,10 +5,10 @@ from __future__ import annotations
 from datetime import date
 
 import typer
-from rich.table import Table
 
 from makoto.models.records import BodyLog
 from makoto.utils.console import get_console
+from makoto.utils.console import render_table
 from makoto.utils.data_paths import body_logs_path
 from makoto.utils.jsonl_store import JsonlStore
 
@@ -64,24 +64,21 @@ def list_body() -> None:
         console.print("[dim]暂无身体测量记录。[/dim]")
         return
 
-    table = Table(title="身体测量记录")
-    table.add_column("日期", style="cyan")
-    table.add_column("体重", justify="right", style="yellow")
-    table.add_column("体脂率", justify="right")
-    table.add_column("腰围", justify="right")
-    table.add_column("臂围", justify="right")
-    table.add_column("大腿围", justify="right")
-    table.add_column("备注", style="dim")
-
-    for r in logs:
-        table.add_row(
-            str(r.log_date),
-            f"{r.weight_kg:.1f} kg",
-            f"{r.body_fat_pct:.1f}%",
-            f"{r.waist_cm:.1f}" if r.waist_cm else "-",
-            f"{r.arm_cm:.1f}" if r.arm_cm else "-",
-            f"{r.thigh_cm:.1f}" if r.thigh_cm else "-",
-            r.note or "",
-        )
-
-    console.print(table)
+    render_table(
+        columns=["日期", "体重", "体脂率", "腰围", "臂围", "大腿围", "备注"],
+        rows=[
+            [
+                str(r.log_date),
+                f"{r.weight_kg:.1f} kg",
+                f"{r.body_fat_pct:.1f}%",
+                f"{r.waist_cm:.1f}" if r.waist_cm else "-",
+                f"{r.arm_cm:.1f}" if r.arm_cm else "-",
+                f"{r.thigh_cm:.1f}" if r.thigh_cm else "-",
+                r.note or "",
+            ]
+            for r in logs
+        ],
+        title="身体测量记录",
+        align=["left", "right", "right", "right", "right", "right", "left"],
+        col_styles=["cyan", "yellow", "", "", "", "", "dim"],
+    )

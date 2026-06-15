@@ -5,11 +5,11 @@ from __future__ import annotations
 from datetime import datetime
 
 import typer
-from rich.table import Table
 
 from makoto.models.records import DietLog
 from makoto.models.records import Food
 from makoto.utils.console import get_console
+from makoto.utils.console import render_table
 from makoto.utils.data_paths import diet_logs_path
 from makoto.utils.data_paths import foods_path
 from makoto.utils.jsonl_store import JsonlStore
@@ -68,17 +68,8 @@ def list_diet(
         console.print("[dim]暂无饮食记录。[/dim]")
         return
 
-    table = Table(title="饮食记录")
-    table.add_column("时间", style="cyan")
-    table.add_column("食物", style="green")
-    table.add_column("克数", justify="right")
-    table.add_column("热量", justify="right", style="yellow")
-    table.add_column("蛋白质", justify="right")
-    table.add_column("碳水", justify="right")
-    table.add_column("脂肪", justify="right")
-    table.add_column("备注", style="dim")
-
     total_cal = 0.0
+    rows: list[list[str]] = []
     for r in logs:
         food = food_store.find_one(
             (lambda fn: lambda f: f.name == fn)(r.food_name)
@@ -90,7 +81,7 @@ def list_diet(
             cal, p, c, fv = n["calories_kcal"], n["protein_g"], n["carbs_g"], n["fat_g"]
 
         total_cal += cal
-        table.add_row(
+        rows.append([
             format_local(r.log_time),
             r.food_name,
             f"{r.grams:.0f}",
@@ -99,7 +90,14 @@ def list_diet(
             f"{c:.1f} g",
             f"{fv:.1f} g",
             r.note or "",
-        )
+        ])
 
-    console.print(table)
+    render_table(
+        columns=["时间", "食物", "克数", "热量", "蛋白质", "碳水", "脂肪", "备注"],
+        rows=rows,
+        title="饮食记录",
+        align=["left", "left", "right", "right", "right", "right", "right", "left"],
+        col_styles=["cyan", "green", "", "yellow", "", "", "", "dim"],
+    )
+
     console.print(f"[bold]显示 {len(logs)} 条，合计 {total_cal:.0f} kcal[/bold]")
