@@ -1,17 +1,13 @@
 """用户画像数据模型。
 
-性别、活动系数使用 StrEnum（Python 3.11+）。
-计算属性 FFM/BMR/REE 仅通过 property 暴露，不参与序列化。
+使用标准库 dataclass + StrEnum，不依赖 pydantic。
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import date
 from enum import StrEnum
-
-from pydantic import BaseModel
-from pydantic import ConfigDict
-from pydantic import Field
 
 
 class Gender(StrEnum):
@@ -45,11 +41,12 @@ class ActivityLevel(StrEnum):
         }[self]
 
 
-class UserProfile(BaseModel):
+@dataclass
+class UserProfile:
     """用户画像，持有一份个人基本数据与目标。
 
     Attributes:
-        name: 姓名（暂未使用）。
+        name: 姓名。
         gender: 性别，影响 BMR。
         age: 年龄。
         height_cm: 身高（厘米）。
@@ -60,17 +57,42 @@ class UserProfile(BaseModel):
         activity_level: 日常活动系数（不含刻意运动）。
     """
 
-    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+    name: str
+    gender: Gender
+    age: int
+    height_cm: float
+    weight_kg: float
+    body_fat_pct: float
+    target_weight_kg: float
+    target_date: date
+    activity_level: ActivityLevel
 
-    name: str = Field(..., min_length=1, description="姓名")
-    gender: Gender = Field(..., description="性别")
-    age: int = Field(..., ge=1, le=120, description="年龄")
-    height_cm: float = Field(..., gt=0, description="身高（厘米）")
-    weight_kg: float = Field(..., gt=0, description="当前体重（公斤）")
-    body_fat_pct: float = Field(..., ge=0, le=60, description="体脂率（%）")
-    target_weight_kg: float = Field(..., gt=0, description="目标体重（公斤）")
-    target_date: date = Field(..., description="目标达成日期")
-    activity_level: ActivityLevel = Field(..., description="日常活动系数")
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "name": self.name,
+            "gender": str(self.gender),
+            "age": self.age,
+            "height_cm": self.height_cm,
+            "weight_kg": self.weight_kg,
+            "body_fat_pct": self.body_fat_pct,
+            "target_weight_kg": self.target_weight_kg,
+            "target_date": self.target_date.isoformat(),
+            "activity_level": str(self.activity_level),
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict[str, object]) -> UserProfile:
+        return cls(
+            name=str(d["name"]),
+            gender=Gender(str(d["gender"])),
+            age=int(d["age"]),  # type: ignore[call-overload]
+            height_cm=float(d["height_cm"]),  # type: ignore[arg-type]
+            weight_kg=float(d["weight_kg"]),  # type: ignore[arg-type]
+            body_fat_pct=float(d["body_fat_pct"]),  # type: ignore[arg-type]
+            target_weight_kg=float(d["target_weight_kg"]),  # type: ignore[arg-type]
+            target_date=date.fromisoformat(str(d["target_date"])),
+            activity_level=ActivityLevel(str(d["activity_level"])),
+        )
 
     @property
     def ffm_kg(self) -> float:
@@ -88,11 +110,7 @@ class UserProfile(BaseModel):
             male:   10 × weight + 6.25 × height - 5 × age + 5
             female: 10 × weight + 6.25 × height - 5 × age - 161
         """
-        base = (
-            10 * self.weight_kg
-            + 6.25 * self.height_cm
-            - 5 * self.age
-        )
+        base = 10 * self.weight_kg + 6.25 * self.height_cm - 5 * self.age
         if self.gender == Gender.MALE:
             return round(base + 5, 1)
         return round(base - 161, 1)

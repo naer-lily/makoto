@@ -1,8 +1,12 @@
 """JSONL 数据文件读写工具。
 
 提供统一的追加写入、全量读取、按条件查询的底层接口。
+不依赖 pydantic，使用 dataclass 的 to_dict/from_dict 协议。
 """
 
+from __future__ import annotations
+
+import json
 from collections.abc import Callable
 from collections.abc import Iterator
 from pathlib import Path
@@ -10,10 +14,11 @@ from typing import Generic
 from typing import TypeVar
 
 from loguru import logger
-from pydantic import BaseModel
 
-T = TypeVar("T", bound=BaseModel)
-"""数据模型类型变量，限定为 pydantic BaseModel 子类。"""
+from makoto.models.records import JsonlRecord
+
+T = TypeVar("T", bound=JsonlRecord)
+"""数据模型类型变量，限定为实现 to_dict/from_dict 协议的类型。"""
 
 
 class JsonlStore(Generic[T]):
@@ -27,7 +32,7 @@ class JsonlStore(Generic[T]):
 
         Args:
             filepath: JSONL 文件路径。
-            model: 对应的 pydantic 模型类，用于反序列化校验。
+            model: 对应的模型类，用于反序列化。
         """
         self._filepath = filepath
         self._model = model
@@ -44,7 +49,7 @@ class JsonlStore(Generic[T]):
             record: 待写入的模型实例。
         """
         self._filepath.parent.mkdir(parents=True, exist_ok=True)
-        line = record.model_dump_json()
+        line = json.dumps(record.to_dict(), ensure_ascii=False)
         with open(self._filepath, "a", encoding="utf-8") as f:
             f.write(line + "\n")
         logger.debug(f"已写入 {self._filepath.name}: {line}")
@@ -64,7 +69,8 @@ class JsonlStore(Generic[T]):
                 if not line:
                     continue
                 try:
-                    results.append(self._model.model_validate_json(line))
+                    d = json.loads(line)
+                    results.append(self._model.from_dict(d))
                 except Exception:
                     logger.warning(f"跳过无效记录: {line[:80]}...")
         return results
@@ -117,6 +123,6 @@ class JsonlStore(Generic[T]):
             self._filepath.parent.mkdir(parents=True, exist_ok=True)
             with open(self._filepath, "w", encoding="utf-8") as f:
                 for record in kept:
-                    f.write(record.model_dump_json() + "\n")
+                    f.write(json.dumps(record.to_dict(), ensure_ascii=False) + "\n")
             logger.debug(f"已从 {self._filepath.name} 删除 {deleted} 条记录")
         return deleted

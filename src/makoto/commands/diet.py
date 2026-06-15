@@ -1,6 +1,6 @@
 """饮食记录命令。
 
-同一时间仅允许一条记录（需相差至少 1 秒）。
+同一分钟仅允许一条记录（需相差至少 1 分钟）。
 """
 
 from __future__ import annotations
@@ -31,13 +31,13 @@ def log(
         "--time",
         "-t",
         formats=["%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M"],
-        help="进餐时间（同秒不可重复）",
+        help="进餐时间（同分钟不可重复）",
     ),
     food_name: str = typer.Option(..., "--food", "-f", help="食物名称（须已注册）"),
     grams: float = typer.Option(..., "--grams", "-g", min=0, help="摄入克数"),
     note: str | None = typer.Option(None, "--note", "-n", help="备注"),
 ) -> None:
-    """记录一次饮食（同秒不可重复）。"""
+    """记录一次饮食（同分钟不可重复）。"""
     console = get_console()
     log_time_aware = ensure_aware(log_time)
     if food_store.find_one(lambda f: f.name == food_name) is None:
@@ -46,7 +46,7 @@ def log(
 
     if diet_store.find_one(lambda r: r.log_time == log_time_aware) is not None:
         console.print(
-            f"[red]{format_local(log_time)} 已有记录，请错开至少 1 秒。[/red]"
+            f"[red]{format_local(log_time)} 已有记录，请错开至少 1 分钟。[/red]"
         )
         raise typer.Exit(1)
 

@@ -10,7 +10,7 @@
 - **构建系统**: hatchling (pyproject.toml)
 - **包管理器**: pip (依赖全部在 pyproject.toml 中声明，不使用 requirements.txt)
 - **CLI 框架**: typer
-- **数据模型**: pydantic v2
+- **数据模型**: 标准库 dataclass（已移除 pydantic，启动快 7x）
 - **格式化**: black (行宽 100)
 - **Lint**: ruff (严格模式)
 - **类型检查**: mypy (strict)
@@ -62,24 +62,29 @@ def get_daily_calories(
     ...
 ```
 
-### Pydantic 模型
+### 数据模型（dataclass）
 
-所有数据结构使用 pydantic BaseModel，配置 `extra = "forbid"` 和 `validate_assignment = True`。
-使用 `str | None` 而非 `Optional[str]`。
+所有数据结构使用标准库 `@dataclass`，每个类必须实现 `to_dict()` 和 `from_dict()` classmethod 用于 JSONL 序列化。
 
 ```python
-from pydantic import BaseModel, Field, ConfigDict
+from dataclasses import dataclass
 
-class BodyMeasurement(BaseModel):
-    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+@dataclass
+class BodyMeasurement:
+    weight_kg: float
+    body_fat_pct: float | None = None
 
-    weight_kg: float = Field(..., gt=0, description="体重（公斤）")
-    body_fat_pct: float | None = Field(None, ge=0, le=60, description="体脂率（%）")
+    def to_dict(self) -> dict[str, object]:
+        return {"weight_kg": self.weight_kg, "body_fat_pct": self.body_fat_pct}
+
+    @classmethod
+    def from_dict(cls, d: dict[str, object]) -> BodyMeasurement:
+        return cls(weight_kg=float(d["weight_kg"]), body_fat_pct=...)
 ```
 
 ### 字符串枚举
 
-Python 3.11+ 使用 `StrEnum`：
+Python 3.11+ 使用标准库 `StrEnum`：
 
 ```python
 from enum import StrEnum

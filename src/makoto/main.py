@@ -1,6 +1,6 @@
 """CLI 应用入口。
 
-命令模块延迟加载，避免 pydantic-core 编译阻塞启动。
+命令模块延迟加载，避免启动时全量 import。
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ class _LazyApp:
     """typer.Typer 懒加载代理。
 
     仅在 subcommand 实际被调用时才 import 对应模块，
-    避免启动时加载所有命令引发的 pydantic-core 编译开销。
+    避免启动时加载所有命令的开销。
     """
 
     def __init__(self, module_path: str, attr: str) -> None:
@@ -56,7 +56,7 @@ def callback(
 
     sub = ctx.invoked_subcommand
     if sub is not None and sub not in _WHITELISTED:
-        # 延迟导入 profile_store（依赖 pydantic）
+        # 检查画像是否存在
         from makoto.utils.profile_store import load as load_profile
 
         if load_profile() is None:

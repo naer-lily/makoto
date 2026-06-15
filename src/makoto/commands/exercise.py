@@ -1,6 +1,6 @@
 """运动记录命令。
 
-同一时间仅允许一条记录（需相差至少 1 秒）。
+同一分钟仅允许一条记录（需相差至少 1 分钟）。
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ def log(
         "--time",
         "-t",
         formats=["%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M"],
-        help="运动时间（同秒不可重复）",
+        help="运动时间（同分钟不可重复）",
     ),
     name: str = typer.Option(..., "--name", "-n", help="运动名称"),
     duration: str = typer.Option(..., "--duration", "-d", help="时长/组数/数量"),
@@ -37,12 +37,12 @@ def log(
     ),
     note: str | None = typer.Option(None, "--note", help="备注"),
 ) -> None:
-    """记录一次运动（同秒不可重复）。"""
+    """记录一次运动（同分钟不可重复）。"""
     console = get_console()
     log_time_aware = ensure_aware(log_time)
     if store.find_one(lambda r: r.log_time == log_time_aware) is not None:
         console.print(
-            f"[red]{format_local(log_time)} 已有记录，请错开至少 1 秒。[/red]"
+            f"[red]{format_local(log_time)} 已有记录，请错开至少 1 分钟。[/red]"
         )
         raise typer.Exit(1)
 

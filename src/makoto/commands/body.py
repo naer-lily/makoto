@@ -14,6 +14,8 @@ from makoto.utils.console import get_console
 from makoto.utils.console import render_table
 from makoto.utils.data_paths import body_logs_path
 from makoto.utils.jsonl_store import JsonlStore
+from makoto.utils.profile_store import load as load_profile
+from makoto.utils.profile_store import save as save_profile
 
 body_app = typer.Typer(no_args_is_help=True)
 store = JsonlStore(body_logs_path(), BodyLog)
@@ -58,8 +60,15 @@ def log(
     )
     store.append(record)
     console.print(
-        f"[green]已记录 {log_date} 身体数据: {weight} kg / {body_fat}%[/green]"
+        f"[green]已记录 {parsed_date} 身体数据: {weight} kg / {body_fat}%[/green]"
     )
+
+    # 自动更新画像中的体重和体脂率
+    profile = load_profile()
+    if profile is not None:
+        profile.weight_kg = weight
+        profile.body_fat_pct = body_fat
+        save_profile(profile)
 
 
 @body_app.command()

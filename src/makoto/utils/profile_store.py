@@ -1,9 +1,11 @@
 """用户画像持久化。
 
-以单文件 JSON 存储于 data/profile.json。
+以单文件 JSON 存储于 data/profile.json，使用标准库 json 模块。
 """
 
 from __future__ import annotations
+
+import json
 
 from makoto.models.profile import UserProfile
 from makoto.utils.data_paths import profile_path
@@ -18,7 +20,8 @@ def load() -> UserProfile | None:
     filepath = profile_path()
     if not filepath.exists():
         return None
-    return UserProfile.model_validate_json(filepath.read_text(encoding="utf-8"))
+    d = json.loads(filepath.read_text(encoding="utf-8"))
+    return UserProfile.from_dict(d)
 
 
 def save(profile: UserProfile) -> None:
@@ -29,4 +32,5 @@ def save(profile: UserProfile) -> None:
     """
     filepath = profile_path()
     filepath.parent.mkdir(parents=True, exist_ok=True)
-    filepath.write_text(profile.model_dump_json(indent=2), encoding="utf-8")
+    content = json.dumps(profile.to_dict(), ensure_ascii=False, indent=2)
+    filepath.write_text(content, encoding="utf-8")
