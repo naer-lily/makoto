@@ -10,7 +10,5 @@ services:
       - MAKOTO_PORT=8000
       - MAKOTO_TOKEN=${MAKOTO_TOKEN:-changeme}
     volumes:
-      - makoto_data:/app/data
+      - ./data:/app/data
 
-volumes:
-  makoto_data:
