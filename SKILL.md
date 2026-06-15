@@ -1,23 +1,52 @@
-# makoto — CLI 健身助手
+---
+name: makoto
+description: CLI + API 健身助手。记录身体数据、饮食与运动，生成统计数据。通过 FastAPI 服务端操作 SQLite 数据库，CLI 通过 HTTP 调用。
+---
 
-makoto 是一个命令行健身追踪工具，用于记录和管理个人身体数据、饮食与运动日志。
+# makoto — CLI + API 健身助手
 
-## 安装
+makoto 是一个健身追踪工具，名字来源于《偶像大师》中菊地真——那位帅气又可爱的运动系女孩。
+
+## 架构
+
+```
+makoto (CLI) --httpx--> FastAPI Server --aiosqlite--> SQLite (data/makoto.db)
+```
+
+- `makoto` — CLI 客户端，通过 HTTP 调用 API
+- `makoto-server` — FastAPI 服务端，操作 SQLite 数据库，提供 REST API
+- 鉴权：Bearer Token（环境变量 `MAKOTO_TOKEN`）
+
+## 安装与启动
 
 ```bash
 pip install makoto
 ```
 
-安装后通过 `makoto` 命令使用。
+先启动服务端：
+
+```bash
+# 未设 MAKOTO_TOKEN 会自动生成随机 token 并打印
+MAKOTO_TOKEN=your-secret-token makoto-server
+
+# 或 Docker
+docker-compose up -d
+```
+
+然后设置 CLI 客户端环境变量：
+
+```bash
+export MAKOTO_ENDPOINT=http://127.0.0.1:8000
+export MAKOTO_TOKEN=your-secret-token
+```
 
 ## 快速上手
 
-使用 makoto 的典型流程：
-
-1. **设定画像** — 录入性别、身高、体重、目标
-2. **录入食物库** — 把常吃的食物及其营养数据加进去
-3. **每日记录** — 晨起体重、三餐饮食、运动消耗
-4. **查看总览** — 今日净热量、7 日/30 日趋势报告
+1. **启动服务端** — `makoto-server`
+2. **设定画像** — 录入性别、身高、体重、目标
+3. **录入食物库** — 把常吃的食物及其营养数据加进去
+4. **每日记录** — 晨起体重、三餐饮食、运动消耗
+5. **查看总览** — 今日净热量、7 日/30 日趋势报告
 
 第一步：设定你的个人画像。
 
@@ -27,14 +56,8 @@ makoto profile set --name "张三" --gender male --age 30 --height 175 -w 80 -b 
 
 - `--gender`: `male` | `female`
 - `-a` / `--activity`: `sedentary` | `light` | `moderate` | `active` | `very_active`
-- `-b` / `--body-fat`: 体脂率（%），可选
+- `-b` / `--body-fat`: 体脂率（%）
 - `--target-date`: 目标达成日期，格式 `YYYY-MM-DD`
-
-随时可查看：
-
-```bash
-makoto profile show
-```
 
 系统会根据画像自动计算 FFM（去脂体重）、BMR（基础代谢）和 REE（每日消耗估算），并在 dashboard 中使用。
 
@@ -90,6 +113,8 @@ makoto body delete -d 2026-06-10
 - `--waist`, `--arm`, `--thigh`: 围度（厘米）
 - `-n` / `--note`: 备注
 
+录入后画像中的体重和体脂率自动同步。
+
 ## 饮食记录
 
 引用食物库中的食物，按实际克数自动计算摄入营养。
@@ -98,9 +123,6 @@ makoto body delete -d 2026-06-10
 # 记录一餐
 makoto diet log -t "2026-06-15 08:00" -f 鸡蛋 -g 200 -n "早餐"
 
-# 不写时间则默认当前时刻
-makoto diet log -f 鸡胸肉 -g 150
-
 # 列表（最近 N 条，默认 50）
 makoto diet list -n 20
 
@@ -108,9 +130,11 @@ makoto diet list -n 20
 makoto diet delete -t "2026-06-15 08:00"
 ```
 
-- `-t` / `--time`: 进食时间，支持 `YYYY-MM-DD HH:MM` 或带秒。默认当前时间
+- `-t` / `--time`: 进食时间，支持 `YYYY-MM-DD HH:MM`
 - `-f` / `--food`: 食物名称（必须在食物库中存在）
 - `-g` / `--grams`: 食用克数
+
+同分钟不可重复。
 
 ## 运动记录
 
@@ -130,6 +154,8 @@ makoto exercise delete -t "2026-06-15 18:30"
 - `-d` / `--duration`: 时长描述（自由文本）
 - `-c` / `--calories`: 消耗热量（千卡）
 
+同分钟不可重复。
+
 ## Dashboard 总览
 
 ```bash
@@ -139,6 +165,9 @@ makoto dashboard today
 # 7 日或 30 日趋势报告（插值 + 7 日均线平滑）
 makoto dashboard report -r week
 makoto dashboard report -r month
+
+# JSON 格式输出（供程序消费）
+makoto dashboard report -r week --json
 ```
 
 ## 全局选项
@@ -148,10 +177,19 @@ makoto dashboard report -r month
 makoto food list --plain
 ```
 
-## 数据目录
+## 服务端配置
 
-所有数据默认存放在当前工作目录的 `data/` 子目录下。可通过环境变量 `MAKOTO_DATA_DIR` 自定义路径，例如：
+| 环境变量 | 用途 | 默认值 |
+|----------|------|--------|
+| `MAKOTO_HOST` | 服务端监听地址 | `0.0.0.0` |
+| `MAKOTO_PORT` | 服务端监听端口 | `8000` |
+| `MAKOTO_TOKEN` | 鉴权 token（未设自动生成） | 随机 |
+| `MAKOTO_DATA_DIR` | 数据目录路径 | 项目根 `data/` |
 
-```bash
-export MAKOTO_DATA_DIR="$HOME/.makoto"
-```
+## 客户端配置
+
+| 环境变量 | 用途 | 默认值 |
+|----------|------|--------|
+| `MAKOTO_ENDPOINT` | API 地址 | `http://127.0.0.1:8000` |
+| `MAKOTO_TOKEN` | 鉴权 token | 空 |
+| `MAKOTO_DATA_DIR` | 数据目录（仅 `version` 命令不需） | 项目根 `data/` |

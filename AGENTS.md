@@ -10,12 +10,27 @@
 - **构建系统**: hatchling (pyproject.toml)
 - **包管理器**: pip (依赖全部在 pyproject.toml 中声明，不使用 requirements.txt)
 - **CLI 框架**: typer
-- **数据模型**: 标准库 dataclass（已移除 pydantic，启动快 7x）
+- **API 框架**: FastAPI + uvicorn
+- **数据模型**: pydantic v2 (server/models.py)
+- **存储**: SQLite via aiosqlite (raw sqlite3，不用 ORM)
+- **HTTP 客户端**: httpx (CLI → Server 通信)
 - **格式化**: black (行宽 100)
 - **Lint**: ruff (严格模式)
 - **类型检查**: mypy (strict)
 - **测试**: pytest + pytest-cov
 - **日志**: loguru
+
+## 架构
+
+```
+makoto/                          # CLI 客户端
+    --httpx--> FastAPI Server    # makoto-server 入口
+                  --aiosqlite--> SQLite (data/makoto.db)
+```
+
+两个入口点：
+- `makoto` — CLI 客户端（`makoto.main:app`）
+- `makoto-server` — FastAPI 服务端（`makoto.server.app:main`）
 
 ## 代码风格
 
@@ -62,49 +77,46 @@ def get_daily_calories(
     ...
 ```
 
-### 数据模型（dataclass）
+### 数据模型（pydantic v2）
 
-所有数据结构使用标准库 `@dataclass`，每个类必须实现 `to_dict()` 和 `from_dict()` classmethod 用于 JSONL 序列化。
+所有数据结构使用 pydantic v2 `BaseModel`，分为三类：
 
-```python
-from dataclasses import dataclass
-
-@dataclass
-class BodyMeasurement:
-    weight_kg: float
-    body_fat_pct: float | None = None
-
-    def to_dict(self) -> dict[str, object]:
-        return {"weight_kg": self.weight_kg, "body_fat_pct": self.body_fat_pct}
-
-    @classmethod
-    def from_dict(cls, d: dict[str, object]) -> BodyMeasurement:
-        return cls(weight_kg=float(d["weight_kg"]), body_fat_pct=...)
-```
-
-### 字符串枚举
-
-Python 3.11+ 使用标准库 `StrEnum`：
+- `XxxCreate` — POST/PUT 入参
+- `XxxResponse` — 返回体（含 id + created_at）
+- 嵌套模型用于复合响应（如 Dashboard）
 
 ```python
-from enum import StrEnum
+from pydantic import BaseModel, Field
 
-class Gender(StrEnum):
-    MALE = "male"
-    FEMALE = "female"
+class FoodCreate(BaseModel):
+    name: str
+    calories_per_100g: float = Field(default=0.0, ge=0)
+    protein_per_100g: float = Field(default=0.0, ge=0)
+    ...
+
+class FoodResponse(FoodCreate):
+    id: int
+    created_at: str
 ```
 
-### 时序工具
+### 数据库操作（raw sqlite3）
 
-纯函数式设计，无副作用，可组合：
+不使用 ORM，直接用 aiosqlite 手动 SQL。行通过 `_dict_factory` 转为 dict：
 
 ```python
-from makoto.utils.timeseries import date_series, linear_interpolate, rolling_mean
+# database.py
+def _dict_factory(cursor, row):
+    return {col[0]: row[idx] for idx, col in enumerate(cursor.description)}
 
-dates = date_series(start, end)
-filled = linear_interpolate(raw_data, dates)
-smoothed = rolling_mean(filled, window=7)
+# routes 中
+cursor = await db.execute("SELECT * FROM food WHERE id = ?", (food_id,))
+row = await cursor.fetchone()
+d = dict(row)
 ```
+
+### 鉴权
+
+FastAPI 端点通过 `Depends(verify_token)` 保护。`verify_token` 从 `HTTPBearer` 中提取 token 与 `MAKOTO_TOKEN` 环境变量比对。CLI 客户端请求带 `Authorization: Bearer <token>` 头。
 
 ### 输出设计
 
@@ -119,35 +131,53 @@ makoto/
 ├── src/
 │   └── makoto/
 │       ├── __init__.py
-│       ├── main.py          # CLI 入口 + _LazyApp 延迟加载
-│       ├── models/          # pydantic 数据模型
-│       │   ├── records.py   # Food / BodyLog / DietLog / ExerciseLog
-│       │   └── profile.py   # Gender / ActivityLevel / UserProfile
-│       ├── commands/        # CLI 子命令
-│       │   ├── profile.py   # 用户画像
-│       │   ├── food.py      # 食物库
-│       │   ├── body.py      # 身体测量
-│       │   ├── diet.py      # 饮食记录
-│       │   ├── exercise.py  # 运动记录
-│       │   └── dashboard.py # 数据总览
-│       └── utils/           # 工具函数
-│           ├── jsonl_store.py   # JSONL 通用读写
-│           ├── search.py        # Levenshtein 搜索
-│           ├── tz.py            # 时区处理
-│           ├── timeseries.py    # 时序纯函数
-│           ├── console.py       # 终端输出 / Markdown 降级
-│           ├── data_paths.py    # data/ 路径配置
-│           └── profile_store.py # profile.json 读写
+│       ├── main.py                # CLI 入口 + _LazyApp 延迟加载
+│       ├── server/                # FastAPI 服务端
+│       │   ├── __init__.py
+│       │   ├── app.py             # FastAPI 应用 + lifespan + main() 入口
+│       │   ├── auth.py            # Bearer token 鉴权依赖
+│       │   ├── database.py        # aiosqlite 连接管理 + 建表 + dict factory
+│       │   ├── models.py          # pydantic v2 全部模型 + nutrition_for()
+│       │   └── routes/            # API 路由
+│       │       ├── profile.py     # /api/v1/profile
+│       │       ├── foods.py       # /api/v1/foods
+│       │       ├── body.py        # /api/v1/body-logs
+│       │       ├── diet.py        # /api/v1/diet-logs
+│       │       ├── exercise.py    # /api/v1/exercise-logs
+│       │       └── dashboard.py   # /api/v1/dashboard/{today,report}
+│       ├── client/                # HTTP 客户端
+│       │   ├── __init__.py
+│       │   ├── config.py          # MAKOTO_ENDPOINT / MAKOTO_TOKEN
+│       │   └── api.py             # MakotoClient + get_client() 单例
+│       ├── commands/              # CLI 子命令（HTTP 客户端模式）
+│       │   ├── profile.py         # 用户画像
+│       │   ├── food.py            # 食物库
+│       │   ├── body.py            # 身体测量
+│       │   ├── diet.py            # 饮食记录
+│       │   ├── exercise.py        # 运动记录
+│       │   └── dashboard.py       # 数据总览
+│       └── utils/                 # 工具函数
+│           ├── console.py         # 终端输出 / Markdown 降级
+│           ├── tz.py              # 时区处理
+│           ├── timeseries.py      # 时序纯函数（date_series / interpolate / rolling_mean）
+│           ├── search.py          # Levenshtein 模糊搜索
+│           └── data_paths.py      # data/ 路径配置
+├── scripts/
+│   └── migrate_jsonl_to_sqlite.py # 一次性 JSONL → SQLite 迁移（不再维护）
+├── data/
+│   └── makoto.db                  # SQLite 数据库
 ├── tests/
 ├── pyproject.toml
+├── Dockerfile
+├── docker-compose.yml
 ├── README.md
-└── AGENTS.md
+├── AGENTS.md
+└── SKILL.md
 ```
 
 ### 延迟加载
 
 `main.py` 使用 `_LazyApp` 代理注册子命令，仅在用户实际调用时 import 对应模块。
-避免启动时 pydantic-core 编译开销阻塞。
 
 ```python
 class _LazyApp:
@@ -161,8 +191,6 @@ class _LazyApp:
             mod = importlib.import_module(self._module_path)
             self._app = getattr(mod, self._attr)
         return self._app
-
-app.add_typer(_LazyApp("makoto.commands.food", "food_app"), name="food", ...)
 ```
 
 ### Git 提交
@@ -176,7 +204,7 @@ app.add_typer(_LazyApp("makoto.commands.food", "food_app"), name="food", ...)
 每次提交前执行：
 
 ```bash
-ruff check src/ tests/
+ruff check src/ scripts/
 mypy src/
 pytest -v
 ```
