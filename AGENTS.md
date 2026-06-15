@@ -22,12 +22,14 @@
 ### 类型标注
 
 所有函数、方法、变量必须包含完整的类型标注。禁止使用 `Any`，除非有充分理由并在注释中说明。
+使用 `X | None` 而非 `Optional[X]`（Python 3.10+ 原生语法）。
 
 ```python
-from typing import Optional
-
-def calculate_bmi(weight_kg: float, height_m: float) -> float:
-    return weight_kg / (height_m ** 2)
+def adjust_weight(current: float, delta: float) -> float | None:
+    new = current + delta
+    if new <= 0:
+        return None
+    return new
 ```
 
 ### 文档注释
@@ -63,6 +65,7 @@ def get_daily_calories(
 ### Pydantic 模型
 
 所有数据结构使用 pydantic BaseModel，配置 `extra = "forbid"` 和 `validate_assignment = True`。
+使用 `str | None` 而非 `Optional[str]`。
 
 ```python
 from pydantic import BaseModel, Field, ConfigDict
@@ -71,8 +74,38 @@ class BodyMeasurement(BaseModel):
     model_config = ConfigDict(extra="forbid", validate_assignment=True)
 
     weight_kg: float = Field(..., gt=0, description="体重（公斤）")
-    body_fat_pct: Optional[float] = Field(None, ge=0, le=60, description="体脂率（%）")
+    body_fat_pct: float | None = Field(None, ge=0, le=60, description="体脂率（%）")
 ```
+
+### 字符串枚举
+
+Python 3.11+ 使用 `StrEnum`：
+
+```python
+from enum import StrEnum
+
+class Gender(StrEnum):
+    MALE = "male"
+    FEMALE = "female"
+```
+
+### 时序工具
+
+纯函数式设计，无副作用，可组合：
+
+```python
+from makoto.utils.timeseries import date_series, linear_interpolate, rolling_mean
+
+dates = date_series(start, end)
+filled = linear_interpolate(raw_data, dates)
+smoothed = rolling_mean(filled, window=7)
+```
+
+### 输出设计
+
+- 终端直出：rich Table + 颜色
+- 管道/重定向 / `--plain`：自动 Markdown 表格，`console.py` 的 `render_table()` 统一入口
+- `get_console()` 在命令函数内部调用，确保 `--plain` 或管道检测生效
 
 ### 项目结构
 
@@ -81,13 +114,50 @@ makoto/
 ├── src/
 │   └── makoto/
 │       ├── __init__.py
-│       ├── main.py          # CLI 入口
+│       ├── main.py          # CLI 入口 + _LazyApp 延迟加载
 │       ├── models/          # pydantic 数据模型
+│       │   ├── records.py   # Food / BodyLog / DietLog / ExerciseLog
+│       │   └── profile.py   # Gender / ActivityLevel / UserProfile
 │       ├── commands/        # CLI 子命令
+│       │   ├── profile.py   # 用户画像
+│       │   ├── food.py      # 食物库
+│       │   ├── body.py      # 身体测量
+│       │   ├── diet.py      # 饮食记录
+│       │   ├── exercise.py  # 运动记录
+│       │   └── dashboard.py # 数据总览
 │       └── utils/           # 工具函数
+│           ├── jsonl_store.py   # JSONL 通用读写
+│           ├── search.py        # Levenshtein 搜索
+│           ├── tz.py            # 时区处理
+│           ├── timeseries.py    # 时序纯函数
+│           ├── console.py       # 终端输出 / Markdown 降级
+│           ├── data_paths.py    # data/ 路径配置
+│           └── profile_store.py # profile.json 读写
 ├── tests/
 ├── pyproject.toml
-└── README.md
+├── README.md
+└── AGENTS.md
+```
+
+### 延迟加载
+
+`main.py` 使用 `_LazyApp` 代理注册子命令，仅在用户实际调用时 import 对应模块。
+避免启动时 pydantic-core 编译开销阻塞。
+
+```python
+class _LazyApp:
+    def __init__(self, module_path: str, attr: str) -> None:
+        self._module_path = module_path
+        self._attr = attr
+        self._app: Any = None
+
+    def _load(self) -> typer.Typer:
+        if self._app is None:
+            mod = importlib.import_module(self._module_path)
+            self._app = getattr(mod, self._attr)
+        return self._app
+
+app.add_typer(_LazyApp("makoto.commands.food", "food_app"), name="food", ...)
 ```
 
 ### Git 提交
