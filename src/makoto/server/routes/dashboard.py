@@ -223,11 +223,11 @@ async def dashboard_report(
     end_date_date: date = end_date  # type narrowing
 
     if start_date is None:
-        cursor = await db.execute("SELECT MIN(log_date) FROM body_log")
+        cursor = await db.execute("SELECT MIN(log_date) AS min_date FROM body_log")
         first_row = await cursor.fetchone()
         start_date = (
-            date.fromisoformat(str(first_row[0]))
-            if first_row and first_row[0]
+            date.fromisoformat(str(first_row["min_date"]))
+            if first_row and first_row["min_date"]
             else today_date
         )
 
