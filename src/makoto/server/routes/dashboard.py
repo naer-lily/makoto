@@ -217,10 +217,7 @@ async def dashboard_report(
     today_date = date.today()
 
     start_date = date.fromisoformat(start_date_str) if start_date_str else None
-    end_date = date.fromisoformat(end_date_str) if end_date_str else (
-        target_date if isinstance(target_date, date) else today_date
-    )
-    end_date_date: date = end_date  # type narrowing
+    user_end = date.fromisoformat(end_date_str) if end_date_str else None
 
     if start_date is None:
         cursor = await db.execute("SELECT MIN(log_date) AS min_date FROM body_log")
@@ -228,6 +225,17 @@ async def dashboard_report(
         start_date = (
             date.fromisoformat(str(first_row["min_date"]))
             if first_row and first_row["min_date"]
+            else today_date
+        )
+
+    if user_end is not None:
+        end_date_date = user_end
+    else:
+        cursor = await db.execute("SELECT MAX(log_date) AS max_date FROM body_log")
+        last_row = await cursor.fetchone()
+        end_date_date = (
+            date.fromisoformat(str(last_row["max_date"]))
+            if last_row and last_row["max_date"]
             else today_date
         )
 

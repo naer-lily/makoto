@@ -13,16 +13,20 @@ const props = defineProps<{ rows: ReportRow[] }>()
 const chartRef = ref<HTMLDivElement>()
 let chart: echarts.ECharts | null = null
 
+function yDomain(series1: number[], series2: number[]) {
+  const vals = [...series1, ...series2].filter((v) => v > 0)
+  if (vals.length === 0) return { min: 0, max: 100 }
+  const min = Math.min(...vals)
+  const max = Math.max(...vals)
+  const gap = Math.max(1.0, (max - min) * 0.2)
+  return { floor: Math.floor(min - gap), ceil: Math.ceil(max + gap) }
+}
+
 function buildOption(): echarts.EChartsOption {
   const dates = props.rows.map((r) => r.date.substring(5))
   const weight = props.rows.map((r) => r.ma_weight_kg)
   const ffm = props.rows.map((r) => r.ma_ffm_kg)
-  const minW = Math.min(...weight)
-  const maxW = Math.max(...weight)
-  const wRange = maxW - minW || 10
-  const minF = Math.min(...ffm)
-  const maxF = Math.max(...ffm)
-  const fRange = maxF - minF || 10
+  const domain = yDomain(weight, ffm)
   return {
     title: { text: '体重 & 去脂体重（7日均线）', left: 'center', textStyle: { fontSize: 14 } },
     tooltip: { trigger: 'axis' },
@@ -33,16 +37,16 @@ function buildOption(): echarts.EChartsOption {
       {
         type: 'value',
         name: '体重 kg',
-        min: minW - wRange * 0.2,
-        max: maxW + wRange * 0.2,
+        min: domain.floor,
+        max: domain.ceil,
         axisLabel: { formatter: (v: number) => v.toFixed(1) },
         axisLine: { show: true, lineStyle: { color: '#5470C6' } },
       },
       {
         type: 'value',
         name: '去脂体重 kg',
-        min: minF - fRange * 0.2,
-        max: maxF + fRange * 0.2,
+        min: domain.floor,
+        max: domain.ceil,
         axisLabel: { formatter: (v: number) => v.toFixed(1) },
         axisLine: { show: true, lineStyle: { color: '#91CC75' } },
       },

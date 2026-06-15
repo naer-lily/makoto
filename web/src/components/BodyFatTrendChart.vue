@@ -13,9 +13,19 @@ const props = defineProps<{ rows: ReportRow[] }>()
 const chartRef = ref<HTMLDivElement>()
 let chart: echarts.ECharts | null = null
 
+function yDomain(data: number[]) {
+  const vals = data.filter((v) => v > 0)
+  if (vals.length === 0) return { min: 0, max: 30 }
+  const min = Math.min(...vals)
+  const max = Math.max(...vals)
+  const gap = Math.max(1.0, (max - min) * 0.2)
+  return { min: Math.floor(min - gap), max: Math.ceil(max + gap) }
+}
+
 function buildOption(): echarts.EChartsOption {
   const dates = props.rows.map((r) => r.date.substring(5))
   const data = props.rows.map((r) => r.ma_body_fat_pct)
+  const domain = yDomain(data)
   return {
     title: { text: '体脂率变化趋势（7日均线）', left: 'center', textStyle: { fontSize: 14 } },
     tooltip: { trigger: 'axis' },
@@ -24,6 +34,8 @@ function buildOption(): echarts.EChartsOption {
     yAxis: {
       type: 'value',
       name: '%',
+      min: domain.min,
+      max: domain.max,
       axisLabel: { formatter: (v: number) => v.toFixed(1) },
     },
     series: [

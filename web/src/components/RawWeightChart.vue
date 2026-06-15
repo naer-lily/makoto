@@ -13,13 +13,22 @@ const props = defineProps<{ rows: ReportRow[] }>()
 const chartRef = ref<HTMLDivElement>()
 let chart: echarts.ECharts | null = null
 
+function yDomain(data: number[]) {
+  const vals = data.filter((v) => v > 0)
+  if (vals.length === 0) return { min: 0, max: 100 }
+  const min = Math.min(...vals)
+  const max = Math.max(...vals)
+  const gap = Math.max(1.0, (max - min) * 0.15)
+  return { min: Math.floor(min - gap), max: Math.ceil(max + gap) }
+}
+
 function buildOption(): echarts.EChartsOption {
   const dates = props.rows.map((r) => r.date.substring(5))
   const data = props.rows.map((r) => r.weight_kg)
   const interp = props.rows.map((r) => r.is_interpolated)
-  // 插值点单独标记
   const realData = data.map((v, i) => (interp[i] ? null : v))
   const interpData = data.map((v, i) => (interp[i] ? v : null))
+  const domain = yDomain(data)
   return {
     title: { text: '原始体重（线性插值补全）', left: 'center', textStyle: { fontSize: 14 } },
     tooltip: { trigger: 'axis' },
@@ -28,7 +37,8 @@ function buildOption(): echarts.EChartsOption {
     yAxis: {
       type: 'value',
       name: 'kg',
-      scale: true,
+      min: domain.min,
+      max: domain.max,
       axisLabel: { formatter: (v: number) => v.toFixed(1) },
     },
     series: [
