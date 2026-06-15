@@ -201,12 +201,20 @@ class _LazyApp:
 
 ## 质量门禁
 
+**每次改动源码后，必须先补充对应的单元测试，再提交。测试文件放在 `tests/` 目录下，命名与路由模块对应。**
+
+测试架构：
+- `tests/conftest.py` — 提供 `:memory:` SQLite + `dependency_overrides` 绕过鉴权的 `TestClient` fixture
+- 每个路由模块对应一个测试文件（`test_profile.py`、`test_foods.py` 等）
+- 覆盖正常路径 + 异常路径（404/409/参数校验）
+
 每次提交前执行：
 
 ```bash
-ruff check src/ scripts/
+ruff check src/ tests/
 mypy src/
 pytest -v
+pytest --cov=src/makoto --cov-report=term-missing
 ```
 
 在 CI 或本地均可通过 `pyproject.toml` 中配置的工具统一运行。
