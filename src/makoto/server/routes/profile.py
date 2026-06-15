@@ -46,7 +46,12 @@ def _compute_profile_fields(
     return ffm, bmr, ree, weekly, days
 
 
-@router.get("", response_model=ProfileResponse)
+@router.get(
+    "",
+    response_model=ProfileResponse,
+    summary="读取用户画像",
+    description="返回用户的基本信息、身体数据、活动水平、目标体重及推算出的基础代谢率与每周所需热量缺口。",
+)
 async def get_profile(
     _token: str = Depends(verify_token),
     db: aiosqlite.Connection = Depends(get_db),
@@ -76,7 +81,12 @@ async def get_profile(
     )
 
 
-@router.put("", response_model=ProfileResponse)
+@router.put(
+    "",
+    response_model=ProfileResponse,
+    summary="创建或更新用户画像",
+    description="设置或覆盖用户的姓名、性别、年龄、身高、体重、体脂率、目标体重、目标日期和活动水平。",
+)
 async def set_profile(
     data: ProfileCreate,
     _token: str = Depends(verify_token),

@@ -59,7 +59,12 @@ async def _row_to_response(
     )
 
 
-@router.get("", response_model=list[DietLogResponse])
+@router.get(
+    "",
+    response_model=list[DietLogResponse],
+    summary="列出饮食记录",
+    description="按时间倒序返回饮食记录，包含食物名称、克数及自动计算的营养素数据。",
+)
 async def list_diet_logs(
     limit: int = Query(50, ge=1, le=500),
     _token: str = Depends(verify_token),
@@ -72,7 +77,13 @@ async def list_diet_logs(
     return [await _row_to_response(db, r) for r in rows]
 
 
-@router.post("", response_model=DietLogResponse, status_code=201)
+@router.post(
+    "",
+    response_model=DietLogResponse,
+    status_code=201,
+    summary="记录一次饮食",
+    description="记录一次饮食摄入（同分钟不可重复），自动根据食物库中的营养数据计算热量和营养素。",
+)
 async def create_diet_log(
     data: DietLogCreate,
     _token: str = Depends(verify_token),
@@ -105,7 +116,11 @@ async def create_diet_log(
     return await _row_to_response(db, row)
 
 
-@router.delete("/{log_id}")
+@router.delete(
+    "/{log_id}",
+    summary="删除饮食记录",
+    description="删除指定的饮食记录。",
+)
 async def delete_diet_log(
     log_id: int,
     _token: str = Depends(verify_token),

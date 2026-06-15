@@ -33,7 +33,12 @@ def _row_to_response(row: aiosqlite.Row) -> BodyLogResponse:
     )
 
 
-@router.get("", response_model=list[BodyLogResponse])
+@router.get(
+    "",
+    response_model=list[BodyLogResponse],
+    summary="列出身体测量记录",
+    description="按日期倒序返回所有身体测量记录，包含体重、体脂率及各围度数据。",
+)
 async def list_body_logs(
     _token: str = Depends(verify_token),
     db: aiosqlite.Connection = Depends(get_db),
@@ -43,7 +48,13 @@ async def list_body_logs(
     return [_row_to_response(r) for r in rows]
 
 
-@router.post("", response_model=BodyLogResponse, status_code=201)
+@router.post(
+    "",
+    response_model=BodyLogResponse,
+    status_code=201,
+    summary="记录身体测量数据",
+    description="录入当日的身体测量数据（每日仅一条），录入后自动同步画像中的体重和体脂率。",
+)
 async def create_body_log(
     data: BodyLogCreate,
     _token: str = Depends(verify_token),
@@ -79,7 +90,11 @@ async def create_body_log(
     return _row_to_response(row)
 
 
-@router.delete("/{log_id}")
+@router.delete(
+    "/{log_id}",
+    summary="删除身体测量记录",
+    description="删除指定的身体测量记录。",
+)
 async def delete_body_log(
     log_id: int,
     _token: str = Depends(verify_token),

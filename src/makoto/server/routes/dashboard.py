@@ -70,7 +70,12 @@ async def _get_profile_computed(db: aiosqlite.Connection) -> dict[str, Any]:
     }
 
 
-@router.get("/today", response_model=TodayResponse)
+@router.get(
+    "/today",
+    response_model=TodayResponse,
+    summary="今日数据总览",
+    description="返回今日的身体测量、饮食明细、运动记录及净热量（REE + 运动消耗 - 饮食摄入）汇总。",
+)
 async def today_dashboard(
     _token: str = Depends(verify_token),
     db: aiosqlite.Connection = Depends(get_db),
@@ -193,7 +198,12 @@ async def today_dashboard(
     )
 
 
-@router.get("/report", response_model=ReportResponse)
+@router.get(
+    "/report",
+    response_model=ReportResponse,
+    summary="多日趋势报告",
+    description="返回体重/体脂率/FFM 的逐日数据及七日均线，以及每日热量缺口和预期缺口汇总。",
+)
 async def dashboard_report(
     range: str = Query("week", alias="range"),
     _token: str = Depends(verify_token),

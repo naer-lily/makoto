@@ -35,7 +35,12 @@ def _row_to_response(row: aiosqlite.Row) -> FoodResponse:
     )
 
 
-@router.get("", response_model=list[FoodResponse])
+@router.get(
+    "",
+    response_model=list[FoodResponse],
+    summary="列出所有食物",
+    description="返回按名称排序的全部已注册食物及每100克营养数据。",
+)
 async def list_foods(
     _token: str = Depends(verify_token),
     db: aiosqlite.Connection = Depends(get_db),
@@ -45,7 +50,13 @@ async def list_foods(
     return [_row_to_response(r) for r in rows]
 
 
-@router.post("", response_model=FoodResponse, status_code=201)
+@router.post(
+    "",
+    response_model=FoodResponse,
+    status_code=201,
+    summary="注册新食物",
+    description="向食物库中添加一种新食物，包含每100克的营养成分数据和搜索关键词。",
+)
 async def add_food(
     data: FoodCreate,
     _token: str = Depends(verify_token),
@@ -77,7 +88,12 @@ async def add_food(
     return _row_to_response(row)
 
 
-@router.get("/search", response_model=list[FoodSearchResult])
+@router.get(
+    "/search",
+    response_model=list[FoodSearchResult],
+    summary="模糊搜索食物",
+    description="按名称和关键词进行模糊匹配，返回匹配的食物列表及编辑距离。",
+)
 async def search_food(
     q: str = Query(..., description="搜索词"),
     limit: int = Query(20, ge=1, le=100),
@@ -104,7 +120,12 @@ async def search_food(
     ]
 
 
-@router.get("/{food_id}", response_model=FoodResponse)
+@router.get(
+    "/{food_id}",
+    response_model=FoodResponse,
+    summary="查看食物详情",
+    description="根据食物 ID 返回某一种食物的完整信息。",
+)
 async def get_food(
     food_id: int,
     _token: str = Depends(verify_token),
@@ -117,7 +138,11 @@ async def get_food(
     return _row_to_response(row)
 
 
-@router.delete("/{food_id}")
+@router.delete(
+    "/{food_id}",
+    summary="删除食物",
+    description="从食物库中移除指定食物（不影响已有饮食记录）。",
+)
 async def delete_food(
     food_id: int,
     _token: str = Depends(verify_token),

@@ -32,7 +32,12 @@ def _row_to_response(row: aiosqlite.Row) -> ExerciseLogResponse:
     )
 
 
-@router.get("", response_model=list[ExerciseLogResponse])
+@router.get(
+    "",
+    response_model=list[ExerciseLogResponse],
+    summary="列出运动记录",
+    description="按时间倒序返回运动记录，包含运动名称、时长描述和消耗热量。",
+)
 async def list_exercise_logs(
     limit: int = Query(50, ge=1, le=500),
     _token: str = Depends(verify_token),
@@ -45,7 +50,13 @@ async def list_exercise_logs(
     return [_row_to_response(r) for r in rows]
 
 
-@router.post("", response_model=ExerciseLogResponse, status_code=201)
+@router.post(
+    "",
+    response_model=ExerciseLogResponse,
+    status_code=201,
+    summary="记录一次运动",
+    description="记录一次运动消耗（同分钟不可重复）。",
+)
 async def create_exercise_log(
     data: ExerciseLogCreate,
     _token: str = Depends(verify_token),
@@ -73,7 +84,11 @@ async def create_exercise_log(
     return _row_to_response(row)
 
 
-@router.delete("/{log_id}")
+@router.delete(
+    "/{log_id}",
+    summary="删除运动记录",
+    description="删除指定的运动记录。",
+)
 async def delete_exercise_log(
     log_id: int,
     _token: str = Depends(verify_token),
