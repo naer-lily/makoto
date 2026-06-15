@@ -67,7 +67,14 @@ select = [
     "RUF", # ruff-specific
     "TID", # tidy imports
 ]
-ignore = ["RUF001"]
+ignore = [
+    "RUF001",  # 中文全角标点
+    "RUF002",  # 中文全角括号
+    "RUF003",  # 注释中的中文标点
+    "B008",    # typer.Option 默认值（装饰器模式必需）
+    "UP040",   # 暂不迁移到 PEP 695 type 语句（mypy 不支持）
+    "UP046",   # 暂不迁移到 PEP 695 泛型语法（mypy 不支持）
+]
 
 [tool.ruff.lint.isort]
 force-single-line = true
