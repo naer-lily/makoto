@@ -114,6 +114,38 @@ row = await cursor.fetchone()
 d = dict(row)
 ```
 
+### 时区处理（`utils/tz.py`）
+
+全项目统一使用 `makoto.utils.tz` 中定义的函数，**禁止**直接调 `datetime.isoformat()` 或 `date.today()` 处理时间。
+
+**核心原则**：所有存储和传输的 datetime 字符串必须是无时区偏移的本地时间（`YYYY-MM-DDTHH:MM:SS`），因为 SQLite 的 `date()` 函数会对含时区偏移的字符串做 UTC 换算，导致日期边界错位。
+
+**API**：
+
+| 函数 | 返回格式 | 用途 |
+|---|---|---|
+| `server_tz()` | `ZoneInfo` | 服务端时区，优先 `MAKOTO_TZ` 环境变量 |
+| `today_local()` | `date` | 服务端时区的"今天"，替换所有 `date.today()` |
+| `ensure_aware(dt)` | `datetime` | naive → 补上服务端时区 |
+| `to_store_str(dt)` | `YYYY-MM-DDTHH:MM:SS` | **存储/传输**：存 SQLite 和 HTTP 发包统一用这个 |
+| `format_local(dt)` | `YYYY-MM-DD HH:MM` | **终端显示**：仅用于 CLI 用户可见输出 |
+
+```python
+# 正确：存储和传输
+time_str = to_store_str(dt)
+
+# 正确：今天的日期
+today = today_local()
+
+# 错误：会生成含时区偏移的字符串（SQLite date() 会错）
+time_str = dt.isoformat()
+
+# 错误：使用服务器本地日期而非配置时区
+today = date.today()
+```
+
+**环境变量**：Docker 部署时通过 `MAKOTO_TZ=Asia/Shanghai` 指定时区。
+
 ### 鉴权
 
 FastAPI 端点通过 `Depends(verify_token)` 保护。`verify_token` 从 `HTTPBearer` 中提取 token 与 `MAKOTO_TOKEN` 环境变量比对。CLI 客户端请求带 `Authorization: Bearer <token>` 头。
