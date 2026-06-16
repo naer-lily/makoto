@@ -213,6 +213,7 @@ class ReportRow(BaseModel):
     ma_ffm_kg: float
     deficit_kcal: float
     expected_deficit_kcal: float | None
+    ma_deficit_kcal: float | None
     is_interpolated: bool
     weekly_loss_kg: float | None
 

@@ -308,6 +308,12 @@ async def dashboard_report(
 
     ree = float(profile["ree_kcal"])
 
+    # 热量缺口 7 日均线
+    daily_balance: dict[date, float] = {}
+    for d in display_dates:
+        daily_balance[d] = ree + daily_exercise.get(d, 0.0) - daily_diet.get(d, 0.0)
+    ma_deficit = rolling_mean(daily_balance, window=7)
+
     data_rows: list[ReportRow] = []
     total_balance = 0.0
     total_expected = 0.0
@@ -321,11 +327,12 @@ async def dashboard_report(
         mf = ma_ffm_full.get(d, 0)
         prev_mw = ma_weight_full.get(d - timedelta(days=7))
         weekly_loss = round(prev_mw - mw, 2) if prev_mw is not None else None
-        balance = ree + daily_exercise.get(d, 0.0) - daily_diet.get(d, 0.0)
+        balance = daily_balance[d]
         total_balance += balance
         exp = daily_expected if daily_expected is not None else 0
         total_expected += exp
         is_orig = weight_original.get(d, False)
+        md = ma_deficit.get(d)
         data_rows.append(
             ReportRow(
                 date=str(d),
@@ -339,6 +346,7 @@ async def dashboard_report(
                 expected_deficit_kcal=round(exp, 1) if daily_expected is not None else None,
                 is_interpolated=not is_orig,
                 weekly_loss_kg=weekly_loss,
+                ma_deficit_kcal=round(md, 1) if md is not None else None,
             )
         )
 
@@ -346,7 +354,7 @@ async def dashboard_report(
         date="", weight_kg=0, body_fat_pct=0, ffm_kg=0,
         ma_weight_kg=0, ma_body_fat_pct=0, ma_ffm_kg=0,
         deficit_kcal=0, expected_deficit_kcal=None, is_interpolated=False,
-        weekly_loss_kg=None,
+        weekly_loss_kg=None, ma_deficit_kcal=None,
     )
     last: ReportRow = data_rows[-1] if data_rows else first
 

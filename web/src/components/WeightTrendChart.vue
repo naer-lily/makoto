@@ -30,7 +30,7 @@ function yDomain(data: number[]) {
 function buildOption(): echarts.EChartsOption {
   const dates = props.rows.map((r) => r.date.substring(5))
   const weightData = props.rows.map((r) => r.ma_weight_kg)
-  const deficitData = props.rows.map((r) => r.deficit_kcal)
+  const deficitData = props.rows.map((r) => r.ma_deficit_kcal)
   const domain = yDomain(weightData)
 
   const option: echarts.EChartsOption = {
