@@ -11,6 +11,22 @@
           <el-icon><DataAnalysis /></el-icon>
           <span>仪表盘</span>
         </el-menu-item>
+        <el-menu-item index="/foods">
+          <el-icon><Bowl /></el-icon>
+          <span>食物库</span>
+        </el-menu-item>
+        <el-menu-item index="/diet">
+          <el-icon><DishDot /></el-icon>
+          <span>饮食记录</span>
+        </el-menu-item>
+        <el-menu-item index="/exercise">
+          <el-icon><Baseball /></el-icon>
+          <span>运动记录</span>
+        </el-menu-item>
+        <el-menu-item index="/profile">
+          <el-icon><UserFilled /></el-icon>
+          <span>个人画像</span>
+        </el-menu-item>
       </el-menu>
     </el-aside>
     <el-container>

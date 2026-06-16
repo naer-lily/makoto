@@ -15,6 +15,7 @@ from makoto.server.auth import verify_token
 from makoto.server.database import get_db
 from makoto.server.models import DietLogCreate
 from makoto.server.models import DietLogResponse
+from makoto.server.models import DietLogUpdate
 from makoto.server.models import nutrition_for
 from makoto.utils.tz import to_store_str
 
@@ -113,6 +114,45 @@ async def create_diet_log(
 
     cursor2 = await db.execute("SELECT * FROM diet_log WHERE id = ?", (log_id,))
     row = await cursor2.fetchone()
+    assert row is not None
+    return await _row_to_response(db, row)
+
+
+@router.put(
+    "/{log_id}",
+    response_model=DietLogResponse,
+    summary="更新饮食记录",
+    description="修改饮食记录的食物名称、克数、备注或时间。食物必须已在食物库中注册。",
+)
+async def update_diet_log(
+    log_id: int,
+    data: DietLogUpdate,
+    _token: str = Depends(verify_token),
+    db: aiosqlite.Connection = Depends(get_db),
+) -> DietLogResponse:
+    cursor = await db.execute("SELECT id FROM diet_log WHERE id = ?", (log_id,))
+    if await cursor.fetchone() is None:
+        raise HTTPException(status_code=404, detail="记录不存在")
+
+    cursor2 = await db.execute("SELECT id FROM food WHERE name = ?", (data.food_name,))
+    if await cursor2.fetchone() is None:
+        raise HTTPException(status_code=404, detail=f"食物 '{data.food_name}' 未注册")
+
+    time_str = to_store_str(data.log_time)
+    cursor3 = await db.execute(
+        "SELECT id FROM diet_log WHERE log_time = ? AND id != ?", (time_str, log_id)
+    )
+    if await cursor3.fetchone():
+        raise HTTPException(status_code=409, detail=f"{time_str} 已有记录，请错开至少 1 分钟")
+
+    await db.execute(
+        "UPDATE diet_log SET log_time=?, food_name=?, grams=?, note=? WHERE id=?",
+        (time_str, data.food_name, data.grams, data.note, log_id),
+    )
+    await db.commit()
+
+    cursor4 = await db.execute("SELECT * FROM diet_log WHERE id = ?", (log_id,))
+    row = await cursor4.fetchone()
     assert row is not None
     return await _row_to_response(db, row)
 

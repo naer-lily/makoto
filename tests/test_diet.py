@@ -76,3 +76,65 @@ def test_delete_diet_log(client: TestClient) -> None:
 
     resp3 = client.get("/api/v1/diet-logs", headers=auth_headers())
     assert len(resp3.json()) == 0
+
+
+def test_update_diet_log(client: TestClient) -> None:
+    _setup_food(client)
+    resp = client.post(
+        "/api/v1/diet-logs",
+        json={"log_time": "2026-06-15T12:00:00", "food_name": "鸡胸肉", "grams": 100},
+        headers=auth_headers(),
+    )
+    log_id = resp.json()["id"]
+
+    payload = {
+        "log_time": "2026-06-15T13:00:00",
+        "food_name": "鸡胸肉",
+        "grams": 200,
+    }
+    resp2 = client.put(
+        f"/api/v1/diet-logs/{log_id}", json=payload, headers=auth_headers()
+    )
+    assert resp2.status_code == 200
+    data = resp2.json()
+    assert data["grams"] == 200.0
+    assert data["calories_kcal"] == 266.0
+
+
+def test_update_diet_log_not_found(client: TestClient) -> None:
+    _setup_food(client)
+    resp = client.put(
+        "/api/v1/diet-logs/99999",
+        json={
+            "log_time": "2026-06-15T12:00:00",
+            "food_name": "鸡胸肉",
+            "grams": 100,
+        },
+        headers=auth_headers(),
+    )
+    assert resp.status_code == 404
+
+
+def test_update_diet_log_duplicate_time(client: TestClient) -> None:
+    _setup_food(client)
+    _r1 = client.post(
+        "/api/v1/diet-logs",
+        json={"log_time": "2026-06-15T14:00:00", "food_name": "鸡胸肉", "grams": 100},
+        headers=auth_headers(),
+    )
+    r2 = client.post(
+        "/api/v1/diet-logs",
+        json={"log_time": "2026-06-15T15:00:00", "food_name": "鸡胸肉", "grams": 150},
+        headers=auth_headers(),
+    )
+
+    resp = client.put(
+        f"/api/v1/diet-logs/{r2.json()['id']}",
+        json={
+            "log_time": "2026-06-15T14:00:00",
+            "food_name": "鸡胸肉",
+            "grams": 150,
+        },
+        headers=auth_headers(),
+    )
+    assert resp.status_code == 409

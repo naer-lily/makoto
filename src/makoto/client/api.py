@@ -85,6 +85,9 @@ class MakotoClient:
     def delete_food(self, food_id: int) -> dict[str, str]:
         return self._delete(f"/api/v1/foods/{food_id}")
 
+    def update_food(self, food_id: int, data: dict[str, object]) -> dict[str, Any]:
+        return self._put(f"/api/v1/foods/{food_id}", data)  # type: ignore[no-any-return]
+
     # ── Body Logs ──
 
     def list_body_logs(self) -> list[dict[str, Any]]:
@@ -107,6 +110,9 @@ class MakotoClient:
     def delete_diet_log(self, log_id: int) -> dict[str, str]:
         return self._delete(f"/api/v1/diet-logs/{log_id}")
 
+    def update_diet_log(self, log_id: int, data: dict[str, object]) -> dict[str, Any]:
+        return self._put(f"/api/v1/diet-logs/{log_id}", data)  # type: ignore[no-any-return]
+
     # ── Exercise Logs ──
 
     def list_exercise_logs(self, limit: int = 50) -> list[dict[str, Any]]:
@@ -117,6 +123,9 @@ class MakotoClient:
 
     def delete_exercise_log(self, log_id: int) -> dict[str, str]:
         return self._delete(f"/api/v1/exercise-logs/{log_id}")
+
+    def update_exercise_log(self, log_id: int, data: dict[str, object]) -> dict[str, Any]:
+        return self._put(f"/api/v1/exercise-logs/{log_id}", data)  # type: ignore[no-any-return]
 
     # ── Dashboard ──
 

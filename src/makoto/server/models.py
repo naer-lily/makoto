@@ -137,6 +137,13 @@ class DietLogCreate(BaseModel):
     note: str | None = None
 
 
+class DietLogUpdate(BaseModel):
+    log_time: datetime
+    food_name: str
+    grams: float = Field(ge=0)
+    note: str | None = None
+
+
 class DietLogResponse(DietLogCreate):
     id: int
     calories_kcal: float

@@ -25,13 +25,14 @@
     <template v-else-if="reportData">
       <div class="chart-grid">
         <WeightTrendChart :rows="reportData.rows" :target-weight="reportData.target_weight_kg" />
+        <CalorieDeficitChart :rows="reportData.rows" />
         <BodyFatTrendChart :rows="reportData.rows" />
       </div>
       <div class="chart-grid">
         <WeightFfmChart :rows="reportData.rows" />
         <WeeklyLossChart :rows="reportData.rows" />
+        <RawWeightChart :rows="reportData.rows" />
       </div>
-      <RawWeightChart :rows="reportData.rows" />
     </template>
   </div>
 </template>
@@ -41,6 +42,7 @@ import { ref, onMounted } from 'vue'
 import { fetchToday, fetchReport, type TodayResponse, type ReportResponse } from '../api/dashboard'
 import TodayOverview from '../components/TodayOverview.vue'
 import WeightTrendChart from '../components/WeightTrendChart.vue'
+import CalorieDeficitChart from '../components/CalorieDeficitChart.vue'
 import BodyFatTrendChart from '../components/BodyFatTrendChart.vue'
 import WeightFfmChart from '../components/WeightFfmChart.vue'
 import WeeklyLossChart from '../components/WeeklyLossChart.vue'

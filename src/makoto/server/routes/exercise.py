@@ -85,6 +85,43 @@ async def create_exercise_log(
     return _row_to_response(row)
 
 
+@router.put(
+    "/{log_id}",
+    response_model=ExerciseLogResponse,
+    summary="更新运动记录",
+    description="修改运动记录的名称、时长、消耗热量、备注或时间。同分钟不可重复（排除自身）。",
+)
+async def update_exercise_log(
+    log_id: int,
+    data: ExerciseLogCreate,
+    _token: str = Depends(verify_token),
+    db: aiosqlite.Connection = Depends(get_db),
+) -> ExerciseLogResponse:
+    cursor = await db.execute("SELECT id FROM exercise_log WHERE id = ?", (log_id,))
+    if await cursor.fetchone() is None:
+        raise HTTPException(status_code=404, detail="记录不存在")
+
+    time_str = to_store_str(data.log_time)
+    cursor2 = await db.execute(
+        "SELECT id FROM exercise_log WHERE log_time = ? AND id != ?", (time_str, log_id)
+    )
+    if await cursor2.fetchone():
+        raise HTTPException(status_code=409, detail=f"{time_str} 已有记录，请错开至少 1 分钟")
+
+    await db.execute(
+        """UPDATE exercise_log
+           SET log_time=?, exercise_name=?, duration_desc=?, calories_kcal=?, note=?
+           WHERE id=?""",
+        (time_str, data.exercise_name, data.duration_desc, data.calories_kcal, data.note, log_id),
+    )
+    await db.commit()
+
+    cursor3 = await db.execute("SELECT * FROM exercise_log WHERE id = ?", (log_id,))
+    row = await cursor3.fetchone()
+    assert row is not None
+    return _row_to_response(row)
+
+
 @router.delete(
     "/{log_id}",
     summary="删除运动记录",

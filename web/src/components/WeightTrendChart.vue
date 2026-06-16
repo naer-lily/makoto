@@ -30,50 +30,30 @@ function yDomain(data: number[]) {
 function buildOption(): echarts.EChartsOption {
   const dates = props.rows.map((r) => r.date.substring(5))
   const weightData = props.rows.map((r) => r.ma_weight_kg)
-  const deficitData = props.rows.map((r) => r.ma_deficit_kcal)
   const domain = yDomain(weightData)
 
   const option: echarts.EChartsOption = {
-    title: { text: '体重 & 热量缺口（7日均线）', left: 'center', textStyle: { fontSize: 14 } },
+    title: { text: '体重趋势（7日均线）', left: 'center', textStyle: { fontSize: 14 } },
     tooltip: { trigger: 'axis' },
-    legend: { data: ['体重', '热量缺口'], top: 28 },
-    grid: { top: 60, right: 70, bottom: 30, left: 60 },
+    legend: { data: ['体重（7日均线）'], top: 28 },
+    grid: { top: 60, right: 40, bottom: 30, left: 60 },
     xAxis: { type: 'category', data: dates },
-    yAxis: [
-      {
-        type: 'value',
-        name: '体重 kg',
-        min: domain.min,
-        max: domain.max,
-        axisLabel: { formatter: (v: number) => v.toFixed(1) },
-        axisLine: { show: true, lineStyle: { color: '#5470C6' } },
-      },
-      {
-        type: 'value',
-        name: 'kcal',
-        axisLabel: { formatter: (v: number) => v.toFixed(0) },
-        axisLine: { show: true, lineStyle: { color: '#FAC858' } },
-      },
-    ],
+    yAxis: {
+      type: 'value',
+      name: '体重 kg',
+      min: domain.min,
+      max: domain.max,
+      axisLabel: { formatter: (v: number) => v.toFixed(1) },
+    },
     series: [
       {
-        name: '体重',
+        name: '体重（7日均线）',
         type: 'line',
-        yAxisIndex: 0,
         data: weightData,
         smooth: true,
         lineStyle: { color: '#5470C6' },
         itemStyle: { color: '#5470C6' },
-      },
-      {
-        name: '热量缺口',
-        type: 'bar',
-        yAxisIndex: 1,
-        data: deficitData.map((v) => (v === 0 ? null : v)),
-        itemStyle: {
-          color: (params: any) => (params.value > 0 ? '#67C23A' : '#F56C6C'),
-        },
-        barWidth: '60%',
+        areaStyle: { color: 'rgba(84,112,198,0.1)' },
       },
     ],
   }

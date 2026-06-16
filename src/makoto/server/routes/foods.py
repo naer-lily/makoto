@@ -138,19 +138,83 @@ async def get_food(
     return _row_to_response(row)
 
 
+@router.put(
+    "/{food_id}",
+    response_model=FoodResponse,
+    summary="更新食物信息",
+    description="修改食物名称或营养成分。若名称变更，同步更新所有引用该食物的饮食记录。",
+)
+async def update_food(
+    food_id: int,
+    data: FoodCreate,
+    _token: str = Depends(verify_token),
+    db: aiosqlite.Connection = Depends(get_db),
+) -> FoodResponse:
+    cursor = await db.execute("SELECT * FROM food WHERE id = ?", (food_id,))
+    row = await cursor.fetchone()
+    if row is None:
+        raise HTTPException(status_code=404, detail="食物不存在")
+
+    old_name = str(dict(row)["name"])
+    if data.name != old_name:
+        cursor2 = await db.execute("SELECT id FROM food WHERE name = ?", (data.name,))
+        if await cursor2.fetchone():
+            raise HTTPException(status_code=409, detail=f"食物 '{data.name}' 已存在")
+        await db.execute(
+            "UPDATE diet_log SET food_name = ? WHERE food_name = ?",
+            (data.name, old_name),
+        )
+
+    await db.execute(
+        """UPDATE food SET name=?, calories_per_100g=?, protein_per_100g=?,
+           carbs_per_100g=?, fat_per_100g=?, search_keywords=?, note=?
+           WHERE id=?""",
+        (
+            data.name,
+            data.calories_per_100g,
+            data.protein_per_100g,
+            data.carbs_per_100g,
+            data.fat_per_100g,
+            json.dumps(data.search_keywords, ensure_ascii=False),
+            data.note,
+            food_id,
+        ),
+    )
+    await db.commit()
+
+    cursor3 = await db.execute("SELECT * FROM food WHERE id = ?", (food_id,))
+    row3 = await cursor3.fetchone()
+    assert row3 is not None
+    return _row_to_response(row3)
+
+
 @router.delete(
     "/{food_id}",
     summary="删除食物",
-    description="从食物库中移除指定食物（不影响已有饮食记录）。",
+    description="从食物库中移除指定食物（若被饮食记录引用则拒绝）。",
 )
 async def delete_food(
     food_id: int,
     _token: str = Depends(verify_token),
     db: aiosqlite.Connection = Depends(get_db),
 ) -> dict[str, str]:
-    cursor = await db.execute("SELECT id FROM food WHERE id = ?", (food_id,))
-    if await cursor.fetchone() is None:
+    cursor = await db.execute("SELECT id, name FROM food WHERE id = ?", (food_id,))
+    row = await cursor.fetchone()
+    if row is None:
         raise HTTPException(status_code=404, detail="食物不存在")
+
+    d = dict(row)
+    old_name = str(d["name"])
+    cursor2 = await db.execute(
+        "SELECT COUNT(*) AS cnt FROM diet_log WHERE food_name = ?", (old_name,)
+    )
+    count_row = await cursor2.fetchone()
+    if count_row and int(dict(count_row)["cnt"]) > 0:
+        raise HTTPException(
+            status_code=409,
+            detail=f"食物 '{old_name}' 被饮食记录引用，无法删除",
+        )
+
     await db.execute("DELETE FROM food WHERE id = ?", (food_id,))
     await db.commit()
     return {"detail": "已删除"}
