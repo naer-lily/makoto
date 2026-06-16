@@ -16,7 +16,7 @@ from makoto.server.database import get_db
 from makoto.server.models import DietLogCreate
 from makoto.server.models import DietLogResponse
 from makoto.server.models import nutrition_for
-from makoto.utils.tz import ensure_aware
+from makoto.utils.tz import to_store_str
 
 router = APIRouter(prefix="/api/v1/diet-logs", tags=["diet"])
 
@@ -90,7 +90,7 @@ async def create_diet_log(
     _token: str = Depends(verify_token),
     db: aiosqlite.Connection = Depends(get_db),
 ) -> DietLogResponse:
-    time_str = ensure_aware(data.log_time).strftime("%Y-%m-%dT%H:%M:%S")
+    time_str = to_store_str(data.log_time)
 
     # 验证食物存在
     cursor = await db.execute("SELECT id FROM food WHERE name = ?", (data.food_name,))

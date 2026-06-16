@@ -12,6 +12,7 @@ from makoto.utils.console import get_console
 from makoto.utils.console import render_table
 from makoto.utils.tz import ensure_aware
 from makoto.utils.tz import format_local
+from makoto.utils.tz import to_store_str
 
 diet_app = typer.Typer(no_args_is_help=True)
 
@@ -35,7 +36,7 @@ def log(
     cli = get_client()
     try:
         result = cli.create_diet_log({
-            "log_time": log_time_aware.isoformat(),
+            "log_time": to_store_str(log_time_aware),
             "food_name": food_name,
             "grams": grams,
             "note": note,
@@ -66,7 +67,7 @@ def delete(
     """删除指定时间的饮食记录。"""
     console = get_console()
     log_time_aware = ensure_aware(log_time)
-    time_str = log_time_aware.isoformat()
+    time_str = to_store_str(log_time_aware)
     cli = get_client()
     try:
         logs = cli.list_diet_logs(limit=9999)

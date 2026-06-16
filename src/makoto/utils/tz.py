@@ -1,7 +1,12 @@
 """时区工具。
 
-服务端通过 MAKOTO_TZ 环境变量配置时区（默认自动检测系统时区）。
-CLI 侧通过 ensure_aware 确保 datetime 携带时区信息。
+全项目统一的时区处理：
+
+- server_tz()       — 服务时区（优先 MAKOTO_TZ 环境变量）
+- today_local()      — 服务时区下的今天（date 对象）
+- ensure_aware(dt)   — naive datetime 补上服务时区
+- to_store_str(dt)   — 存储/传输格式：YYYY-MM-DDTHH:MM:SS（无偏移，SQLite date() 兼容）
+- format_local(dt)   — 终端显示格式：YYYY-MM-DD HH:MM
 """
 
 from __future__ import annotations
@@ -18,8 +23,6 @@ _server_tz_cache: ZoneInfo | None = None
 
 def local_tz() -> ZoneInfo:
     """获取系统本地时区。
-
-    通过 UTC 偏移在可用时区列表中匹配，兼容 Windows 本地化名称。
 
     Returns:
         系统本地 ZoneInfo 对象。
@@ -78,17 +81,8 @@ def today_local() -> date:
     return datetime.now(server_tz()).date()
 
 
-def now_local() -> datetime:
-    """返回当前本地时间的 timezone-aware datetime。
-
-    Returns:
-        带时区信息的当前时间。
-    """
-    return datetime.now(local_tz())
-
-
 def ensure_aware(dt: datetime) -> datetime:
-    """确保 datetime 携带时区信息，缺失时补为服务端时区。
+    """确保 datetime 携带时区信息，naive 时补为服务端时区。
 
     Args:
         dt: 可能无时区的 datetime。
@@ -101,13 +95,28 @@ def ensure_aware(dt: datetime) -> datetime:
     return dt
 
 
-def format_local(dt: datetime) -> str:
-    """格式化为 ISO 8601 字符串（含时区偏移）。
+def to_store_str(dt: datetime) -> str:
+    """转换为存储/传输格式。
+
+    使用本地时区，不含时区偏移后缀。
+    SQLite 的 date() 函数对含偏移的字符串会做 UTC 换算，因此存储时统一去掉偏移。
 
     Args:
-        dt: 时区感知的 datetime。
+        dt: 任意 datetime（naive 或 aware）。
 
     Returns:
-        ISO 8601 格式字符串。
+        "YYYY-MM-DDTHH:MM:SS" 格式字符串。
     """
-    return ensure_aware(dt).isoformat()
+    return ensure_aware(dt).strftime("%Y-%m-%dT%H:%M:%S")
+
+
+def format_local(dt: datetime) -> str:
+    """转换为终端显示格式。
+
+    Args:
+        dt: 任意 datetime（naive 或 aware）。
+
+    Returns:
+        "YYYY-MM-DD HH:MM" 格式字符串。
+    """
+    return ensure_aware(dt).strftime("%Y-%m-%d %H:%M")
