@@ -90,7 +90,7 @@ async def create_diet_log(
     _token: str = Depends(verify_token),
     db: aiosqlite.Connection = Depends(get_db),
 ) -> DietLogResponse:
-    time_str = ensure_aware(data.log_time).isoformat()
+    time_str = ensure_aware(data.log_time).strftime("%Y-%m-%dT%H:%M:%S")
 
     # 验证食物存在
     cursor = await db.execute("SELECT id FROM food WHERE name = ?", (data.food_name,))
