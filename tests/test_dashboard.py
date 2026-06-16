@@ -72,10 +72,13 @@ def test_today_with_body_and_diet(client: TestClient) -> None:
     _setup_profile(client)
     _seed_food(client)
 
+    today = __import__("datetime").date.today().isoformat()
+    log_time = f"{today}T12:30:00"
+
     client.post(
         "/api/v1/body-logs",
         json={
-            "log_date": "2026-06-15",
+            "log_date": today,
             "weight_kg": 69.5,
             "body_fat_pct": 17.5,
         },
@@ -83,7 +86,7 @@ def test_today_with_body_and_diet(client: TestClient) -> None:
     )
     client.post(
         "/api/v1/diet-logs",
-        json={"log_time": "2026-06-15T12:30:00", "food_name": "鸡胸肉", "grams": 200},
+        json={"log_time": log_time, "food_name": "鸡胸肉", "grams": 200},
         headers=auth_headers(),
     )
 

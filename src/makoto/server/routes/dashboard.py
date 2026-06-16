@@ -28,6 +28,7 @@ from makoto.server.models import nutrition_for
 from makoto.utils.timeseries import date_series
 from makoto.utils.timeseries import linear_interpolate
 from makoto.utils.timeseries import rolling_mean
+from makoto.utils.tz import today_local
 
 router = APIRouter(prefix="/api/v1/dashboard", tags=["dashboard"])
 
@@ -52,7 +53,7 @@ async def _get_profile_computed(db: aiosqlite.Connection) -> dict[str, Any]:
     target_date = date.fromisoformat(str(d["target_date"]))
     bmr = _bmr(weight, height, age, gender)
     ree = round(bmr * activity.multiplier, 1)
-    days = (target_date - date.today()).days
+    days = (target_date - today_local()).days
     weekly = None
     if days > 0:
         weekly = round((weight - target) * 7700 / (max(days / 7, 1)), 1)
@@ -81,7 +82,7 @@ async def today_dashboard(
     db: aiosqlite.Connection = Depends(get_db),
 ) -> TodayResponse:
     profile = await _get_profile_computed(db)
-    today_date = date.today()
+    today_date = today_local()
 
     # 身体
     body: TodayBody | None = None
@@ -214,7 +215,7 @@ async def dashboard_report(
     profile = await _get_profile_computed(db)
     target_date = profile.get("target_date")
     target_weight = profile.get("target_weight_kg")
-    today_date = date.today()
+    today_date = today_local()
 
     start_date = date.fromisoformat(start_date_str) if start_date_str else None
     user_end = date.fromisoformat(end_date_str) if end_date_str else None

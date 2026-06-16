@@ -15,6 +15,7 @@ from makoto.server.auth import verify_token
 from makoto.server.database import get_db
 from makoto.server.models import ExerciseLogCreate
 from makoto.server.models import ExerciseLogResponse
+from makoto.utils.tz import ensure_aware
 
 router = APIRouter(prefix="/api/v1/exercise-logs", tags=["exercise"])
 
@@ -62,7 +63,7 @@ async def create_exercise_log(
     _token: str = Depends(verify_token),
     db: aiosqlite.Connection = Depends(get_db),
 ) -> ExerciseLogResponse:
-    time_str = data.log_time.isoformat()
+    time_str = ensure_aware(data.log_time).isoformat()
 
     cursor = await db.execute(
         "SELECT id FROM exercise_log WHERE log_time = ?", (time_str,)

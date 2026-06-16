@@ -16,6 +16,7 @@ from makoto.server.models import ActivityLevel
 from makoto.server.models import Gender
 from makoto.server.models import ProfileCreate
 from makoto.server.models import ProfileResponse
+from makoto.utils.tz import today_local
 
 router = APIRouter(prefix="/api/v1/profile", tags=["profile"])
 
@@ -39,7 +40,7 @@ def _compute_profile_fields(
     ffm = round(weight * (1 - bf / 100), 1)
     bmr = _bmr(weight, height, age, gender)
     ree = round(bmr * activity.multiplier, 1)
-    days = (target_date - date.today()).days
+    days = (target_date - today_local()).days
     weekly = None
     if days > 0:
         weekly = round((weight - target) * 7700 / (max(days / 7, 1)), 1)
