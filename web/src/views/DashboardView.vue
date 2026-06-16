@@ -26,10 +26,12 @@
       <div class="chart-grid">
         <WeightTrendChart :rows="reportData.rows" :target-weight="reportData.target_weight_kg" />
         <CalorieDeficitChart :rows="reportData.rows" />
-        <BodyFatTrendChart :rows="reportData.rows" />
       </div>
       <div class="chart-grid">
+        <BodyFatTrendChart :rows="reportData.rows" />
         <WeightFfmChart :rows="reportData.rows" />
+      </div>
+      <div class="chart-grid">
         <WeeklyLossChart :rows="reportData.rows" />
         <RawWeightChart :rows="reportData.rows" />
       </div>
