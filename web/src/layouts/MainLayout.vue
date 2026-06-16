@@ -2,11 +2,7 @@
   <el-container class="layout">
     <el-aside width="200px" class="aside">
       <div class="logo">makoto</div>
-      <el-menu
-        :default-active="route.path"
-        router
-        class="menu"
-      >
+      <el-menu :default-active="route.path" router class="menu">
         <el-menu-item index="/">
           <el-icon><DataAnalysis /></el-icon>
           <span>仪表盘</span>
@@ -32,6 +28,15 @@
     <el-container>
       <el-header class="header">
         <div class="header-right">
+          <el-tooltip :content="modeLabel" placement="bottom">
+            <el-button text class="theme-btn" @click="toggleTheme">
+              <el-icon :size="18">
+                <Sunny v-if="mode === 'light'" />
+                <Moon v-else-if="mode === 'dark'" />
+                <Setting v-else />
+              </el-icon>
+            </el-button>
+          </el-tooltip>
           <el-button text @click="handleLogout">退出登录</el-button>
         </div>
       </el-header>
@@ -44,7 +49,9 @@
 
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
+import { useTheme } from '../composables/useTheme'
 
+const { mode, modeLabel, toggleTheme } = useTheme()
 const route = useRoute()
 const router = useRouter()
 
@@ -89,5 +96,16 @@ function handleLogout() {
   justify-content: flex-end;
   border-bottom: 1px solid var(--el-border-color-light);
   background: var(--el-bg-color);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.theme-btn {
+  padding: 8px;
+  font-size: 18px;
 }
 </style>

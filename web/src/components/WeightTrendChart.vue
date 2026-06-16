@@ -8,6 +8,9 @@
 import { ref, onMounted, watch, onUnmounted } from 'vue'
 import * as echarts from 'echarts'
 import type { ReportRow } from '../api/dashboard'
+import { useTheme } from '../composables/useTheme'
+
+const { isDark } = useTheme()
 
 const props = defineProps<{
   rows: ReportRow[]
@@ -33,14 +36,15 @@ function buildOption(): echarts.EChartsOption {
   const domain = yDomain(weightData)
 
   const option: echarts.EChartsOption = {
+    backgroundColor: 'transparent',
     title: { text: '体重趋势（7日均线）', left: 'center', textStyle: { fontSize: 14 } },
     tooltip: { trigger: 'axis' },
     legend: { data: ['体重（7日均线）'], top: 28 },
-    grid: { top: 60, right: 40, bottom: 30, left: 60 },
+    grid: { top: 60, right: 90, bottom: 30, left: 60 },
     xAxis: { type: 'category', data: dates },
     yAxis: {
       type: 'value',
-      name: '体重 kg',
+      name: 'kg',
       min: domain.min,
       max: domain.max,
       axisLabel: { formatter: (v: number) => v.toFixed(1) },
@@ -77,10 +81,20 @@ function buildOption(): echarts.EChartsOption {
   return option
 }
 
-onMounted(() => {
-  chart = echarts.init(chartRef.value!, 'dark')
+function initChart() {
+  if (!chartRef.value) return
+  chart?.dispose()
+  chart = echarts.init(chartRef.value!, isDark.value ? 'dark' : undefined)
   chart.setOption(buildOption())
-  window.addEventListener('resize', () => chart?.resize())
+}
+
+function onResize() {
+  chart?.resize()
+}
+
+onMounted(() => {
+  initChart()
+  window.addEventListener('resize', onResize)
 })
 
 watch(
@@ -89,7 +103,12 @@ watch(
   { deep: true },
 )
 
-onUnmounted(() => chart?.dispose())
+watch(isDark, () => initChart())
+
+onUnmounted(() => {
+  window.removeEventListener('resize', onResize)
+  chart?.dispose()
+})
 </script>
 
 <style scoped>

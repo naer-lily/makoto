@@ -18,6 +18,55 @@
 
     <TodayOverview :data="todayData" :loading="todayLoading" />
 
+    <div v-if="todayData" class="detail-grid">
+      <el-card shadow="hover">
+        <template #header>
+          <div class="detail-card-header">
+            <el-icon :size="16"><ForkSpoon /></el-icon>
+            <span>今日饮食</span>
+            <el-tag size="small" effect="plain" round>{{ todayData.diets.length }} 条</el-tag>
+          </div>
+        </template>
+        <el-empty v-if="!todayData.diets.length" description="今天还没有饮食记录" :image-size="60" />
+        <el-table v-else :data="todayData.diets" size="small" stripe>
+          <el-table-column prop="food_name" label="食物" min-width="120" />
+          <el-table-column prop="grams" label="克数" width="70" align="right">
+            <template #default="{ row }">{{ row.grams }}g</template>
+          </el-table-column>
+          <el-table-column prop="calories_kcal" label="热量" width="90" align="right">
+            <template #default="{ row }">{{ row.calories_kcal }}</template>
+          </el-table-column>
+          <el-table-column prop="protein_g" label="蛋白质" width="80" align="right">
+            <template #default="{ row }">{{ row.protein_g }}g</template>
+          </el-table-column>
+          <el-table-column prop="carbs_g" label="碳水" width="80" align="right">
+            <template #default="{ row }">{{ row.carbs_g }}g</template>
+          </el-table-column>
+          <el-table-column prop="fat_g" label="脂肪" width="80" align="right">
+            <template #default="{ row }">{{ row.fat_g }}g</template>
+          </el-table-column>
+        </el-table>
+      </el-card>
+
+      <el-card shadow="hover">
+        <template #header>
+          <div class="detail-card-header">
+            <el-icon :size="16"><Baseball /></el-icon>
+            <span>今日运动</span>
+            <el-tag size="small" effect="plain" round>{{ todayData.exercises.length }} 条</el-tag>
+          </div>
+        </template>
+        <el-empty v-if="!todayData.exercises.length" description="今天还没有运动记录" :image-size="60" />
+        <el-table v-else :data="todayData.exercises" size="small" stripe>
+          <el-table-column prop="exercise_name" label="运动" min-width="120" />
+          <el-table-column prop="duration_desc" label="时长" width="140" />
+          <el-table-column prop="calories_kcal" label="消耗" width="100" align="right">
+            <template #default="{ row }">{{ row.calories_kcal }} kcal</template>
+          </el-table-column>
+        </el-table>
+      </el-card>
+    </div>
+
     <div v-if="reportLoading" style="text-align:center;padding:40px">
       <el-icon class="is-loading" :size="32"><Loading /></el-icon>
     </div>
@@ -87,5 +136,26 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 20px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.detail-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+@media (max-width: 900px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -8,6 +8,9 @@
 import { ref, onMounted, watch, onUnmounted } from 'vue'
 import * as echarts from 'echarts'
 import type { ReportRow } from '../api/dashboard'
+import { useTheme } from '../composables/useTheme'
+
+const { isDark } = useTheme()
 
 const props = defineProps<{ rows: ReportRow[] }>()
 const chartRef = ref<HTMLDivElement>()
@@ -28,6 +31,7 @@ function buildOption(): echarts.EChartsOption {
   const ffm = props.rows.map((r) => r.ma_ffm_kg)
   const domain = yDomain(weight, ffm)
   return {
+    backgroundColor: 'transparent',
     title: { text: '体重 & 去脂体重（7日均线）', left: 'center', textStyle: { fontSize: 14 } },
     tooltip: { trigger: 'axis' },
     legend: { data: ['体重', '去脂体重'], top: 30 },
@@ -36,7 +40,7 @@ function buildOption(): echarts.EChartsOption {
     yAxis: [
       {
         type: 'value',
-        name: '体重 kg',
+        name: 'kg',
         min: domain.floor,
         max: domain.ceil,
         axisLabel: { formatter: (v: number) => v.toFixed(1) },
@@ -44,7 +48,7 @@ function buildOption(): echarts.EChartsOption {
       },
       {
         type: 'value',
-        name: '去脂体重 kg',
+        name: 'kg',
         min: domain.floor,
         max: domain.ceil,
         axisLabel: { formatter: (v: number) => v.toFixed(1) },
@@ -72,14 +76,29 @@ function buildOption(): echarts.EChartsOption {
   }
 }
 
-onMounted(() => {
-  chart = echarts.init(chartRef.value!, 'dark')
+function initChart() {
+  if (!chartRef.value) return
+  chart?.dispose()
+  chart = echarts.init(chartRef.value!, isDark.value ? 'dark' : undefined)
   chart.setOption(buildOption())
-  window.addEventListener('resize', () => chart?.resize())
+}
+
+function onResize() {
+  chart?.resize()
+}
+
+onMounted(() => {
+  initChart()
+  window.addEventListener('resize', onResize)
 })
 
 watch(() => props.rows, () => chart?.setOption(buildOption()), { deep: true })
-onUnmounted(() => chart?.dispose())
+watch(isDark, () => initChart())
+
+onUnmounted(() => {
+  window.removeEventListener('resize', onResize)
+  chart?.dispose()
+})
 </script>
 
 <style scoped>

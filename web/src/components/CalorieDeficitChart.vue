@@ -8,6 +8,9 @@
 import { ref, onMounted, watch, onUnmounted } from 'vue'
 import * as echarts from 'echarts'
 import type { ReportRow } from '../api/dashboard'
+import { useTheme } from '../composables/useTheme'
+
+const { isDark } = useTheme()
 
 const props = defineProps<{
   rows: ReportRow[]
@@ -21,6 +24,7 @@ function buildOption(): echarts.EChartsOption {
   const deficitData = props.rows.map((r) => r.deficit_kcal)
 
   const option: echarts.EChartsOption = {
+    backgroundColor: 'transparent',
     title: { text: '每日热量缺口', left: 'center', textStyle: { fontSize: 14 } },
     tooltip: {
       trigger: 'axis',
@@ -75,19 +79,29 @@ function buildOption(): echarts.EChartsOption {
   return option
 }
 
-onMounted(() => {
-  chart = echarts.init(chartRef.value!, 'dark')
+function initChart() {
+  if (!chartRef.value) return
+  chart?.dispose()
+  chart = echarts.init(chartRef.value!, isDark.value ? 'dark' : undefined)
   chart.setOption(buildOption())
-  window.addEventListener('resize', () => chart?.resize())
+}
+
+function onResize() {
+  chart?.resize()
+}
+
+onMounted(() => {
+  initChart()
+  window.addEventListener('resize', onResize)
 })
 
-watch(
-  () => props.rows,
-  () => chart?.setOption(buildOption()),
-  { deep: true },
-)
+watch(() => props.rows, () => chart?.setOption(buildOption()), { deep: true })
+watch(isDark, () => initChart())
 
-onUnmounted(() => chart?.dispose())
+onUnmounted(() => {
+  window.removeEventListener('resize', onResize)
+  chart?.dispose()
+})
 </script>
 
 <style scoped>
