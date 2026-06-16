@@ -182,6 +182,7 @@ class TodayBody(BaseModel):
 
 
 class TodayDietItem(BaseModel):
+    log_time: str
     food_name: str
     grams: float
     calories_kcal: float
@@ -191,6 +192,7 @@ class TodayDietItem(BaseModel):
 
 
 class TodayExerciseItem(BaseModel):
+    log_time: str
     exercise_name: str
     duration_desc: str
     calories_kcal: float
@@ -208,6 +210,10 @@ class TodayResponse(BaseModel):
     total_fat_g: float = 0.0
     ree_kcal: float = 0.0
     net_kcal: float = 0.0
+    weight_delta_day: float | None = None
+    body_fat_delta_day: float | None = None
+    weight_delta_week: float | None = None
+    body_fat_delta_week: float | None = None
 
 
 class ReportRow(BaseModel):

@@ -12,6 +12,14 @@
           </template>
           <span v-else class="na">--</span>
         </div>
+        <div v-if="data" class="stat-deltas">
+          <span v-if="data.weight_delta_day != null" :class="['delta', data.weight_delta_day > 0 ? 'up' : 'down']">
+            {{ data.weight_delta_day > 0 ? '+' : '' }}{{ data.weight_delta_day.toFixed(1) }} <span class="delta-label">日</span>
+          </span>
+          <span v-if="data.weight_delta_week != null" :class="['delta', data.weight_delta_week > 0 ? 'up' : 'down']">
+            {{ data.weight_delta_week > 0 ? '+' : '' }}{{ data.weight_delta_week.toFixed(1) }} <span class="delta-label">周</span>
+          </span>
+        </div>
       </el-card>
 
       <el-card shadow="hover" class="stat-card">
@@ -24,6 +32,14 @@
             {{ data.body.body_fat_pct }}<span class="unit">%</span>
           </template>
           <span v-else class="na">--</span>
+        </div>
+        <div v-if="data" class="stat-deltas">
+          <span v-if="data.body_fat_delta_day != null" :class="['delta', data.body_fat_delta_day > 0 ? 'up' : 'down']">
+            {{ data.body_fat_delta_day > 0 ? '+' : '' }}{{ data.body_fat_delta_day.toFixed(1) }} <span class="delta-label">日</span>
+          </span>
+          <span v-if="data.body_fat_delta_week != null" :class="['delta', data.body_fat_delta_week > 0 ? 'up' : 'down']">
+            {{ data.body_fat_delta_week > 0 ? '+' : '' }}{{ data.body_fat_delta_week.toFixed(1) }} <span class="delta-label">周</span>
+          </span>
         </div>
       </el-card>
 
@@ -77,6 +93,9 @@
         <div class="stat-label">蛋白质</div>
         <div class="stat-value">
           {{ data?.total_protein_g ?? '--' }} <span class="unit">g</span>
+        </div>
+        <div v-if="data?.body?.weight_kg != null" class="stat-sub">
+          推荐 {{ Math.round(data.body.weight_kg * 1.5) }}g
         </div>
       </el-card>
 
@@ -165,6 +184,36 @@ const netClass = computed(() => {
   font-size: 13px;
   font-weight: 400;
   color: var(--el-text-color-secondary);
+}
+
+.stat-deltas {
+  margin-top: 6px;
+  display: flex;
+  gap: 10px;
+}
+
+.stat-deltas .delta {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.stat-deltas .delta-label {
+  font-weight: 400;
+  color: var(--el-text-color-secondary);
+}
+
+.delta.down {
+  color: #67c23a;
+}
+
+.delta.up {
+  color: #e6a23c;
+}
+
+.stat-sub {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
 }
 
 .na {

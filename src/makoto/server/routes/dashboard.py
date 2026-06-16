@@ -153,6 +153,7 @@ async def today_dashboard(
             total_fat += n["fat_g"]
             diets.append(
                 TodayDietItem(
+                    log_time=str(dd["log_time"]),
                     food_name=food_name,
                     grams=grams_val,
                     calories_kcal=n["calories_kcal"],
@@ -175,6 +176,7 @@ async def today_dashboard(
         total_burned += cal
         exercises.append(
             TodayExerciseItem(
+                log_time=str(ed["log_time"]),
                 exercise_name=str(ed["exercise_name"]),
                 duration_desc=str(ed["duration_desc"]),
                 calories_kcal=cal,
@@ -183,6 +185,35 @@ async def today_dashboard(
 
     ree = float(profile["ree_kcal"])
     net = ree + total_burned - total_intake
+
+    # 昨日与上周差值
+    weight_delta_day: float | None = None
+    body_fat_delta_day: float | None = None
+    weight_delta_week: float | None = None
+    body_fat_delta_week: float | None = None
+    if body is not None:
+        yesterday = today_date - timedelta(days=1)
+        week_ago = today_date - timedelta(days=7)
+
+        cursor = await db.execute(
+            "SELECT weight_kg, body_fat_pct FROM body_log WHERE log_date = ?",
+            (yesterday.isoformat(),),
+        )
+        prev_day = await cursor.fetchone()
+        if prev_day is not None and body.weight_kg is not None:
+            weight_delta_day = round(body.weight_kg - float(prev_day["weight_kg"]), 1)
+        if prev_day is not None and body.body_fat_pct is not None:
+            body_fat_delta_day = round(body.body_fat_pct - float(prev_day["body_fat_pct"]), 1)
+
+        cursor = await db.execute(
+            "SELECT weight_kg, body_fat_pct FROM body_log WHERE log_date = ?",
+            (week_ago.isoformat(),),
+        )
+        prev_week = await cursor.fetchone()
+        if prev_week is not None and body.weight_kg is not None:
+            weight_delta_week = round(body.weight_kg - float(prev_week["weight_kg"]), 1)
+        if prev_week is not None and body.body_fat_pct is not None:
+            body_fat_delta_week = round(body.body_fat_pct - float(prev_week["body_fat_pct"]), 1)
 
     return TodayResponse(
         date=today_date,
@@ -196,6 +227,10 @@ async def today_dashboard(
         total_fat_g=round(total_fat, 1),
         ree_kcal=ree,
         net_kcal=round(net, 1),
+        weight_delta_day=weight_delta_day,
+        body_fat_delta_day=body_fat_delta_day,
+        weight_delta_week=weight_delta_week,
+        body_fat_delta_week=body_fat_delta_week,
     )
 
 

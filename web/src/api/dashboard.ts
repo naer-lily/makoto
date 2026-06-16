@@ -10,6 +10,7 @@ export interface TodayBody {
 }
 
 export interface TodayDietItem {
+  log_time: string
   food_name: string
   grams: number
   calories_kcal: number
@@ -19,6 +20,7 @@ export interface TodayDietItem {
 }
 
 export interface TodayExerciseItem {
+  log_time: string
   exercise_name: string
   duration_desc: string
   calories_kcal: number
@@ -36,6 +38,10 @@ export interface TodayResponse {
   total_fat_g: number
   ree_kcal: number
   net_kcal: number
+  weight_delta_day: number | null
+  body_fat_delta_day: number | null
+  weight_delta_week: number | null
+  body_fat_delta_week: number | null
 }
 
 export interface ReportRow {

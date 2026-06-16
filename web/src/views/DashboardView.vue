@@ -25,24 +25,33 @@
             <el-icon :size="16"><ForkSpoon /></el-icon>
             <span>今日饮食</span>
             <el-tag size="small" effect="plain" round>{{ todayData.diets.length }} 条</el-tag>
+            <div class="header-spacer"></div>
+            <el-button size="small" text :disabled="!todayData.diets.length" @click="copyDietMd">
+              <el-icon :size="14"><CopyDocument /></el-icon>
+            </el-button>
           </div>
         </template>
         <el-empty v-if="!todayData.diets.length" description="今天还没有饮食记录" :image-size="60" />
         <el-table v-else :data="todayData.diets" size="small" stripe>
-          <el-table-column prop="food_name" label="食物" min-width="120" />
-          <el-table-column prop="grams" label="克数" width="70" align="right">
+          <el-table-column label="时间" width="65">
+            <template #default="{ row }">
+              <span class="time-cell">{{ row.log_time.slice(11, 16) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="food_name" label="食物" min-width="100" />
+          <el-table-column prop="grams" label="克数" width="65" align="right">
             <template #default="{ row }">{{ row.grams }}g</template>
           </el-table-column>
-          <el-table-column prop="calories_kcal" label="热量" width="90" align="right">
+          <el-table-column prop="calories_kcal" label="热量" width="75" align="right">
             <template #default="{ row }">{{ row.calories_kcal }}</template>
           </el-table-column>
-          <el-table-column prop="protein_g" label="蛋白质" width="80" align="right">
+          <el-table-column prop="protein_g" label="蛋白质" width="70" align="right">
             <template #default="{ row }">{{ row.protein_g }}g</template>
           </el-table-column>
-          <el-table-column prop="carbs_g" label="碳水" width="80" align="right">
+          <el-table-column prop="carbs_g" label="碳水" width="70" align="right">
             <template #default="{ row }">{{ row.carbs_g }}g</template>
           </el-table-column>
-          <el-table-column prop="fat_g" label="脂肪" width="80" align="right">
+          <el-table-column prop="fat_g" label="脂肪" width="70" align="right">
             <template #default="{ row }">{{ row.fat_g }}g</template>
           </el-table-column>
         </el-table>
@@ -54,13 +63,22 @@
             <el-icon :size="16"><Baseball /></el-icon>
             <span>今日运动</span>
             <el-tag size="small" effect="plain" round>{{ todayData.exercises.length }} 条</el-tag>
+            <div class="header-spacer"></div>
+            <el-button size="small" text :disabled="!todayData.exercises.length" @click="copyExerciseMd">
+              <el-icon :size="14"><CopyDocument /></el-icon>
+            </el-button>
           </div>
         </template>
         <el-empty v-if="!todayData.exercises.length" description="今天还没有运动记录" :image-size="60" />
         <el-table v-else :data="todayData.exercises" size="small" stripe>
-          <el-table-column prop="exercise_name" label="运动" min-width="120" />
-          <el-table-column prop="duration_desc" label="时长" width="140" />
-          <el-table-column prop="calories_kcal" label="消耗" width="100" align="right">
+          <el-table-column label="时间" width="65">
+            <template #default="{ row }">
+              <span class="time-cell">{{ row.log_time.slice(11, 16) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="exercise_name" label="运动" min-width="100" />
+          <el-table-column prop="duration_desc" label="时长" width="130" />
+          <el-table-column prop="calories_kcal" label="消耗" width="85" align="right">
             <template #default="{ row }">{{ row.calories_kcal }} kcal</template>
           </el-table-column>
         </el-table>
@@ -90,6 +108,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import { fetchToday, fetchReport, type TodayResponse, type ReportResponse } from '../api/dashboard'
 import TodayOverview from '../components/TodayOverview.vue'
 import WeightTrendChart from '../components/WeightTrendChart.vue'
@@ -124,6 +143,34 @@ async function loadReport() {
   }
 }
 
+function copyDietMd() {
+  const rows = todayData.value?.diets ?? []
+  if (!rows.length) return
+  let md = '| 时间 | 食物 | 克数 | 热量 | 蛋白质 | 碳水 | 脂肪 |\n'
+  md += '|------|------|------|------|--------|------|------|\n'
+  for (const r of rows) {
+    const t = r.log_time.slice(11, 16)
+    md += `| ${t} | ${r.food_name} | ${r.grams}g | ${r.calories_kcal} | ${r.protein_g}g | ${r.carbs_g}g | ${r.fat_g}g |\n`
+  }
+  md += `\n**合计**: ${todayData.value!.total_intake_kcal} kcal · 蛋白质 ${todayData.value!.total_protein_g}g · 碳水 ${todayData.value!.total_carbs_g}g · 脂肪 ${todayData.value!.total_fat_g}g`
+  navigator.clipboard.writeText(md)
+  ElMessage.success('已复制为 Markdown')
+}
+
+function copyExerciseMd() {
+  const rows = todayData.value?.exercises ?? []
+  if (!rows.length) return
+  let md = '| 时间 | 运动 | 时长 | 消耗 |\n'
+  md += '|------|------|------|------|\n'
+  for (const r of rows) {
+    const t = r.log_time.slice(11, 16)
+    md += `| ${t} | ${r.exercise_name} | ${r.duration_desc} | ${r.calories_kcal} kcal |\n`
+  }
+  md += `\n**合计**: ${todayData.value!.total_burned_kcal} kcal`
+  navigator.clipboard.writeText(md)
+  ElMessage.success('已复制为 Markdown')
+}
+
 onMounted(() => {
   loadToday()
   loadReport()
@@ -151,6 +198,15 @@ onMounted(() => {
   gap: 8px;
   font-weight: 600;
   font-size: 14px;
+}
+
+.header-spacer {
+  flex: 1;
+}
+
+.time-cell {
+  color: var(--el-text-color-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 900px) {
