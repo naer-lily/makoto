@@ -95,7 +95,7 @@
           {{ data?.total_protein_g ?? '--' }} <span class="unit">g</span>
         </div>
         <div v-if="data?.body?.weight_kg != null" class="stat-sub">
-          推荐 {{ Math.round(data.body.weight_kg * 1.5) }}g
+          推荐 {{ Math.round(data.body.weight_kg * 1.6) }}–{{ Math.round(data.body.weight_kg * 2.2) }}g
         </div>
       </el-card>
 
@@ -106,6 +106,9 @@
         <div class="stat-label">碳水</div>
         <div class="stat-value">
           {{ data?.total_carbs_g ?? '--' }} <span class="unit">g</span>
+        </div>
+        <div v-if="data?.body?.weight_kg != null" class="stat-sub">
+          推荐 {{ Math.round(data.body.weight_kg * 2) }}g
         </div>
       </el-card>
 
