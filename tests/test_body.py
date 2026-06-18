@@ -35,22 +35,17 @@ def test_create_and_list_body_log(client: TestClient) -> None:
         "log_date": "2026-06-15",
         "weight_kg": 69.5,
         "body_fat_pct": 17.5,
-        "waist_cm": 80.0,
-        "arm_cm": 32.0,
-        "thigh_cm": 55.0,
         "note": "早上空腹",
     }
     resp = client.post("/api/v1/body-logs", json=payload, headers=auth_headers())
     assert resp.status_code == 201
     data = resp.json()
     assert data["weight_kg"] == 69.5
-    assert data["waist_cm"] == 80.0
+    assert "waist_cm" not in data
 
-    # 验证画像体重同步
     profile_resp = client.get("/api/v1/profile", headers=auth_headers())
     assert profile_resp.json()["weight_kg"] == 69.5
 
-    # 列表
     list_resp = client.get("/api/v1/body-logs", headers=auth_headers())
     assert len(list_resp.json()) == 1
 

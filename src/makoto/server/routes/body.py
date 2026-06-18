@@ -25,9 +25,6 @@ def _row_to_response(row: aiosqlite.Row) -> BodyLogResponse:
         log_date=__import__("datetime").date.fromisoformat(str(d["log_date"])),
         weight_kg=float(d["weight_kg"]),
         body_fat_pct=float(d["body_fat_pct"]),
-        waist_cm=float(d["waist_cm"]) if d["waist_cm"] is not None else None,
-        arm_cm=float(d["arm_cm"]) if d["arm_cm"] is not None else None,
-        thigh_cm=float(d["thigh_cm"]) if d["thigh_cm"] is not None else None,
         note=str(d["note"]) if d["note"] else None,
         created_at=str(d["created_at"]),
     )
@@ -37,7 +34,7 @@ def _row_to_response(row: aiosqlite.Row) -> BodyLogResponse:
     "",
     response_model=list[BodyLogResponse],
     summary="列出身体测量记录",
-    description="按日期倒序返回所有身体测量记录，包含体重、体脂率及各围度数据。",
+    description="按日期倒序返回所有身体测量记录，包含体重、体脂率。",
 )
 async def list_body_logs(
     _token: str = Depends(verify_token),
@@ -66,18 +63,12 @@ async def create_body_log(
         raise HTTPException(status_code=409, detail=f"{date_str} 已有记录")
 
     cursor = await db.execute(
-        """INSERT INTO body_log
-           (log_date, weight_kg, body_fat_pct, waist_cm, arm_cm, thigh_cm, note)
-           VALUES (?, ?, ?, ?, ?, ?, ?)""",
-        (
-            date_str, data.weight_kg, data.body_fat_pct,
-            data.waist_cm, data.arm_cm, data.thigh_cm, data.note,
-        ),
+        "INSERT INTO body_log (log_date, weight_kg, body_fat_pct, note) VALUES (?, ?, ?, ?)",
+        (date_str, data.weight_kg, data.body_fat_pct, data.note),
     )
     await db.commit()
     log_id = cursor.lastrowid
 
-    # 同步画像体重和体脂率
     await db.execute(
         "UPDATE profile SET weight_kg = ?, body_fat_pct = ? WHERE id = 1",
         (data.weight_kg, data.body_fat_pct),

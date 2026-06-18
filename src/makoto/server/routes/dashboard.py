@@ -16,6 +16,7 @@ from fastapi import Query
 from makoto.server.auth import verify_token
 from makoto.server.database import get_db
 from makoto.server.models import ActivityLevel
+from makoto.server.models import CircumferenceLogResponse
 from makoto.server.models import Gender
 from makoto.server.models import ReportResponse
 from makoto.server.models import ReportRow
@@ -92,30 +93,9 @@ async def today_dashboard(
     body_row = await cursor.fetchone()
     if body_row is not None:
         d = dict(body_row)
-        waist = float(d["waist_cm"]) if d["waist_cm"] is not None else None
-        arm = float(d["arm_cm"]) if d["arm_cm"] is not None else None
-        thigh = float(d["thigh_cm"]) if d["thigh_cm"] is not None else None
-        if waist is None or arm is None or thigh is None:
-            cursor2 = await db.execute(
-                "SELECT waist_cm, arm_cm, thigh_cm FROM body_log WHERE log_date < ? "
-                "AND (waist_cm IS NOT NULL OR arm_cm IS NOT NULL OR thigh_cm IS NOT NULL) "
-                "ORDER BY log_date DESC LIMIT 1",
-                (today_date.isoformat(),),
-            )
-            prev = await cursor2.fetchone()
-            if prev is not None:
-                if waist is None and prev["waist_cm"] is not None:
-                    waist = float(prev["waist_cm"])
-                if arm is None and prev["arm_cm"] is not None:
-                    arm = float(prev["arm_cm"])
-                if thigh is None and prev["thigh_cm"] is not None:
-                    thigh = float(prev["thigh_cm"])
         body = TodayBody(
             weight_kg=float(d["weight_kg"]),
             body_fat_pct=float(d["body_fat_pct"]),
-            waist_cm=waist,
-            arm_cm=arm,
-            thigh_cm=thigh,
             note=str(d["note"]) if d["note"] else None,
         )
 
@@ -186,6 +166,24 @@ async def today_dashboard(
     ree = float(profile["ree_kcal"])
     net = ree + total_burned - total_intake
 
+    # 当日围度
+    circumference: CircumferenceLogResponse | None = None
+    cursor = await db.execute(
+        "SELECT * FROM circumference_log WHERE log_date = ?", (today_date.isoformat(),)
+    )
+    circ_row = await cursor.fetchone()
+    if circ_row is not None:
+        cd = dict(circ_row)
+        circumference = CircumferenceLogResponse(
+            id=int(cd["id"]),
+            log_date=today_date,
+            waist_cm=float(cd["waist_cm"]) if cd["waist_cm"] is not None else None,
+            arm_cm=float(cd["arm_cm"]) if cd["arm_cm"] is not None else None,
+            thigh_cm=float(cd["thigh_cm"]) if cd["thigh_cm"] is not None else None,
+            note=str(cd["note"]) if cd["note"] else None,
+            created_at=str(cd["created_at"]),
+        )
+
     # 昨日与上周差值
     weight_delta_day: float | None = None
     body_fat_delta_day: float | None = None
@@ -231,6 +229,7 @@ async def today_dashboard(
         body_fat_delta_day=body_fat_delta_day,
         weight_delta_week=weight_delta_week,
         body_fat_delta_week=body_fat_delta_week,
+        circumference=circumference,
     )
 
 

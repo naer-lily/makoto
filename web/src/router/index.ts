@@ -42,6 +42,12 @@ const router = createRouter({
           component: () => import('../views/ProfileView.vue'),
           meta: { title: '个人画像' },
         },
+        {
+          path: 'circumference',
+          name: 'circumference',
+          component: () => import('../views/CircumferenceLogsView.vue'),
+          meta: { title: '围度记录' },
+        },
       ],
     },
   ],

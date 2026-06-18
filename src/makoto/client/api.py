@@ -99,6 +99,17 @@ class MakotoClient:
     def delete_body_log(self, log_id: int) -> dict[str, str]:
         return self._delete(f"/api/v1/body-logs/{log_id}")
 
+    # ── Circumference Logs ──
+
+    def list_circumference_logs(self) -> list[dict[str, Any]]:
+        return self._get("/api/v1/circumference-logs")  # type: ignore[no-any-return]
+
+    def create_circumference_log(self, data: dict[str, object]) -> dict[str, Any]:
+        return self._post("/api/v1/circumference-logs", data)  # type: ignore[no-any-return]
+
+    def delete_circumference_log(self, log_id: int) -> dict[str, str]:
+        return self._delete(f"/api/v1/circumference-logs/{log_id}")
+
     # ── Diet Logs ──
 
     def list_diet_logs(self, limit: int = 50) -> list[dict[str, Any]]:

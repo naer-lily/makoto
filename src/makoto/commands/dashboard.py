@@ -34,17 +34,21 @@ def today() -> None:
         console.print("  [dim]本日未录入[/dim]")
     else:
         console.print(f"  体重: {body['weight_kg']} kg    体脂率: {body['body_fat_pct']}%")
-        girths: list[str] = []
-        if body.get("waist_cm"):
-            girths.append(f"腰围: {body['waist_cm']} cm")
-        if body.get("arm_cm"):
-            girths.append(f"臂围: {body['arm_cm']} cm")
-        if body.get("thigh_cm"):
-            girths.append(f"大腿围: {body['thigh_cm']} cm")
-        if girths:
-            console.print(f"  {'  '.join(girths)}")
         if body.get("note"):
             console.print(f"  [dim]备注: {body['note']}[/dim]")
+
+    # 围度
+    circ = data.get("circumference")
+    if circ is not None:
+        parts: list[str] = []
+        if circ.get("waist_cm"):
+            parts.append(f"腰围: {circ['waist_cm']} cm")
+        if circ.get("arm_cm"):
+            parts.append(f"臂围: {circ['arm_cm']} cm")
+        if circ.get("thigh_cm"):
+            parts.append(f"大腿围: {circ['thigh_cm']} cm")
+        if parts:
+            console.print(f"  [bold]围度[/bold]  {'  '.join(parts)}")
 
     # 饮食
     diets = data.get("diets", [])

@@ -116,13 +116,26 @@ class BodyLogCreate(BaseModel):
     log_date: date
     weight_kg: float = Field(ge=0)
     body_fat_pct: float = Field(ge=0, le=60)
+    note: str | None = None
+
+
+class BodyLogResponse(BodyLogCreate):
+    id: int
+    created_at: str
+
+
+# ── Circumference Log ──
+
+
+class CircumferenceLogCreate(BaseModel):
+    log_date: date
     waist_cm: float | None = Field(default=None, ge=0)
     arm_cm: float | None = Field(default=None, ge=0)
     thigh_cm: float | None = Field(default=None, ge=0)
     note: str | None = None
 
 
-class BodyLogResponse(BodyLogCreate):
+class CircumferenceLogResponse(CircumferenceLogCreate):
     id: int
     created_at: str
 
@@ -175,9 +188,6 @@ class ExerciseLogResponse(ExerciseLogCreate):
 class TodayBody(BaseModel):
     weight_kg: float | None = None
     body_fat_pct: float | None = None
-    waist_cm: float | None = None
-    arm_cm: float | None = None
-    thigh_cm: float | None = None
     note: str | None = None
 
 
@@ -214,6 +224,7 @@ class TodayResponse(BaseModel):
     body_fat_delta_day: float | None = None
     weight_delta_week: float | None = None
     body_fat_delta_week: float | None = None
+    circumference: CircumferenceLogResponse | None = None
 
 
 class ReportRow(BaseModel):

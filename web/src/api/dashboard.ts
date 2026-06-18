@@ -3,10 +3,17 @@ import http from './client'
 export interface TodayBody {
   weight_kg: number | null
   body_fat_pct: number | null
+  note: string | null
+}
+
+export interface CircumferenceResponse {
+  id: number
+  log_date: string
   waist_cm: number | null
   arm_cm: number | null
   thigh_cm: number | null
   note: string | null
+  created_at: string
 }
 
 export interface TodayDietItem {
@@ -42,6 +49,7 @@ export interface TodayResponse {
   body_fat_delta_day: number | null
   weight_delta_week: number | null
   body_fat_delta_week: number | null
+  circumference: CircumferenceResponse | null
 }
 
 export interface ReportRow {

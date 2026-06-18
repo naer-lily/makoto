@@ -102,6 +102,9 @@
         <WeeklyLossChart :rows="reportData.rows" />
         <RawWeightChart :rows="reportData.rows" />
       </div>
+      <div class="chart-row-full">
+        <CircumferenceChart :rows="circData" />
+      </div>
     </template>
   </div>
 </template>
@@ -110,6 +113,10 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { fetchToday, fetchReport, type TodayResponse, type ReportResponse } from '../api/dashboard'
+import {
+  fetchCircumferenceLogs,
+  type CircumferenceRecord,
+} from '../api/circumference'
 import TodayOverview from '../components/TodayOverview.vue'
 import WeightTrendChart from '../components/WeightTrendChart.vue'
 import CalorieDeficitChart from '../components/CalorieDeficitChart.vue'
@@ -117,12 +124,14 @@ import BodyFatTrendChart from '../components/BodyFatTrendChart.vue'
 import WeightFfmChart from '../components/WeightFfmChart.vue'
 import WeeklyLossChart from '../components/WeeklyLossChart.vue'
 import RawWeightChart from '../components/RawWeightChart.vue'
+import CircumferenceChart from '../components/CircumferenceChart.vue'
 
 const todayData = ref<TodayResponse | null>(null)
 const todayLoading = ref(false)
 const reportData = ref<ReportResponse | null>(null)
 const reportLoading = ref(false)
 const dateRange = ref<[string, string] | null>(null)
+const circData = ref<CircumferenceRecord[]>([])
 
 async function loadToday() {
   todayLoading.value = true
@@ -174,7 +183,16 @@ function copyExerciseMd() {
 onMounted(() => {
   loadToday()
   loadReport()
+  loadCirc()
 })
+
+async function loadCirc() {
+  try {
+    circData.value = await fetchCircumferenceLogs()
+  } catch {
+    // non-critical
+  }
+}
 </script>
 
 <style scoped>
@@ -207,6 +225,12 @@ onMounted(() => {
 .time-cell {
   color: var(--el-text-color-secondary);
   font-variant-numeric: tabular-nums;
+}
+
+.chart-row-full {
+  display: grid;
+  grid-template-columns: 1fr;
+  margin-bottom: 20px;
 }
 
 @media (max-width: 900px) {

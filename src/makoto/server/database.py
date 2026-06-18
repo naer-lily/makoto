@@ -79,6 +79,13 @@ async def init_db(db: aiosqlite.Connection) -> None:
             log_date        TEXT NOT NULL UNIQUE,
             weight_kg       REAL NOT NULL,
             body_fat_pct    REAL NOT NULL,
+            note            TEXT,
+            created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS circumference_log (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            log_date        TEXT NOT NULL UNIQUE,
             waist_cm        REAL,
             arm_cm          REAL,
             thigh_cm        REAL,

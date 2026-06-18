@@ -23,6 +23,10 @@
           <el-icon><UserFilled /></el-icon>
           <span>个人画像</span>
         </el-menu-item>
+        <el-menu-item index="/circumference">
+          <el-icon><SetUp /></el-icon>
+          <span>围度记录</span>
+        </el-menu-item>
       </el-menu>
     </el-aside>
     <el-container>

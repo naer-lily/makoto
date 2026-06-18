@@ -18,6 +18,7 @@ from makoto.server.database import disconnect
 from makoto.server.database import init_db
 from makoto.server.database import set_db_path
 from makoto.server.routes import body
+from makoto.server.routes import circumference
 from makoto.server.routes import dashboard
 from makoto.server.routes import diet
 from makoto.server.routes import exercise
@@ -56,6 +57,7 @@ app = FastAPI(
 app.include_router(profile.router)
 app.include_router(foods.router)
 app.include_router(body.router)
+app.include_router(circumference.router)
 app.include_router(diet.router)
 app.include_router(exercise.router)
 app.include_router(dashboard.router)
