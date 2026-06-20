@@ -102,8 +102,9 @@
         <WeeklyLossChart :rows="reportData.rows" />
         <RawWeightChart :rows="reportData.rows" />
       </div>
-      <div class="chart-row-full">
+      <div class="chart-grid">
         <CircumferenceChart :rows="circData" />
+        <BodyCompChart :rows="reportData.rows" />
       </div>
     </template>
   </div>
@@ -125,6 +126,7 @@ import WeightFfmChart from '../components/WeightFfmChart.vue'
 import WeeklyLossChart from '../components/WeeklyLossChart.vue'
 import RawWeightChart from '../components/RawWeightChart.vue'
 import CircumferenceChart from '../components/CircumferenceChart.vue'
+import BodyCompChart from '../components/BodyCompChart.vue'
 
 const todayData = ref<TodayResponse | null>(null)
 const todayLoading = ref(false)

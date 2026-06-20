@@ -125,9 +125,17 @@ def test_report_default_range(client: TestClient) -> None:
     assert "ma_weight_kg" in first_row
     assert "ma_body_fat_pct" in first_row
     assert "ma_ffm_kg" in first_row
+    assert "ma_fat_kg" in first_row
     assert "deficit_kcal" in first_row
     assert "is_interpolated" in first_row
     assert "weekly_loss_kg" in first_row
+
+    # 验证 fat_kg + ffm_kg ≈ weight_kg
+    for row in rows:
+        fat = float(row["fat_kg"])
+        ffm = float(row["ffm_kg"])
+        wt = float(row["weight_kg"])
+        assert abs(fat + ffm - wt) < 0.2
 
     # summary 检查
     summary = data["summary"]

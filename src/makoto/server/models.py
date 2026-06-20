@@ -232,9 +232,11 @@ class ReportRow(BaseModel):
     weight_kg: float
     body_fat_pct: float
     ffm_kg: float
+    fat_kg: float
     ma_weight_kg: float
     ma_body_fat_pct: float
     ma_ffm_kg: float
+    ma_fat_kg: float
     deficit_kcal: float
     expected_deficit_kcal: float | None
     ma_deficit_kcal: float | None

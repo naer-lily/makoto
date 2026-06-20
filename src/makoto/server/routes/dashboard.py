@@ -298,10 +298,14 @@ async def dashboard_report(
     ffm_cont: dict[date, float] = {
         d: round(w * (1 - bf_cont.get(d, 0) / 100), 1) for d, w in weight_cont.items()
     }
+    fat_cont: dict[date, float] = {
+        d: round(w * bf_cont.get(d, 0) / 100, 1) for d, w in weight_cont.items()
+    }
 
     ma_weight_full = rolling_mean(weight_cont, window=7)
     ma_bf_full = rolling_mean(bf_cont, window=7)
     ma_ffm_full = rolling_mean(ffm_cont, window=7)
+    ma_fat_full = rolling_mean(fat_cont, window=7)
 
     display_dates = date_series(start_date, end_date_date)
     weight_original = {d: weight_filled[d][1] for d in display_dates if d in weight_filled}
@@ -356,9 +360,11 @@ async def dashboard_report(
         w = weight_cont.get(d, 0)
         bf = bf_cont.get(d, 0)
         ffm = ffm_cont.get(d, 0)
+        fat = fat_cont.get(d, 0)
         mw = ma_weight_full.get(d, 0)
         mb = ma_bf_full.get(d, 0)
         mf = ma_ffm_full.get(d, 0)
+        mfa = ma_fat_full.get(d, 0)
         prev_mw = ma_weight_full.get(d - timedelta(days=7))
         weekly_loss = round(prev_mw - mw, 2) if prev_mw is not None else None
         balance = daily_balance[d]
@@ -373,9 +379,11 @@ async def dashboard_report(
                 weight_kg=round(w, 1),
                 body_fat_pct=round(bf, 1),
                 ffm_kg=round(ffm, 1),
+                fat_kg=round(fat, 1),
                 ma_weight_kg=round(mw, 1),
                 ma_body_fat_pct=round(mb, 1),
                 ma_ffm_kg=round(mf, 1),
+                ma_fat_kg=round(mfa, 1),
                 deficit_kcal=round(balance, 1),
                 expected_deficit_kcal=round(exp, 1) if daily_expected is not None else None,
                 is_interpolated=not is_orig,
@@ -385,8 +393,8 @@ async def dashboard_report(
         )
 
     first: ReportRow = data_rows[0] if data_rows else ReportRow(
-        date="", weight_kg=0, body_fat_pct=0, ffm_kg=0,
-        ma_weight_kg=0, ma_body_fat_pct=0, ma_ffm_kg=0,
+        date="", weight_kg=0, body_fat_pct=0, ffm_kg=0, fat_kg=0,
+        ma_weight_kg=0, ma_body_fat_pct=0, ma_ffm_kg=0, ma_fat_kg=0,
         deficit_kcal=0, expected_deficit_kcal=None, is_interpolated=False,
         weekly_loss_kg=None, ma_deficit_kcal=None,
     )

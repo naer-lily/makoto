@@ -57,9 +57,11 @@ export interface ReportRow {
   weight_kg: number
   body_fat_pct: number
   ffm_kg: number
+  fat_kg: number
   ma_weight_kg: number
   ma_body_fat_pct: number
   ma_ffm_kg: number
+  ma_fat_kg: number
   deficit_kcal: number
   expected_deficit_kcal: number | null
   ma_deficit_kcal: number | null
