@@ -26,7 +26,17 @@ function buildOption(): echarts.EChartsOption {
   return {
     backgroundColor: 'transparent',
     title: { text: '周运动负荷 (Keep)', left: 'center', textStyle: { fontSize: 14 } },
-    tooltip: { trigger: 'axis' },
+    tooltip: {
+      trigger: 'axis',
+      formatter: (params: any) => {
+        const idx = params[0]?.dataIndex ?? 0
+        const r = sorted[idx]
+        let html = `${params[0]?.axisValue}<br/>`
+        html += `训练负荷: <b>${r.training_load ?? '-'}</b><br/>`
+        html += `推荐负荷: <b>${r.load_lower}-${r.load_upper}</b>`
+        return html
+      },
+    },
     legend: { data: ['训练负荷'], top: 28 },
     grid: { top: 60, right: 30, bottom: 30, left: 60 },
     xAxis: { type: 'category', data: labels },
