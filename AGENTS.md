@@ -171,12 +171,13 @@ makoto/
 │       │   ├── database.py        # aiosqlite 连接管理 + 建表 + dict factory
 │       │   ├── models.py          # pydantic v2 全部模型 + nutrition_for()
 │       │   └── routes/            # API 路由
-│       │       ├── profile.py     # /api/v1/profile
-│       │       ├── foods.py       # /api/v1/foods
-│       │       ├── body.py        # /api/v1/body-logs
-│       │       ├── diet.py        # /api/v1/diet-logs
-│       │       ├── exercise.py    # /api/v1/exercise-logs
-│       │       └── dashboard.py   # /api/v1/dashboard/{today,report}
+│       │       ├── profile.py         # /api/v1/profile
+│       │       ├── foods.py           # /api/v1/foods
+│       │       ├── body.py            # /api/v1/body-logs
+│       │       ├── circumference.py   # /api/v1/circumference-logs
+│       │       ├── diet.py            # /api/v1/diet-logs
+│       │       ├── exercise.py        # /api/v1/exercise-logs
+│       │       └── dashboard.py       # /api/v1/dashboard/{today,report}
 │       ├── client/                # HTTP 客户端
 │       │   ├── __init__.py
 │       │   ├── config.py          # MAKOTO_ENDPOINT / MAKOTO_TOKEN
@@ -184,7 +185,8 @@ makoto/
 │       ├── commands/              # CLI 子命令（HTTP 客户端模式）
 │       │   ├── profile.py         # 用户画像
 │       │   ├── food.py            # 食物库
-│       │   ├── body.py            # 身体测量
+│       │   ├── body.py            # 身体测量（体重、体脂率）
+│       │   ├── circumference.py   # 围度测量（腰围、臂围、大腿围）
 │       │   ├── diet.py            # 饮食记录
 │       │   ├── exercise.py        # 运动记录
 │       │   └── dashboard.py       # 数据总览

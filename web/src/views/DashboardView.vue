@@ -95,6 +95,10 @@
         <CalorieDeficitChart :rows="reportData.rows" />
       </div>
       <div class="chart-grid">
+        <FitnessChart :rows="fitnessData" />
+        <WeeklyLoadChart :rows="weeklyLoadData" />
+      </div>
+      <div class="chart-grid">
         <BodyFatTrendChart :rows="reportData.rows" />
         <WeightFfmChart :rows="reportData.rows" />
       </div>
@@ -102,9 +106,8 @@
         <WeeklyLossChart :rows="reportData.rows" />
         <RawWeightChart :rows="reportData.rows" />
       </div>
-      <div class="chart-grid">
+      <div class="chart-row-full">
         <CircumferenceChart :rows="circData" />
-        <BodyCompChart :rows="reportData.rows" />
       </div>
     </template>
   </div>
@@ -118,15 +121,22 @@ import {
   fetchCircumferenceLogs,
   type CircumferenceRecord,
 } from '../api/circumference'
+import {
+  fetchFitness,
+  fetchWeeklyLoad,
+  type FitnessRecord,
+  type WeeklyLoadRecord,
+} from '../api/keep'
 import TodayOverview from '../components/TodayOverview.vue'
 import WeightTrendChart from '../components/WeightTrendChart.vue'
 import CalorieDeficitChart from '../components/CalorieDeficitChart.vue'
+import FitnessChart from '../components/FitnessChart.vue'
+import WeeklyLoadChart from '../components/WeeklyLoadChart.vue'
 import BodyFatTrendChart from '../components/BodyFatTrendChart.vue'
 import WeightFfmChart from '../components/WeightFfmChart.vue'
 import WeeklyLossChart from '../components/WeeklyLossChart.vue'
 import RawWeightChart from '../components/RawWeightChart.vue'
 import CircumferenceChart from '../components/CircumferenceChart.vue'
-import BodyCompChart from '../components/BodyCompChart.vue'
 
 const todayData = ref<TodayResponse | null>(null)
 const todayLoading = ref(false)
@@ -134,6 +144,8 @@ const reportData = ref<ReportResponse | null>(null)
 const reportLoading = ref(false)
 const dateRange = ref<[string, string] | null>(null)
 const circData = ref<CircumferenceRecord[]>([])
+const fitnessData = ref<FitnessRecord[]>([])
+const weeklyLoadData = ref<WeeklyLoadRecord[]>([])
 
 async function loadToday() {
   todayLoading.value = true
@@ -151,6 +163,27 @@ async function loadReport() {
     reportData.value = await fetchReport(start, end)
   } finally {
     reportLoading.value = false
+  }
+}
+
+async function loadCirc() {
+  try {
+    circData.value = await fetchCircumferenceLogs()
+  } catch {
+    // non-critical
+  }
+}
+
+async function loadKeep() {
+  try {
+    fitnessData.value = await fetchFitness()
+  } catch {
+    // non-critical
+  }
+  try {
+    weeklyLoadData.value = await fetchWeeklyLoad()
+  } catch {
+    // non-critical
   }
 }
 
@@ -186,15 +219,8 @@ onMounted(() => {
   loadToday()
   loadReport()
   loadCirc()
+  loadKeep()
 })
-
-async function loadCirc() {
-  try {
-    circData.value = await fetchCircumferenceLogs()
-  } catch {
-    // non-critical
-  }
-}
 </script>
 
 <style scoped>

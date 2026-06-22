@@ -74,6 +74,7 @@ async def get_profile(
         target_weight_kg=float(d["target_weight_kg"]),
         target_date=target_date,
         activity_level=ActivityLevel(str(d["activity_level"])),
+        keep_token=str(d["keep_token"]) if d.get("keep_token") else None,
         ffm_kg=ffm,
         bmr_kcal=bmr,
         ree_kcal=ree,
@@ -96,8 +97,8 @@ async def set_profile(
     await db.execute(
         """INSERT OR REPLACE INTO profile
            (id, name, gender, age, height_cm, weight_kg, body_fat_pct,
-            target_weight_kg, target_date, activity_level)
-           VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            target_weight_kg, target_date, activity_level, keep_token)
+           VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             data.name,
             data.gender.value,
@@ -108,6 +109,7 @@ async def set_profile(
             data.target_weight_kg,
             data.target_date.isoformat(),
             data.activity_level.value,
+            data.keep_token,
         ),
     )
     await db.commit()
@@ -132,6 +134,7 @@ async def set_profile(
         target_weight_kg=data.target_weight_kg,
         target_date=data.target_date,
         activity_level=data.activity_level,
+        keep_token=data.keep_token,
         ffm_kg=ffm,
         bmr_kcal=bmr,
         ree_kcal=ree,

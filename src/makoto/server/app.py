@@ -23,6 +23,7 @@ from makoto.server.routes import dashboard
 from makoto.server.routes import diet
 from makoto.server.routes import exercise
 from makoto.server.routes import foods
+from makoto.server.routes import keep
 from makoto.server.routes import profile
 
 
@@ -60,6 +61,7 @@ app.include_router(body.router)
 app.include_router(circumference.router)
 app.include_router(diet.router)
 app.include_router(exercise.router)
+app.include_router(keep.router)
 app.include_router(dashboard.router)
 
 # 生产环境：挂载前端静态文件

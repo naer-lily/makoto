@@ -25,6 +25,12 @@ const router = createRouter({
           meta: { title: '食物库' },
         },
         {
+          path: 'body',
+          name: 'body',
+          component: () => import('../views/BodyLogsView.vue'),
+          meta: { title: '身体测量' },
+        },
+        {
           path: 'diet',
           name: 'diet',
           component: () => import('../views/DietLogsView.vue'),

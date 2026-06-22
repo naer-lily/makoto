@@ -85,11 +85,11 @@ makoto food delete 鸡蛋
 
 ## 身体测量
 
-每天早上记录体重和体脂率，可选记录腰围、臂围、腿围。每个日期仅一条记录。
+每天早上记录体重和体脂率。每个日期仅一条记录。
 
 ```bash
 # 记录今日
-makoto body log -w 80.5 -b 17.8 --waist 82 --arm 35 --thigh 58 -n "晨起空腹"
+makoto body log -w 80.5 -b 17.8 -n "晨起空腹"
 
 # 补录某天（日期格式 YYYY-MM-DD）
 makoto body log -d 2026-06-10 -w 81.2 -b 18.1
@@ -103,10 +103,32 @@ makoto body delete -d 2026-06-10
 
 - `-w` / `--weight`: 体重（公斤）
 - `-b` / `--body-fat`: 体脂率（%）
-- `--waist`, `--arm`, `--thigh`: 围度（厘米）
 - `-n` / `--note`: 备注
 
 录入后画像中的体重和体脂率自动同步。
+
+## 围度测量
+
+围度（腰围、臂围、大腿围）是独立实体，与体重分开记录。每个日期仅一条，三字段全部可选。
+
+```bash
+# 记录围度
+makoto circumference log -d 2026-06-15 --waist 82 --arm 35 --thigh 58 -n "晨起空腹"
+
+# 只记录部分字段
+makoto circumference log -d 2026-06-15 --waist 82
+
+# 列表
+makoto circumference list
+
+# 删除
+makoto circumference delete -d 2026-06-15
+```
+
+- `--waist`: 腰围（厘米，可选）
+- `--arm`: 臂围（厘米，可选）
+- `--thigh`: 大腿围（厘米，可选）
+- `-n` / `--note`: 备注
 
 ## 饮食记录
 

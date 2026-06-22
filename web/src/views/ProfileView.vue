@@ -45,6 +45,12 @@
             <el-option label="极度活跃（高强度/职业）" value="very_active" />
           </el-select>
         </el-form-item>
+        <el-form-item label="Keep Token">
+          <el-input v-model="form.keep_token" placeholder="粘贴 Keep JWT Token" type="textarea" :rows="3" />
+          <div style="font-size:12px;color:var(--el-text-color-secondary);margin-top:4px">
+            用于同步 Keep 运动数据（体能水平、周运动负荷）
+          </div>
+        </el-form-item>
         <el-form-item>
           <el-button type="primary" :loading="saving" @click="handleSave">保存画像</el-button>
         </el-form-item>
@@ -92,6 +98,7 @@ const form = ref<ProfileCreate>({
   target_weight_kg: 65,
   target_date: '',
   activity_level: 'moderate',
+  keep_token: null,
 })
 
 async function loadProfile() {
@@ -109,6 +116,7 @@ async function loadProfile() {
       target_weight_kg: p.target_weight_kg,
       target_date: p.target_date,
       activity_level: p.activity_level,
+      keep_token: p.keep_token,
     }
   } finally {
     loading.value = false

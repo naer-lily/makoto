@@ -59,7 +59,8 @@ async def init_db(db: aiosqlite.Connection) -> None:
             body_fat_pct    REAL NOT NULL,
             target_weight_kg REAL NOT NULL,
             target_date     TEXT NOT NULL,
-            activity_level  TEXT NOT NULL
+            activity_level  TEXT NOT NULL,
+            keep_token      TEXT
         );
 
         CREATE TABLE IF NOT EXISTS food (

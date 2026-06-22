@@ -11,6 +11,10 @@
           <el-icon><Bowl /></el-icon>
           <span>食物库</span>
         </el-menu-item>
+        <el-menu-item index="/body">
+          <el-icon><Monitor /></el-icon>
+          <span>身体测量</span>
+        </el-menu-item>
         <el-menu-item index="/diet">
           <el-icon><DishDot /></el-icon>
           <span>饮食记录</span>

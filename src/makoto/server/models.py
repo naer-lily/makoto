@@ -75,6 +75,7 @@ class ProfileCreate(BaseModel):
     target_weight_kg: float = Field(ge=0)
     target_date: date
     activity_level: ActivityLevel
+    keep_token: str | None = None
 
 
 class ProfileResponse(ProfileCreate):

@@ -31,6 +31,7 @@ dependencies = [
     "pydantic>=2.0.0",
     "aiosqlite>=0.20.0",
     "python-dotenv>=1.0.0",
+    "pycryptodome>=3.0.0",
 ]
 
 [project.optional-dependencies]
@@ -97,9 +98,12 @@ check_untyped_defs = true
 warn_redundant_casts = true
 warn_unused_configs = true
 warn_no_return = true
-exclude = ["tests/"]
+exclude = ["tests/", "src/makoto/server/keep_client.py"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = ["-v", "--tb=short", "--strict-markers", "--asyncio-mode=auto"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]

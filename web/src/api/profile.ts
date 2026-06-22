@@ -10,6 +10,7 @@ export interface ProfileCreate {
   target_weight_kg: number
   target_date: string
   activity_level: string
+  keep_token: string | null
 }
 
 export interface ProfileResponse extends ProfileCreate {
