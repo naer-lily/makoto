@@ -51,6 +51,7 @@ function buildOption(): echarts.EChartsOption {
     legend: {
       data: ['ATL 疲劳度', 'CTL 体能', 'TSB 趋势', 'ACWR'],
       top: 28,
+      selected: { 'TSB 趋势': false },
     },
     grid: { top: 60, right: 60, bottom: 55, left: 55 },
     xAxis: { type: 'category', data: dates },
@@ -131,6 +132,14 @@ function initChart() {
   chart?.dispose()
   chart = echarts.init(chartRef.value!, isDark.value ? 'dark' : undefined)
   chart.setOption(buildOption())
+  chart.on('legendselectchanged', (params: any) => {
+    const s = params.selected
+    if (params.name === 'TSB 趋势' && s['TSB 趋势']) {
+      chart?.setOption({ legend: { selected: { ACWR: false } } })
+    } else if (params.name === 'ACWR' && s['ACWR']) {
+      chart?.setOption({ legend: { selected: { 'TSB 趋势': false } } })
+    }
+  })
 }
 
 function onResize() {
