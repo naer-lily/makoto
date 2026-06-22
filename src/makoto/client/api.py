@@ -34,6 +34,8 @@ class MakotoClient:
         )
 
     def _get(self, path: str, params: dict[str, str | int | None] | None = None) -> Any:
+        if params:
+            params = {k: v for k, v in params.items() if v is not None}
         resp = self._client.get(f"{self._base}{path}", params=params)
         return self._check(resp)
 
