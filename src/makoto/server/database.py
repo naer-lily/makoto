@@ -114,3 +114,14 @@ async def init_db(db: aiosqlite.Connection) -> None:
         );
     """)
     await db.commit()
+
+    # 增量迁移：为已有数据库补齐新列
+    migrations = [
+        "ALTER TABLE profile ADD COLUMN keep_token TEXT",
+    ]
+    for stmt in migrations:
+        try:
+            await db.execute(stmt)
+            await db.commit()
+        except Exception:
+            pass
