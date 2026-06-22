@@ -28,7 +28,7 @@ function buildOption(): echarts.EChartsOption {
     title: { text: '周运动负荷 (Keep)', left: 'center', textStyle: { fontSize: 14 } },
     tooltip: { trigger: 'axis' },
     legend: { data: ['训练负荷', '推荐区间'], top: 28 },
-    grid: { top: 60, right: 30, bottom: 30, left: 55 },
+    grid: { top: 60, right: 30, bottom: 30, left: 60 },
     xAxis: { type: 'category', data: labels },
     yAxis: {
       type: 'value',
@@ -44,18 +44,24 @@ function buildOption(): echarts.EChartsOption {
         itemStyle: { color: '#5470C6' },
       },
       {
+        name: '推荐下界',
+        type: 'line',
+        data: sorted.map((r) => r.load_lower),
+        stack: 'band',
+        lineStyle: { opacity: 0 },
+        symbol: 'none',
+        silent: true,
+        legendHoverLink: false,
+      },
+      {
         name: '推荐区间',
         type: 'line',
-        data: sorted.map(() => null),
+        data: sorted.map((r) => r.load_upper - r.load_lower),
+        stack: 'band',
         lineStyle: { opacity: 0 },
-        markArea: {
-          silent: true,
-          itemStyle: { color: 'rgba(103,194,58,0.12)' },
-          data: sorted.map((s) => [
-            { yAxis: s.load_lower },
-            { yAxis: s.load_upper },
-          ]),
-        },
+        symbol: 'none',
+        silent: true,
+        areaStyle: { color: 'rgba(103,194,58,0.12)' },
       },
     ],
   }
