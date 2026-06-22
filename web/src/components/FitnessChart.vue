@@ -20,12 +20,39 @@ let chart: echarts.ECharts | null = null
 
 function buildOption(): echarts.EChartsOption {
   const dates = props.rows.map((r) => r.date.substring(4))
+  const acwrData = props.rows.map((r) =>
+    r.ctl > 0 ? +(r.atl / r.ctl).toFixed(2) : null,
+  )
+
   return {
     backgroundColor: 'transparent',
     title: { text: '体能水平 (Keep)', left: 'center', textStyle: { fontSize: 14 } },
-    tooltip: { trigger: 'axis' },
-    legend: { data: ['ATL 疲劳度', 'CTL 体能', 'TSB 趋势'], top: 28 },
-    grid: { top: 60, right: 60, bottom: 30, left: 55 },
+    tooltip: {
+      trigger: 'axis',
+      formatter: (params: any) => {
+        let html = `${params[0]?.axisValue}<br/>`
+        for (const p of params) {
+          if (p.seriesName === 'ACWR') {
+            const v = p.value
+            let zone = ''
+            if (v == null) zone = ''
+            else if (v < 0.8) zone = ' 负荷过低'
+            else if (v < 1.3) zone = ' 安全区'
+            else if (v < 1.5) zone = ' 风险监控'
+            else zone = ' 危险区'
+            html += `${p.marker} ACWR: <b>${v ?? '-'}</b>${zone}<br/>`
+          } else {
+            html += `${p.marker} ${p.seriesName}: <b>${p.value}</b><br/>`
+          }
+        }
+        return html
+      },
+    },
+    legend: {
+      data: ['ATL 疲劳度', 'CTL 体能', 'TSB 趋势', 'ACWR'],
+      top: 28,
+    },
+    grid: { top: 60, right: 60, bottom: 55, left: 55 },
     xAxis: { type: 'category', data: dates },
     yAxis: [
       {
@@ -35,10 +62,26 @@ function buildOption(): echarts.EChartsOption {
       },
       {
         type: 'value',
-        name: 'TSB',
-        axisLabel: { formatter: (v: number) => v.toFixed(0) },
+        name: 'TSB / ACWR',
+        axisLabel: { formatter: (v: number) => v.toFixed(1) },
       },
     ],
+    visualMap: {
+      type: 'piecewise',
+      seriesIndex: 3,
+      pieces: [
+        { lt: 0.8, color: '#909399', label: '负荷过低' },
+        { gte: 0.8, lt: 1.3, color: '#67C23A', label: '安全区 0.8-1.3' },
+        { gte: 1.3, lt: 1.5, color: '#E6A23C', label: '风险监控 1.3-1.5' },
+        { gte: 1.5, color: '#F56C6C', label: '危险区 >1.5' },
+      ],
+      orient: 'horizontal',
+      left: 'center',
+      bottom: 0,
+      itemWidth: 14,
+      itemHeight: 10,
+      textStyle: { fontSize: 10 },
+    },
     series: [
       {
         name: 'ATL 疲劳度',
@@ -67,6 +110,17 @@ function buildOption(): echarts.EChartsOption {
         lineStyle: { color: '#91CC75' },
         itemStyle: { color: '#91CC75' },
         areaStyle: { color: 'rgba(145,204,117,0.08)' },
+      },
+      {
+        name: 'ACWR',
+        type: 'line',
+        yAxisIndex: 1,
+        data: acwrData,
+        smooth: true,
+        connectNulls: true,
+        lineStyle: { width: 2 },
+        symbol: 'circle',
+        symbolSize: 4,
       },
     ],
   }
@@ -100,6 +154,6 @@ onUnmounted(() => {
 <style scoped>
 .chart {
   width: 100%;
-  height: 380px;
+  height: 420px;
 }
 </style>
