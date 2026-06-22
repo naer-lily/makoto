@@ -27,7 +27,7 @@ function buildOption(): echarts.EChartsOption {
     backgroundColor: 'transparent',
     title: { text: '周运动负荷 (Keep)', left: 'center', textStyle: { fontSize: 14 } },
     tooltip: { trigger: 'axis' },
-    legend: { data: ['训练负荷', '推荐区间'], top: 28 },
+    legend: { data: ['训练负荷'], top: 28 },
     grid: { top: 60, right: 30, bottom: 30, left: 60 },
     xAxis: { type: 'category', data: labels },
     yAxis: {
