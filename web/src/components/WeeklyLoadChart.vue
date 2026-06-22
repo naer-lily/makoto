@@ -38,9 +38,13 @@ function buildOption(): echarts.EChartsOption {
     series: [
       {
         name: '训练负荷',
-        type: 'bar',
+        type: 'line',
         data: sorted.map((r) => r.training_load),
-        barWidth: '50%',
+        smooth: true,
+        connectNulls: true,
+        symbol: 'circle',
+        symbolSize: 5,
+        lineStyle: { color: '#5470C6', width: 2 },
         itemStyle: { color: '#5470C6' },
       },
       {
