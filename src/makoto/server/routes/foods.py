@@ -190,21 +190,25 @@ async def update_food(
 
 @router.delete(
     "/{food_id}",
+    response_model=FoodResponse,
     summary="删除食物",
-    description="从食物库中移除指定食物（若被饮食记录引用则拒绝）。",
+    description=(
+        "从食物库中移除指定食物（若被饮食记录引用则拒绝），"
+        "并在响应体中返回被删除食物的完整数据。"
+    ),
 )
 async def delete_food(
     food_id: int,
     _token: str = Depends(verify_token),
     db: aiosqlite.Connection = Depends(get_db),
-) -> dict[str, str]:
-    cursor = await db.execute("SELECT id, name FROM food WHERE id = ?", (food_id,))
+) -> FoodResponse:
+    cursor = await db.execute("SELECT * FROM food WHERE id = ?", (food_id,))
     row = await cursor.fetchone()
     if row is None:
         raise HTTPException(status_code=404, detail="食物不存在")
 
-    d = dict(row)
-    old_name = str(d["name"])
+    deleted = _row_to_response(row)
+    old_name = deleted.name
     cursor2 = await db.execute(
         "SELECT COUNT(*) AS cnt FROM diet_log WHERE food_name = ?", (old_name,)
     )
@@ -217,4 +221,4 @@ async def delete_food(
 
     await db.execute("DELETE FROM food WHERE id = ?", (food_id,))
     await db.commit()
-    return {"detail": "已删除"}
+    return deleted

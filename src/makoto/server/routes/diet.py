@@ -22,9 +22,18 @@ from makoto.utils.tz import to_store_str
 router = APIRouter(prefix="/api/v1/diet-logs", tags=["diet"])
 
 
-async def _compute_nutrition(
-    db: aiosqlite.Connection, food_name: str, grams: float
+async def _food_base(
+    db: aiosqlite.Connection, food_name: str
 ) -> tuple[float, float, float, float]:
+    """查询食物每 100g 基准营养。
+
+    Args:
+        db: 数据库连接。
+        food_name: 食物名称。
+
+    Returns:
+        (热量, 蛋白质, 碳水, 脂肪) 每 100g 基准值；食物未注册时返回全 0。
+    """
     cursor = await db.execute(
         "SELECT calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g "
         "FROM food WHERE name = ?",
@@ -33,11 +42,12 @@ async def _compute_nutrition(
     row = await cursor.fetchone()
     if row is None:
         return 0.0, 0.0, 0.0, 0.0
-    n = nutrition_for(
-        float(row["calories_per_100g"]), float(row["protein_per_100g"]),
-        float(row["carbs_per_100g"]), float(row["fat_per_100g"]), grams
+    return (
+        float(row["calories_per_100g"]),
+        float(row["protein_per_100g"]),
+        float(row["carbs_per_100g"]),
+        float(row["fat_per_100g"]),
     )
-    return n["calories_kcal"], n["protein_g"], n["carbs_g"], n["fat_g"]
 
 
 async def _row_to_response(
@@ -46,17 +56,22 @@ async def _row_to_response(
     d = dict(row)
     food_name = str(d["food_name"])
     grams = float(d["grams"])
-    cal, pro, carb, fat = await _compute_nutrition(db, food_name, grams)
+    base_cal, base_pro, base_carb, base_fat = await _food_base(db, food_name)
+    n = nutrition_for(base_cal, base_pro, base_carb, base_fat, grams)
     return DietLogResponse(
         id=int(d["id"]),
         log_time=__import__("datetime").datetime.fromisoformat(str(d["log_time"])),
         food_name=food_name,
         grams=grams,
         note=str(d["note"]) if d["note"] else None,
-        calories_kcal=cal,
-        protein_g=pro,
-        carbs_g=carb,
-        fat_g=fat,
+        calories_kcal=n["calories_kcal"],
+        protein_g=n["protein_g"],
+        carbs_g=n["carbs_g"],
+        fat_g=n["fat_g"],
+        food_calories_per_100g=base_cal,
+        food_protein_per_100g=base_pro,
+        food_carbs_per_100g=base_carb,
+        food_fat_per_100g=base_fat,
         created_at=str(d["created_at"]),
     )
 
@@ -65,15 +80,36 @@ async def _row_to_response(
     "",
     response_model=list[DietLogResponse],
     summary="列出饮食记录",
-    description="按时间倒序返回饮食记录，包含食物名称、克数及自动计算的营养素数据。",
+    description=(
+        "按时间倒序返回饮食记录，包含食物名称、克数、自动计算的营养素，"
+        "以及该食物每 100g 的基准营养。支持 start/end 按日期前闭后闭过滤。"
+    ),
 )
 async def list_diet_logs(
-    limit: int = Query(50, ge=1, le=500),
+    start: str | None = Query(
+        None,
+        description="起始日期 YYYY-MM-DD（前闭，含当天）。省略表示不限下界。",
+    ),
+    end: str | None = Query(
+        None,
+        description="结束日期 YYYY-MM-DD（后闭，含当天）。省略表示不限上界。",
+    ),
+    limit: int = Query(50, ge=1, le=500, description="最大返回条数，范围 1-500。"),
     _token: str = Depends(verify_token),
     db: aiosqlite.Connection = Depends(get_db),
 ) -> list[DietLogResponse]:
+    clauses: list[str] = []
+    params: list[object] = []
+    if start is not None:
+        clauses.append("date(log_time) >= date(?)")
+        params.append(start)
+    if end is not None:
+        clauses.append("date(log_time) <= date(?)")
+        params.append(end)
+    where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
+    params.append(limit)
     cursor = await db.execute(
-        "SELECT * FROM diet_log ORDER BY log_time DESC LIMIT ?", (limit,)
+        f"SELECT * FROM diet_log{where} ORDER BY log_time DESC LIMIT ?", params
     )
     rows = await cursor.fetchall()
     return [await _row_to_response(db, r) for r in rows]
@@ -159,17 +195,20 @@ async def update_diet_log(
 
 @router.delete(
     "/{log_id}",
+    response_model=DietLogResponse,
     summary="删除饮食记录",
-    description="删除指定的饮食记录。",
+    description="删除指定的饮食记录，并在响应体中返回被删除记录的完整数据（含营养与食物基准）。",
 )
 async def delete_diet_log(
     log_id: int,
     _token: str = Depends(verify_token),
     db: aiosqlite.Connection = Depends(get_db),
-) -> dict[str, str]:
-    cursor = await db.execute("SELECT id FROM diet_log WHERE id = ?", (log_id,))
-    if await cursor.fetchone() is None:
+) -> DietLogResponse:
+    cursor = await db.execute("SELECT * FROM diet_log WHERE id = ?", (log_id,))
+    row = await cursor.fetchone()
+    if row is None:
         raise HTTPException(status_code=404, detail="记录不存在")
+    deleted = await _row_to_response(db, row)
     await db.execute("DELETE FROM diet_log WHERE id = ?", (log_id,))
     await db.commit()
-    return {"detail": "已删除"}
+    return deleted

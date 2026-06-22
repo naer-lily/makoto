@@ -124,3 +124,27 @@ def render_table(
         for row in rows:
             table.add_row(*row)
         console.print(table)
+
+
+def render_detail(title: str, fields: list[tuple[str, str]]) -> None:
+    """以「字段 → 值」形式打印单条完整记录（含全部字段，详尽冗余）。
+
+    终端模式输出两列 rich Table（无表头）；plain/管道模式输出 Markdown 键值表。
+
+    Args:
+        title: 标题。
+        fields: (字段名, 值) 列表，按给定顺序逐行展示。
+    """
+    if _should_use_plain():
+        if title:
+            print(f"## {title}")
+        rows = [[k, v] for k, v in fields]
+        print(_md_table(["字段", "值"], rows, ["left", "left"]))
+    else:
+        console = get_console()
+        table = Table(title=title or None, show_header=False)
+        table.add_column("字段", style="bold cyan", justify="left")
+        table.add_column("值", justify="left")
+        for k, v in fields:
+            table.add_row(k, v)
+        console.print(table)

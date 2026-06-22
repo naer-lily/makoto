@@ -9,6 +9,7 @@ import aiosqlite
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
+from fastapi import Query
 
 from makoto.server.auth import verify_token
 from makoto.server.database import get_db
@@ -34,13 +35,35 @@ def _row_to_response(row: aiosqlite.Row) -> BodyLogResponse:
     "",
     response_model=list[BodyLogResponse],
     summary="列出身体测量记录",
-    description="按日期倒序返回所有身体测量记录，包含体重、体脂率。",
+    description=(
+        "按日期倒序返回身体测量记录，包含体重、体脂率。"
+        "支持 start/end 按日期前闭后闭过滤。"
+    ),
 )
 async def list_body_logs(
+    start: str | None = Query(
+        None,
+        description="起始日期 YYYY-MM-DD（前闭，含当天）。省略表示不限下界。",
+    ),
+    end: str | None = Query(
+        None,
+        description="结束日期 YYYY-MM-DD（后闭，含当天）。省略表示不限上界。",
+    ),
     _token: str = Depends(verify_token),
     db: aiosqlite.Connection = Depends(get_db),
 ) -> list[BodyLogResponse]:
-    cursor = await db.execute("SELECT * FROM body_log ORDER BY log_date DESC")
+    clauses: list[str] = []
+    params: list[object] = []
+    if start is not None:
+        clauses.append("date(log_date) >= date(?)")
+        params.append(start)
+    if end is not None:
+        clauses.append("date(log_date) <= date(?)")
+        params.append(end)
+    where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
+    cursor = await db.execute(
+        f"SELECT * FROM body_log{where} ORDER BY log_date DESC", params
+    )
     rows = await cursor.fetchall()
     return [_row_to_response(r) for r in rows]
 
@@ -83,17 +106,20 @@ async def create_body_log(
 
 @router.delete(
     "/{log_id}",
+    response_model=BodyLogResponse,
     summary="删除身体测量记录",
-    description="删除指定的身体测量记录。",
+    description="删除指定的身体测量记录，并在响应体中返回被删除记录的完整数据。",
 )
 async def delete_body_log(
     log_id: int,
     _token: str = Depends(verify_token),
     db: aiosqlite.Connection = Depends(get_db),
-) -> dict[str, str]:
-    cursor = await db.execute("SELECT id FROM body_log WHERE id = ?", (log_id,))
-    if await cursor.fetchone() is None:
+) -> BodyLogResponse:
+    cursor = await db.execute("SELECT * FROM body_log WHERE id = ?", (log_id,))
+    row = await cursor.fetchone()
+    if row is None:
         raise HTTPException(status_code=404, detail="记录不存在")
+    deleted = _row_to_response(row)
     await db.execute("DELETE FROM body_log WHERE id = ?", (log_id,))
     await db.commit()
-    return {"detail": "已删除"}
+    return deleted

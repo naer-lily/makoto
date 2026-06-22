@@ -77,3 +77,46 @@ def test_delete_body_log(client: TestClient) -> None:
 
     resp3 = client.get("/api/v1/body-logs", headers=auth_headers())
     assert len(resp3.json()) == 0
+
+
+def test_delete_body_log_returns_full_record(client: TestClient) -> None:
+    _setup_profile(client)
+    resp = client.post(
+        "/api/v1/body-logs",
+        json={"log_date": "2026-06-13", "weight_kg": 71.2, "body_fat_pct": 19.0},
+        headers=auth_headers(),
+    )
+    log_id = resp.json()["id"]
+    del_resp = client.delete(f"/api/v1/body-logs/{log_id}", headers=auth_headers())
+    assert del_resp.status_code == 200
+    body = del_resp.json()
+    assert body["id"] == log_id
+    assert body["log_date"] == "2026-06-13"
+    assert body["weight_kg"] == 71.2
+    assert body["body_fat_pct"] == 19.0
+
+
+def test_list_body_logs_date_filter(client: TestClient) -> None:
+    _setup_profile(client)
+    for day in ("2026-06-18", "2026-06-19", "2026-06-20"):
+        client.post(
+            "/api/v1/body-logs",
+            json={"log_date": day, "weight_kg": 70.0, "body_fat_pct": 18.0},
+            headers=auth_headers(),
+        )
+
+    only_19 = client.get(
+        "/api/v1/body-logs?start=2026-06-19&end=2026-06-19", headers=auth_headers()
+    )
+    assert len(only_19.json()) == 1
+    assert only_19.json()[0]["log_date"] == "2026-06-19"
+
+    closed = client.get(
+        "/api/v1/body-logs?start=2026-06-18&end=2026-06-19", headers=auth_headers()
+    )
+    assert len(closed.json()) == 2
+
+    none_match = client.get(
+        "/api/v1/body-logs?start=2026-07-01", headers=auth_headers()
+    )
+    assert none_match.json() == []

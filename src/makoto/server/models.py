@@ -164,6 +164,10 @@ class DietLogResponse(DietLogCreate):
     protein_g: float
     carbs_g: float
     fat_g: float
+    food_calories_per_100g: float
+    food_protein_per_100g: float
+    food_carbs_per_100g: float
+    food_fat_per_100g: float
     created_at: str
 
 

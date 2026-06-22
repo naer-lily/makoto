@@ -138,3 +138,74 @@ def test_update_diet_log_duplicate_time(client: TestClient) -> None:
         headers=auth_headers(),
     )
     assert resp.status_code == 409
+
+
+def test_diet_log_includes_food_base_nutrition(client: TestClient) -> None:
+    _setup_food(client)
+    resp = client.post(
+        "/api/v1/diet-logs",
+        json={"log_time": "2026-06-15T12:30:00", "food_name": "鸡胸肉", "grams": 200},
+        headers=auth_headers(),
+    )
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["food_calories_per_100g"] == 133.0
+    assert data["food_protein_per_100g"] == 31.0
+    assert data["food_carbs_per_100g"] == 0.0
+    assert data["food_fat_per_100g"] == 0.0
+
+
+def test_delete_diet_log_returns_full_record(client: TestClient) -> None:
+    _setup_food(client)
+    resp = client.post(
+        "/api/v1/diet-logs",
+        json={"log_time": "2026-06-14T18:00:00", "food_name": "鸡胸肉", "grams": 150},
+        headers=auth_headers(),
+    )
+    log_id = resp.json()["id"]
+    del_resp = client.delete(f"/api/v1/diet-logs/{log_id}", headers=auth_headers())
+    assert del_resp.status_code == 200
+    body = del_resp.json()
+    assert body["id"] == log_id
+    assert body["food_name"] == "鸡胸肉"
+    assert body["grams"] == 150.0
+    assert body["calories_kcal"] == 199.5  # 133 * 1.5
+    assert body["food_calories_per_100g"] == 133.0
+
+
+def test_list_diet_logs_date_filter(client: TestClient) -> None:
+    _setup_food(client)
+    for day in ("2026-06-18", "2026-06-19", "2026-06-20"):
+        client.post(
+            "/api/v1/diet-logs",
+            json={
+                "log_time": f"{day}T08:00:00",
+                "food_name": "鸡胸肉",
+                "grams": 100,
+            },
+            headers=auth_headers(),
+        )
+
+    only_19 = client.get(
+        "/api/v1/diet-logs?start=2026-06-19&end=2026-06-19", headers=auth_headers()
+    )
+    assert only_19.status_code == 200
+    rows = only_19.json()
+    assert len(rows) == 1
+    assert rows[0]["log_time"].startswith("2026-06-19")
+
+    closed_range = client.get(
+        "/api/v1/diet-logs?start=2026-06-18&end=2026-06-19", headers=auth_headers()
+    )
+    assert len(closed_range.json()) == 2  # 前闭后闭含两端
+
+    from_19 = client.get("/api/v1/diet-logs?start=2026-06-19", headers=auth_headers())
+    assert len(from_19.json()) == 2  # 19、20
+
+    until_19 = client.get("/api/v1/diet-logs?end=2026-06-19", headers=auth_headers())
+    assert len(until_19.json()) == 2  # 18、19
+
+    none_match = client.get(
+        "/api/v1/diet-logs?start=2026-07-01", headers=auth_headers()
+    )
+    assert none_match.json() == []

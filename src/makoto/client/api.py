@@ -33,8 +33,8 @@ class MakotoClient:
             timeout=30.0,
         )
 
-    def _get(self, path: str) -> Any:
-        resp = self._client.get(f"{self._base}{path}")
+    def _get(self, path: str, params: dict[str, str | int | None] | None = None) -> Any:
+        resp = self._client.get(f"{self._base}{path}", params=params)
         return self._check(resp)
 
     def _post(self, path: str, data: dict[str, object]) -> Any:
@@ -45,9 +45,9 @@ class MakotoClient:
         resp = self._client.put(f"{self._base}{path}", json=data)
         return self._check(resp)
 
-    def _delete(self, path: str) -> dict[str, str]:
+    def _delete(self, path: str) -> Any:
         resp = self._client.delete(f"{self._base}{path}")
-        return self._check(resp)  # type: ignore[no-any-return]
+        return self._check(resp)
 
     def _check(self, resp: httpx.Response) -> Any:
         if resp.is_success:
@@ -82,58 +82,76 @@ class MakotoClient:
             f"/api/v1/foods/search?q={query}&limit={limit}"
         )
 
-    def delete_food(self, food_id: int) -> dict[str, str]:
-        return self._delete(f"/api/v1/foods/{food_id}")
+    def delete_food(self, food_id: int) -> dict[str, Any]:
+        return self._delete(f"/api/v1/foods/{food_id}")  # type: ignore[no-any-return]
 
     def update_food(self, food_id: int, data: dict[str, object]) -> dict[str, Any]:
         return self._put(f"/api/v1/foods/{food_id}", data)  # type: ignore[no-any-return]
 
     # ── Body Logs ──
 
-    def list_body_logs(self) -> list[dict[str, Any]]:
-        return self._get("/api/v1/body-logs")  # type: ignore[no-any-return]
+    def list_body_logs(
+        self, start: str | None = None, end: str | None = None
+    ) -> list[dict[str, Any]]:
+        return self._get(  # type: ignore[no-any-return]
+            "/api/v1/body-logs", {"start": start, "end": end}
+        )
 
     def create_body_log(self, data: dict[str, object]) -> dict[str, Any]:
         return self._post("/api/v1/body-logs", data)  # type: ignore[no-any-return]
 
-    def delete_body_log(self, log_id: int) -> dict[str, str]:
-        return self._delete(f"/api/v1/body-logs/{log_id}")
+    def delete_body_log(self, log_id: int) -> dict[str, Any]:
+        return self._delete(f"/api/v1/body-logs/{log_id}")  # type: ignore[no-any-return]
 
     # ── Circumference Logs ──
 
-    def list_circumference_logs(self) -> list[dict[str, Any]]:
-        return self._get("/api/v1/circumference-logs")  # type: ignore[no-any-return]
+    def list_circumference_logs(
+        self, start: str | None = None, end: str | None = None
+    ) -> list[dict[str, Any]]:
+        return self._get(  # type: ignore[no-any-return]
+            "/api/v1/circumference-logs", {"start": start, "end": end}
+        )
 
     def create_circumference_log(self, data: dict[str, object]) -> dict[str, Any]:
         return self._post("/api/v1/circumference-logs", data)  # type: ignore[no-any-return]
 
-    def delete_circumference_log(self, log_id: int) -> dict[str, str]:
-        return self._delete(f"/api/v1/circumference-logs/{log_id}")
+    def delete_circumference_log(self, log_id: int) -> dict[str, Any]:
+        return self._delete(  # type: ignore[no-any-return]
+            f"/api/v1/circumference-logs/{log_id}"
+        )
 
     # ── Diet Logs ──
 
-    def list_diet_logs(self, limit: int = 50) -> list[dict[str, Any]]:
-        return self._get(f"/api/v1/diet-logs?limit={limit}")  # type: ignore[no-any-return]
+    def list_diet_logs(
+        self, limit: int = 50, start: str | None = None, end: str | None = None
+    ) -> list[dict[str, Any]]:
+        return self._get(  # type: ignore[no-any-return]
+            "/api/v1/diet-logs", {"limit": limit, "start": start, "end": end}
+        )
 
     def create_diet_log(self, data: dict[str, object]) -> dict[str, Any]:
         return self._post("/api/v1/diet-logs", data)  # type: ignore[no-any-return]
 
-    def delete_diet_log(self, log_id: int) -> dict[str, str]:
-        return self._delete(f"/api/v1/diet-logs/{log_id}")
+    def delete_diet_log(self, log_id: int) -> dict[str, Any]:
+        return self._delete(f"/api/v1/diet-logs/{log_id}")  # type: ignore[no-any-return]
 
     def update_diet_log(self, log_id: int, data: dict[str, object]) -> dict[str, Any]:
         return self._put(f"/api/v1/diet-logs/{log_id}", data)  # type: ignore[no-any-return]
 
     # ── Exercise Logs ──
 
-    def list_exercise_logs(self, limit: int = 50) -> list[dict[str, Any]]:
-        return self._get(f"/api/v1/exercise-logs?limit={limit}")  # type: ignore[no-any-return]
+    def list_exercise_logs(
+        self, limit: int = 50, start: str | None = None, end: str | None = None
+    ) -> list[dict[str, Any]]:
+        return self._get(  # type: ignore[no-any-return]
+            "/api/v1/exercise-logs", {"limit": limit, "start": start, "end": end}
+        )
 
     def create_exercise_log(self, data: dict[str, object]) -> dict[str, Any]:
         return self._post("/api/v1/exercise-logs", data)  # type: ignore[no-any-return]
 
-    def delete_exercise_log(self, log_id: int) -> dict[str, str]:
-        return self._delete(f"/api/v1/exercise-logs/{log_id}")
+    def delete_exercise_log(self, log_id: int) -> dict[str, Any]:
+        return self._delete(f"/api/v1/exercise-logs/{log_id}")  # type: ignore[no-any-return]
 
     def update_exercise_log(self, log_id: int, data: dict[str, object]) -> dict[str, Any]:
         return self._put(f"/api/v1/exercise-logs/{log_id}", data)  # type: ignore[no-any-return]

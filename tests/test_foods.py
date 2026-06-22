@@ -95,12 +95,18 @@ def test_search_food(client: TestClient) -> None:
 def test_delete_food(client: TestClient) -> None:
     resp = client.post(
         "/api/v1/foods",
-        json={"name": "西瓜"},
+        json={"name": "西瓜", "calories_per_100g": 30.0, "protein_per_100g": 0.6},
         headers=auth_headers(),
     )
     food_id = resp.json()["id"]
     resp2 = client.delete(f"/api/v1/foods/{food_id}", headers=auth_headers())
     assert resp2.status_code == 200
+    body = resp2.json()
+    assert body["id"] == food_id
+    assert body["name"] == "西瓜"
+    assert body["calories_per_100g"] == 30.0
+    assert body["protein_per_100g"] == 0.6
+    assert "created_at" in body
 
     resp3 = client.get(f"/api/v1/foods/{food_id}", headers=auth_headers())
     assert resp3.status_code == 404

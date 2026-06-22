@@ -37,15 +37,36 @@ def _row_to_response(row: aiosqlite.Row) -> ExerciseLogResponse:
     "",
     response_model=list[ExerciseLogResponse],
     summary="列出运动记录",
-    description="按时间倒序返回运动记录，包含运动名称、时长描述和消耗热量。",
+    description=(
+        "按时间倒序返回运动记录，包含运动名称、时长描述和消耗热量。"
+        "支持 start/end 按日期前闭后闭过滤。"
+    ),
 )
 async def list_exercise_logs(
-    limit: int = Query(50, ge=1, le=500),
+    start: str | None = Query(
+        None,
+        description="起始日期 YYYY-MM-DD（前闭，含当天）。省略表示不限下界。",
+    ),
+    end: str | None = Query(
+        None,
+        description="结束日期 YYYY-MM-DD（后闭，含当天）。省略表示不限上界。",
+    ),
+    limit: int = Query(50, ge=1, le=500, description="最大返回条数，范围 1-500。"),
     _token: str = Depends(verify_token),
     db: aiosqlite.Connection = Depends(get_db),
 ) -> list[ExerciseLogResponse]:
+    clauses: list[str] = []
+    params: list[object] = []
+    if start is not None:
+        clauses.append("date(log_time) >= date(?)")
+        params.append(start)
+    if end is not None:
+        clauses.append("date(log_time) <= date(?)")
+        params.append(end)
+    where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
+    params.append(limit)
     cursor = await db.execute(
-        "SELECT * FROM exercise_log ORDER BY log_time DESC LIMIT ?", (limit,)
+        f"SELECT * FROM exercise_log{where} ORDER BY log_time DESC LIMIT ?", params
     )
     rows = await cursor.fetchall()
     return [_row_to_response(r) for r in rows]
@@ -124,17 +145,20 @@ async def update_exercise_log(
 
 @router.delete(
     "/{log_id}",
+    response_model=ExerciseLogResponse,
     summary="删除运动记录",
-    description="删除指定的运动记录。",
+    description="删除指定的运动记录，并在响应体中返回被删除记录的完整数据。",
 )
 async def delete_exercise_log(
     log_id: int,
     _token: str = Depends(verify_token),
     db: aiosqlite.Connection = Depends(get_db),
-) -> dict[str, str]:
-    cursor = await db.execute("SELECT id FROM exercise_log WHERE id = ?", (log_id,))
-    if await cursor.fetchone() is None:
+) -> ExerciseLogResponse:
+    cursor = await db.execute("SELECT * FROM exercise_log WHERE id = ?", (log_id,))
+    row = await cursor.fetchone()
+    if row is None:
         raise HTTPException(status_code=404, detail="记录不存在")
+    deleted = _row_to_response(row)
     await db.execute("DELETE FROM exercise_log WHERE id = ?", (log_id,))
     await db.commit()
-    return {"detail": "已删除"}
+    return deleted
