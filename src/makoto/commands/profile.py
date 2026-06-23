@@ -42,7 +42,7 @@ def _profile_detail_fields(p: dict[str, Any]) -> list[tuple[str, str]]:
         ("── 推算指标 ──", ""),
         ("FFM (去脂体重)", f"{float(p.get('ffm_kg', 0)):.1f} kg"),
         ("BMR (基础代谢)", f"{float(p.get('bmr_kcal', 0)):.1f} kcal/天"),
-        ("REE (日常消耗)", f"{float(p.get('ree_kcal', 0)):.1f} kcal/天"),
+        ("NETEE (非运动总能量消耗)", f"{float(p.get('netee_kcal', 0)):.1f} kcal/天"),
         ("每周缺口需求", deficit_str),
         ("距目标日剩余", f"{p.get('days_remaining', 0)} 天"),
     ]
@@ -83,7 +83,10 @@ def set(
     """设置或更新用户画像（覆盖式写入）。
 
     成功后会打印完整画像，包括录入的基本信息与据此推算的
-    FFM、BMR、REE、每周缺口需求、距目标日剩余天数。
+    FFM、BMR、NETEE、每周缺口需求、距目标日剩余天数。
+
+    NETEE (Non-Exercise Total Energy Expenditure，非运动总能量消耗)
+    计算公式为 BMR × 活动系数，代表不含刻意运动的一日总消耗基线。
     """
     console = get_console()
     try:
@@ -147,9 +150,9 @@ def show() -> None:
             ["FFM (去脂体重)", f"{p['ffm_kg']:.1f} kg", "体重 x (1 - 体脂率)"],
             ["BMR (基础代谢)", f"{p['bmr_kcal']:.1f} kcal/天", "Mifflin-St Jeor 公式"],
             [
-                "REE (日常消耗)",
-                f"{p['ree_kcal']:.1f} kcal/天",
-                f"BMR x {p['activity_level']} (不含运动)",
+                "NETEE (非运动总消耗)",
+                f"{p['netee_kcal']:.1f} kcal/天",
+                "BMR x 活动系数（不含刻意运动）",
             ],
             ["每周缺口需求", deficit_str, f"距目标日 {days_remaining} 天"],
         ],

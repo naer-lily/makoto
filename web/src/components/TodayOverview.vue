@@ -47,9 +47,14 @@
         <div class="stat-icon-wrap" style="background: rgba(103,194,58,0.12); color: #67C23A">
           <el-icon :size="20"><Sunny /></el-icon>
         </div>
-        <div class="stat-label">REE 基础消耗</div>
+        <el-tooltip
+          content="NETEE (Non-Exercise Total Energy Expenditure) = 非运动总能量消耗。BMR × 活动系数，不含刻意运动的一日总消耗基线。加上运动消耗即为 TDEE。"
+          placement="top"
+        >
+          <div class="stat-label">NETEE <el-icon :size="13"><QuestionFilled /></el-icon></div>
+        </el-tooltip>
         <div class="stat-value">
-          {{ data?.ree_kcal ?? '--' }} <span class="unit">kcal/天</span>
+          {{ data?.netee_kcal ?? '--' }} <span class="unit">kcal/天</span>
         </div>
       </el-card>
 

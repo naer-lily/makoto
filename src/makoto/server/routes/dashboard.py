@@ -62,13 +62,13 @@ async def _get_profile_computed(session: AsyncSession) -> dict[str, Any]:
     target = row.target_weight_kg
     target_date = date.fromisoformat(row.target_date)
     bmr = _bmr(weight, height, age, gender)
-    ree = round(bmr * activity.multiplier, 1)
+    netee = round(bmr * activity.multiplier, 1)
     days = (target_date - today_local()).days
     weekly = None
     if days > 0:
         weekly = round((weight - target) * 7700 / (max(days / 7, 1)), 1)
     return {
-        "ree_kcal": ree,
+        "netee_kcal": netee,
         "weekly_deficit_needed": weekly,
         "weight_kg": weight,
         "height_cm": height,
@@ -85,7 +85,10 @@ async def _get_profile_computed(session: AsyncSession) -> dict[str, Any]:
     "/today",
     response_model=TodayResponse,
     summary="今日数据总览",
-    description="返回今日的身体测量、饮食明细、运动记录及净热量（REE + 运动消耗 - 饮食摄入）汇总。",
+    description=(
+        "返回今日的身体测量、饮食明细、运动记录及净热量"
+        "（NETEE + 运动消耗 - 饮食摄入）汇总。"
+    ),
 )
 async def today_dashboard(
     _token: str = Depends(verify_token),
@@ -166,8 +169,8 @@ async def today_dashboard(
             )
         )
 
-    ree = float(profile["ree_kcal"])
-    net = ree + total_burned - total_intake
+    netee = float(profile["netee_kcal"])
+    net = netee + total_burned - total_intake
 
     # 当日围度
     circumference: CircumferenceLogResponse | None = None
@@ -223,7 +226,7 @@ async def today_dashboard(
         total_protein_g=round(total_protein, 1),
         total_carbs_g=round(total_carbs, 1),
         total_fat_g=round(total_fat, 1),
-        ree_kcal=ree,
+        netee_kcal=netee,
         net_kcal=round(net, 1),
         weight_delta_day=weight_delta_day,
         body_fat_delta_day=body_fat_delta_day,
@@ -328,12 +331,12 @@ async def dashboard_report(
     weekly_deficit = profile.get("weekly_deficit_needed")
     daily_expected = float(weekly_deficit) / 7 if weekly_deficit is not None else None
 
-    ree = float(profile["ree_kcal"])
+    netee = float(profile["netee_kcal"])
 
     # 热量缺口 7 日均线
     daily_balance: dict[date, float] = {}
     for d in display_dates:
-        daily_balance[d] = ree + daily_exercise.get(d, 0.0) - daily_diet.get(d, 0.0)
+        daily_balance[d] = netee + daily_exercise.get(d, 0.0) - daily_diet.get(d, 0.0)
     ma_deficit = rolling_mean(daily_balance, window=7)
 
     data_rows: list[ReportRow] = []

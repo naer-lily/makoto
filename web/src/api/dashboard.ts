@@ -43,7 +43,7 @@ export interface TodayResponse {
   total_protein_g: number
   total_carbs_g: number
   total_fat_g: number
-  ree_kcal: number
+  netee_kcal: number
   net_kcal: number
   weight_delta_day: number | null
   body_fat_delta_day: number | null
@@ -117,7 +117,7 @@ export interface ProfileResponse {
   activity_level: string
   ffm_kg: number
   bmr_kcal: number
-  ree_kcal: number
+  netee_kcal: number
   weekly_deficit_needed: number | null
   days_remaining: number
 }

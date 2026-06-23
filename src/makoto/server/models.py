@@ -81,7 +81,7 @@ class ProfileCreate(BaseModel):
 class ProfileResponse(ProfileCreate):
     ffm_kg: float
     bmr_kcal: float
-    ree_kcal: float
+    netee_kcal: float
     weekly_deficit_needed: float | None
     days_remaining: int
 
@@ -225,7 +225,7 @@ class TodayResponse(BaseModel):
     total_protein_g: float = 0.0
     total_carbs_g: float = 0.0
     total_fat_g: float = 0.0
-    ree_kcal: float = 0.0
+    netee_kcal: float = 0.0
     net_kcal: float = 0.0
     weight_delta_day: float | None = None
     body_fat_delta_day: float | None = None

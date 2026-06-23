@@ -66,7 +66,7 @@ def test_today_no_data(client: TestClient) -> None:
     assert data["body"] is None
     assert data["diets"] == []
     assert data["exercises"] == []
-    assert data["ree_kcal"] > 0
+    assert data["netee_kcal"] > 0
 
 
 def test_today_with_body_and_diet(client: TestClient) -> None:

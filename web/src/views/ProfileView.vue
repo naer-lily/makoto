@@ -36,7 +36,16 @@
             placeholder="选择目标日期"
           />
         </el-form-item>
-        <el-form-item label="活动水平" required>
+        <el-form-item required>
+          <template #label>
+            活动水平
+            <el-tooltip
+              content="NETEE = BMR × 活动系数。选择不含刻意运动的日常活动水平：sedentary(×1.2)、light(×1.375)、moderate(×1.55)、active(×1.725)、very_active(×1.9)。"
+              placement="top"
+            >
+              <el-icon :size="14" style="margin-left:4px; vertical-align:middle"><QuestionFilled /></el-icon>
+            </el-tooltip>
+          </template>
           <el-select v-model="form.activity_level" style="width:100%">
             <el-option label="久坐（极少运动）" value="sedentary" />
             <el-option label="轻度活跃（1-3天/周）" value="light" />
@@ -61,7 +70,18 @@
       <template #header><strong>计算结果</strong></template>
       <el-descriptions :column="3" border>
         <el-descriptions-item label="BMR">{{ profile.bmr_kcal.toFixed(0) }} kcal/天</el-descriptions-item>
-        <el-descriptions-item label="REE">{{ profile.ree_kcal.toFixed(0) }} kcal/天</el-descriptions-item>
+        <el-descriptions-item>
+          <template #label>
+            NETEE
+            <el-tooltip
+              content="NETEE (Non-Exercise Total Energy Expenditure) = 非运动总能量消耗。BMR × 活动系数，不含刻意运动的一日总消耗基线。"
+              placement="top"
+            >
+              <el-icon :size="14" style="margin-left:4px; vertical-align:middle"><QuestionFilled /></el-icon>
+            </el-tooltip>
+          </template>
+          {{ profile.netee_kcal.toFixed(0) }} kcal/天
+        </el-descriptions-item>
         <el-descriptions-item label="去脂体重">{{ profile.ffm_kg.toFixed(1) }} kg</el-descriptions-item>
         <el-descriptions-item label="每周缺口目标">
           {{ profile.weekly_deficit_needed != null ? profile.weekly_deficit_needed.toFixed(0) + ' kcal' : '-' }}

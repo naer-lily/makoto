@@ -41,12 +41,12 @@ def _compute_profile_fields(
 
     ffm = round(weight * (1 - bf / 100), 1)
     bmr = _bmr(weight, height, age, gender)
-    ree = round(bmr * activity.multiplier, 1)
+    netee = round(bmr * activity.multiplier, 1)
     days = (target_date - today_local()).days
     weekly = None
     if days > 0:
         weekly = round((weight - target) * 7700 / (max(days / 7, 1)), 1)
-    return ffm, bmr, ree, weekly, days
+    return ffm, bmr, netee, weekly, days
 
 
 async def _load_profile(session: AsyncSession) -> Profile | None:
@@ -66,7 +66,7 @@ def _build_response(row: Profile) -> ProfileResponse:
         "activity_level": row.activity_level,
         "target_weight_kg": row.target_weight_kg,
     }
-    ffm, bmr, ree, weekly, days_remaining = _compute_profile_fields(d, target_date)
+    ffm, bmr, netee, weekly, days_remaining = _compute_profile_fields(d, target_date)
     return ProfileResponse(
         name=row.name,
         gender=Gender(row.gender),
@@ -80,7 +80,7 @@ def _build_response(row: Profile) -> ProfileResponse:
         keep_token=row.keep_token,
         ffm_kg=ffm,
         bmr_kcal=bmr,
-        ree_kcal=ree,
+        netee_kcal=netee,
         weekly_deficit_needed=weekly,
         days_remaining=days_remaining,
     )

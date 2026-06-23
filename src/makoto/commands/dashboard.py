@@ -53,7 +53,8 @@ def today() -> None:
     # 饮食
     diets = data.get("diets", [])
     console.print(f"\n[bold]饮食[/bold] ({len(diets)} 条)")
-    console.print(f"  REE 基础消耗:  {data['ree_kcal']:.0f} kcal/天")
+    console.print(f"  NETEE 非运动总消耗:  {data['netee_kcal']:.0f} kcal/天")
+    console.print("          (BMR × 活动系数 = 不含刻意运动的一日基线)")
 
     if diets:
         diet_rows: list[list[str]] = []
@@ -103,12 +104,12 @@ def today() -> None:
         console.print("  [dim]本日未录入[/dim]")
 
     # 净热量
-    ree = data.get("ree_kcal", 0)
+    netee = data.get("netee_kcal", 0)
     net = data.get("net_kcal", 0)
     total_intake = data.get("total_intake_kcal", 0)
 
     console.print("\n[bold underline]净热量[/bold underline]")
-    console.print(f"  REE    {ree:>8.0f} kcal")
+    console.print(f"  NETEE  {netee:>8.0f} kcal")
     console.print(f"  运动   +{total_burned:>6.0f} kcal")
     console.print(f"  摄入   -{total_intake:>6.0f} kcal")
     console.print(f"  {'─' * 22}")

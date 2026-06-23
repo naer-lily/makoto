@@ -16,7 +16,7 @@ export interface ProfileCreate {
 export interface ProfileResponse extends ProfileCreate {
   ffm_kg: number
   bmr_kcal: number
-  ree_kcal: number
+  netee_kcal: number
   weekly_deficit_needed: number | null
   days_remaining: number
 }

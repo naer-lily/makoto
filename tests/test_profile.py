@@ -29,7 +29,7 @@ def test_set_and_get_profile(client: TestClient) -> None:
     assert data["weight_kg"] == 70.0
     assert data["ffm_kg"] == 57.4  # 70 * (1 - 0.18)
     assert data["bmr_kcal"] > 0
-    assert data["ree_kcal"] > 0
+    assert data["netee_kcal"] > 0
     assert data["days_remaining"] > 0
 
 
