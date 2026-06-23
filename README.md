@@ -7,7 +7,7 @@ makoto（真）是一个 CLI + API 健身助手，名字来源于《偶像大师
 ## 架构
 
 ```
-makoto (CLI) --httpx--> FastAPI Server --aiosqlite--> SQLite (data/makoto.db)
+makoto (CLI) --httpx--> FastAPI Server --SQLModel/async SQLAlchemy--> SQLite (data/makoto.db)
 ```
 
 - **`makoto`** — CLI 客户端，通过 HTTP 调用 API

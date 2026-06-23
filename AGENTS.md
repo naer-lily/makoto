@@ -11,8 +11,9 @@
 - **包管理器**: pip (依赖全部在 pyproject.toml 中声明，不使用 requirements.txt)
 - **CLI 框架**: typer
 - **API 框架**: FastAPI + uvicorn
-- **数据模型**: pydantic v2 (server/models.py)
-- **存储**: SQLite via aiosqlite (raw sqlite3，不用 ORM)
+- **数据模型**: pydantic v2 (server/models.py，API 模型) + SQLModel (server/db_models.py，表模型)
+- **存储**: SQLite via SQLModel + async SQLAlchemy (sqlite+aiosqlite 驱动)
+- **迁移**: alembic (同步驱动 + batch mode)
 - **HTTP 客户端**: httpx (CLI → Server 通信)
 - **格式化**: black (行宽 100)
 - **Lint**: ruff (严格模式)
@@ -25,7 +26,7 @@
 ```
 makoto/                          # CLI 客户端
     --httpx--> FastAPI Server    # makoto-server 入口
-                  --aiosqlite--> SQLite (data/makoto.db)
+                  --SQLModel/async SQLAlchemy--> SQLite (data/makoto.db)
 ```
 
 两个入口点：
@@ -99,20 +100,36 @@ class FoodResponse(FoodCreate):
     created_at: str
 ```
 
-### 数据库操作（raw sqlite3）
+### 数据库操作（SQLModel + async SQLAlchemy）
 
-不使用 ORM，直接用 aiosqlite 手动 SQL。行通过 `_dict_factory` 转为 dict：
+表模型定义在 `server/db_models.py`（与 `models.py` 的 API 模型分离）。约定：
+
+- 所有 datetime/date 字段一律以 `str`（TEXT）存储，写入格式由 `utils/tz` 统一控制，
+  以兼容 SQLite `date()` 的日期边界查询（不要用原生 DateTime 类型）。
+- `created_at` 由数据库 `datetime('now')` 生成（server_default）。
+- 路由通过 `Depends(get_session)` 注入 `AsyncSession`；列引用用 `col()` 包装以满足类型检查。
 
 ```python
-# database.py
-def _dict_factory(cursor, row):
-    return {col[0]: row[idx] for idx, col in enumerate(cursor.description)}
+from sqlmodel import col, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from makoto.server.database import get_session
+from makoto.server.db_models import Food
 
 # routes 中
-cursor = await db.execute("SELECT * FROM food WHERE id = ?", (food_id,))
-row = await cursor.fetchone()
-d = dict(row)
+row = (
+    await session.execute(select(Food).where(Food.id == food_id))
+).scalar_one_or_none()
+
+# 写入：add / commit / refresh 拿回 server 生成字段
+session.add(row)
+await session.commit()
+await session.refresh(row)
+
+# 日期过滤复现 SQLite date()
+stmt = select(Food).where(func.date(col(Food.created_at)) >= func.date(start))
 ```
+
+外键：`diet_log.food_id` 外键关联 `food.id`；连接级 `PRAGMA foreign_keys=ON` 启用约束。
 
 ### 时区处理（`utils/tz.py`）
 
@@ -168,8 +185,9 @@ makoto/
 │       │   ├── __init__.py
 │       │   ├── app.py             # FastAPI 应用 + lifespan + main() 入口
 │       │   ├── auth.py            # Bearer token 鉴权依赖
-│       │   ├── database.py        # aiosqlite 连接管理 + 建表 + dict factory
-│       │   ├── models.py          # pydantic v2 全部模型 + nutrition_for()
+│       │   ├── database.py        # async engine + sessionmaker + 外键 PRAGMA + get_session
+│       │   ├── db_models.py        # SQLModel 表模型（6 表，diet_log.food_id 外键）
+│       │   ├── models.py          # pydantic v2 API 模型 + nutrition_for()
 │       │   └── routes/            # API 路由
 │       │       ├── profile.py         # /api/v1/profile
 │       │       ├── foods.py           # /api/v1/foods
@@ -177,6 +195,7 @@ makoto/
 │       │       ├── circumference.py   # /api/v1/circumference-logs
 │       │       ├── diet.py            # /api/v1/diet-logs
 │       │       ├── exercise.py        # /api/v1/exercise-logs
+│       │       ├── keep.py            # /api/v1/keep（Keep 数据代理）
 │       │       └── dashboard.py       # /api/v1/dashboard/{today,report}
 │       ├── client/                # HTTP 客户端
 │       │   ├── __init__.py
@@ -196,8 +215,11 @@ makoto/
 │           ├── timeseries.py      # 时序纯函数（date_series / interpolate / rolling_mean）
 │           ├── search.py          # Levenshtein 模糊搜索
 │           └── data_paths.py      # data/ 路径配置
+├── alembic/                       # 数据库迁移
+│   ├── env.py                     # 同步驱动 + SQLModel metadata + batch mode
+│   └── versions/                  # 迁移脚本（初始 revision 含 food_id 外键）
 ├── scripts/
-│   └── migrate_jsonl_to_sqlite.py # 一次性 JSONL → SQLite 迁移（不再维护）
+│   └── migrate_to_food_id.py      # 一次性 diet_log food_name→food_id 自包含迁移
 ├── data/
 │   └── makoto.db                  # SQLite 数据库
 ├── tests/
@@ -238,7 +260,7 @@ class _LazyApp:
 **每次改动源码后，必须先补充对应的单元测试，再提交。测试文件放在 `tests/` 目录下，命名与路由模块对应。**
 
 测试架构：
-- `tests/conftest.py` — 提供 `:memory:` SQLite + `dependency_overrides` 绕过鉴权的 `TestClient` fixture
+- `tests/conftest.py` — 提供 `:memory:` SQLite（StaticPool 单连接复用）+ `dependency_overrides` 绕过鉴权的 `TestClient` fixture
 - 每个路由模块对应一个测试文件（`test_profile.py`、`test_foods.py` 等）
 - 覆盖正常路径 + 异常路径（404/409/参数校验）
 
