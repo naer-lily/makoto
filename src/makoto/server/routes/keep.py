@@ -7,14 +7,16 @@
 
 from __future__ import annotations
 
-import aiosqlite
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select
 
 from makoto.server.auth import verify_token
-from makoto.server.database import get_db
+from makoto.server.database import get_session
+from makoto.server.db_models import Profile
 from makoto.server.keep_client import Keep
 
 router = APIRouter(prefix="/api/v1/keep", tags=["keep"])
@@ -39,13 +41,13 @@ class WeeklyLoadResponse(BaseModel):
     load_upper: int
 
 
-async def _get_keep_token(db: aiosqlite.Connection) -> str | None:
-    cursor = await db.execute("SELECT keep_token FROM profile WHERE id = 1")
-    row = await cursor.fetchone()
+async def _get_keep_token(session: AsyncSession) -> str | None:
+    row = (
+        await session.execute(select(Profile).where(Profile.id == 1))
+    ).scalar_one_or_none()
     if row is None:
         raise HTTPException(status_code=404, detail="用户画像未设置")
-    d = dict(row)
-    return str(d["keep_token"]) if d.get("keep_token") else None
+    return row.keep_token or None
 
 
 @router.get(
@@ -55,9 +57,9 @@ async def _get_keep_token(db: aiosqlite.Connection) -> str | None:
 )
 async def get_fitness(
     _token: str = Depends(verify_token),
-    db: aiosqlite.Connection = Depends(get_db),
+    session: AsyncSession = Depends(get_session),
 ) -> list[FitnessResponse]:
-    keep_token = await _get_keep_token(db)
+    keep_token = await _get_keep_token(session)
     if not keep_token:
         return []
     async with Keep(token=keep_token) as k:
@@ -75,9 +77,9 @@ async def get_fitness(
 )
 async def get_weekly_load(
     _token: str = Depends(verify_token),
-    db: aiosqlite.Connection = Depends(get_db),
+    session: AsyncSession = Depends(get_session),
 ) -> list[WeeklyLoadResponse]:
-    keep_token = await _get_keep_token(db)
+    keep_token = await _get_keep_token(session)
     if not keep_token:
         return []
     async with Keep(token=keep_token) as k:

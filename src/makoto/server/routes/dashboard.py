@@ -7,14 +7,23 @@ from datetime import datetime
 from datetime import timedelta
 from typing import Any
 
-import aiosqlite
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
 from fastapi import Query
+from sqlalchemy import func
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import col
+from sqlmodel import select
 
 from makoto.server.auth import verify_token
-from makoto.server.database import get_db
+from makoto.server.database import get_session
+from makoto.server.db_models import BodyLog
+from makoto.server.db_models import CircumferenceLog
+from makoto.server.db_models import DietLog
+from makoto.server.db_models import ExerciseLog
+from makoto.server.db_models import Food
+from makoto.server.db_models import Profile
 from makoto.server.models import ActivityLevel
 from makoto.server.models import CircumferenceLogResponse
 from makoto.server.models import Gender
@@ -39,19 +48,19 @@ def _bmr(weight: float, height: float, age: int, gender: Gender) -> float:
     return round(base + 5 if gender == Gender.MALE else base - 161, 1)
 
 
-async def _get_profile_computed(db: aiosqlite.Connection) -> dict[str, Any]:
-    cursor = await db.execute("SELECT * FROM profile WHERE id = 1")
-    row = await cursor.fetchone()
+async def _get_profile_computed(session: AsyncSession) -> dict[str, Any]:
+    row = (
+        await session.execute(select(Profile).where(Profile.id == 1))
+    ).scalar_one_or_none()
     if row is None:
         raise HTTPException(status_code=404, detail="用户画像未设置")
-    d = dict(row)
-    gender = Gender(str(d["gender"]))
-    activity = ActivityLevel(str(d["activity_level"]))
-    weight = float(d["weight_kg"])
-    height = float(d["height_cm"])
-    age = int(d["age"])
-    target = float(d["target_weight_kg"])
-    target_date = date.fromisoformat(str(d["target_date"]))
+    gender = Gender(row.gender)
+    activity = ActivityLevel(row.activity_level)
+    weight = row.weight_kg
+    height = row.height_cm
+    age = row.age
+    target = row.target_weight_kg
+    target_date = date.fromisoformat(row.target_date)
     bmr = _bmr(weight, height, age, gender)
     ree = round(bmr * activity.multiplier, 1)
     days = (target_date - today_local()).days
@@ -64,7 +73,7 @@ async def _get_profile_computed(db: aiosqlite.Connection) -> dict[str, Any]:
         "weight_kg": weight,
         "height_cm": height,
         "age": age,
-        "body_fat_pct": float(d["body_fat_pct"]),
+        "body_fat_pct": row.body_fat_pct,
         "gender": gender,
         "activity_level": activity,
         "target_weight_kg": target,
@@ -80,23 +89,22 @@ async def _get_profile_computed(db: aiosqlite.Connection) -> dict[str, Any]:
 )
 async def today_dashboard(
     _token: str = Depends(verify_token),
-    db: aiosqlite.Connection = Depends(get_db),
+    session: AsyncSession = Depends(get_session),
 ) -> TodayResponse:
-    profile = await _get_profile_computed(db)
+    profile = await _get_profile_computed(session)
     today_date = today_local()
+    today_iso = today_date.isoformat()
 
     # 身体
     body: TodayBody | None = None
-    cursor = await db.execute(
-        "SELECT * FROM body_log WHERE log_date = ?", (today_date.isoformat(),)
-    )
-    body_row = await cursor.fetchone()
+    body_row = (
+        await session.execute(select(BodyLog).where(BodyLog.log_date == today_iso))
+    ).scalar_one_or_none()
     if body_row is not None:
-        d = dict(body_row)
         body = TodayBody(
-            weight_kg=float(d["weight_kg"]),
-            body_fat_pct=float(d["body_fat_pct"]),
-            note=str(d["note"]) if d["note"] else None,
+            weight_kg=body_row.weight_kg,
+            body_fat_pct=body_row.body_fat_pct,
+            note=body_row.note or None,
         )
 
     # 饮食
@@ -105,27 +113,22 @@ async def today_dashboard(
     total_protein = 0.0
     total_carbs = 0.0
     total_fat = 0.0
-    cursor = await db.execute(
-        "SELECT * FROM diet_log WHERE date(log_time) = ?", (today_date.isoformat(),)
-    )
-    diet_rows = await cursor.fetchall()
-    for dr in diet_rows:
-        dd = dict(dr)
-        food_name = str(dd["food_name"])
-        grams_val = float(dd["grams"])
-        cf = await db.execute(
-            "SELECT calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g "
-            "FROM food WHERE name = ?",
-            (food_name,),
+    diet_rows = (
+        await session.execute(
+            select(DietLog).where(func.date(col(DietLog.log_time)) == today_iso)
         )
-        frow = await cf.fetchone()
-        if frow is not None:
+    ).scalars().all()
+    for dr in diet_rows:
+        food = (
+            await session.execute(select(Food).where(Food.id == dr.food_id))
+        ).scalar_one_or_none()
+        if food is not None:
             n = nutrition_for(
-                float(frow["calories_per_100g"]),
-                float(frow["protein_per_100g"]),
-                float(frow["carbs_per_100g"]),
-                float(frow["fat_per_100g"]),
-                grams_val,
+                food.calories_per_100g,
+                food.protein_per_100g,
+                food.carbs_per_100g,
+                food.fat_per_100g,
+                dr.grams,
             )
             total_intake += n["calories_kcal"]
             total_protein += n["protein_g"]
@@ -133,9 +136,10 @@ async def today_dashboard(
             total_fat += n["fat_g"]
             diets.append(
                 TodayDietItem(
-                    log_time=str(dd["log_time"]),
-                    food_name=food_name,
-                    grams=grams_val,
+                    log_time=dr.log_time,
+                    food_id=dr.food_id,
+                    food_name=food.name,
+                    grams=dr.grams,
                     calories_kcal=n["calories_kcal"],
                     protein_g=n["protein_g"],
                     carbs_g=n["carbs_g"],
@@ -146,20 +150,19 @@ async def today_dashboard(
     # 运动
     exercises: list[TodayExerciseItem] = []
     total_burned = 0.0
-    cursor = await db.execute(
-        "SELECT * FROM exercise_log WHERE date(log_time) = ?", (today_date.isoformat(),)
-    )
-    ex_rows = await cursor.fetchall()
+    ex_rows = (
+        await session.execute(
+            select(ExerciseLog).where(func.date(col(ExerciseLog.log_time)) == today_iso)
+        )
+    ).scalars().all()
     for er in ex_rows:
-        ed = dict(er)
-        cal = float(ed["calories_kcal"])
-        total_burned += cal
+        total_burned += er.calories_kcal
         exercises.append(
             TodayExerciseItem(
-                log_time=str(ed["log_time"]),
-                exercise_name=str(ed["exercise_name"]),
-                duration_desc=str(ed["duration_desc"]),
-                calories_kcal=cal,
+                log_time=er.log_time,
+                exercise_name=er.exercise_name,
+                duration_desc=er.duration_desc,
+                calories_kcal=er.calories_kcal,
             )
         )
 
@@ -168,20 +171,21 @@ async def today_dashboard(
 
     # 当日围度
     circumference: CircumferenceLogResponse | None = None
-    cursor = await db.execute(
-        "SELECT * FROM circumference_log WHERE log_date = ?", (today_date.isoformat(),)
-    )
-    circ_row = await cursor.fetchone()
+    circ_row = (
+        await session.execute(
+            select(CircumferenceLog).where(CircumferenceLog.log_date == today_iso)
+        )
+    ).scalar_one_or_none()
     if circ_row is not None:
-        cd = dict(circ_row)
+        assert circ_row.id is not None
         circumference = CircumferenceLogResponse(
-            id=int(cd["id"]),
+            id=circ_row.id,
             log_date=today_date,
-            waist_cm=float(cd["waist_cm"]) if cd["waist_cm"] is not None else None,
-            arm_cm=float(cd["arm_cm"]) if cd["arm_cm"] is not None else None,
-            thigh_cm=float(cd["thigh_cm"]) if cd["thigh_cm"] is not None else None,
-            note=str(cd["note"]) if cd["note"] else None,
-            created_at=str(cd["created_at"]),
+            waist_cm=circ_row.waist_cm,
+            arm_cm=circ_row.arm_cm,
+            thigh_cm=circ_row.thigh_cm,
+            note=circ_row.note or None,
+            created_at=circ_row.created_at or "",
         )
 
     # 昨日与上周差值
@@ -190,28 +194,24 @@ async def today_dashboard(
     weight_delta_week: float | None = None
     body_fat_delta_week: float | None = None
     if body is not None:
-        yesterday = today_date - timedelta(days=1)
-        week_ago = today_date - timedelta(days=7)
+        yesterday = (today_date - timedelta(days=1)).isoformat()
+        week_ago = (today_date - timedelta(days=7)).isoformat()
 
-        cursor = await db.execute(
-            "SELECT weight_kg, body_fat_pct FROM body_log WHERE log_date = ?",
-            (yesterday.isoformat(),),
-        )
-        prev_day = await cursor.fetchone()
+        prev_day = (
+            await session.execute(select(BodyLog).where(BodyLog.log_date == yesterday))
+        ).scalar_one_or_none()
         if prev_day is not None and body.weight_kg is not None:
-            weight_delta_day = round(body.weight_kg - float(prev_day["weight_kg"]), 1)
+            weight_delta_day = round(body.weight_kg - prev_day.weight_kg, 1)
         if prev_day is not None and body.body_fat_pct is not None:
-            body_fat_delta_day = round(body.body_fat_pct - float(prev_day["body_fat_pct"]), 1)
+            body_fat_delta_day = round(body.body_fat_pct - prev_day.body_fat_pct, 1)
 
-        cursor = await db.execute(
-            "SELECT weight_kg, body_fat_pct FROM body_log WHERE log_date = ?",
-            (week_ago.isoformat(),),
-        )
-        prev_week = await cursor.fetchone()
+        prev_week = (
+            await session.execute(select(BodyLog).where(BodyLog.log_date == week_ago))
+        ).scalar_one_or_none()
         if prev_week is not None and body.weight_kg is not None:
-            weight_delta_week = round(body.weight_kg - float(prev_week["weight_kg"]), 1)
+            weight_delta_week = round(body.weight_kg - prev_week.weight_kg, 1)
         if prev_week is not None and body.body_fat_pct is not None:
-            body_fat_delta_week = round(body.body_fat_pct - float(prev_week["body_fat_pct"]), 1)
+            body_fat_delta_week = round(body.body_fat_pct - prev_week.body_fat_pct, 1)
 
     return TodayResponse(
         date=today_date,
@@ -244,9 +244,9 @@ async def dashboard_report(
     start_date_str: str | None = Query(None, alias="start_date"),
     end_date_str: str | None = Query(None, alias="end_date"),
     _token: str = Depends(verify_token),
-    db: aiosqlite.Connection = Depends(get_db),
+    session: AsyncSession = Depends(get_session),
 ) -> ReportResponse:
-    profile = await _get_profile_computed(db)
+    profile = await _get_profile_computed(session)
     target_date = profile.get("target_date")
     target_weight = profile.get("target_weight_kg")
     today_date = today_local()
@@ -255,24 +255,18 @@ async def dashboard_report(
     user_end = date.fromisoformat(end_date_str) if end_date_str else None
 
     if start_date is None:
-        cursor = await db.execute("SELECT MIN(log_date) AS min_date FROM body_log")
-        first_row = await cursor.fetchone()
-        start_date = (
-            date.fromisoformat(str(first_row["min_date"]))
-            if first_row and first_row["min_date"]
-            else today_date
-        )
+        min_date = (
+            await session.execute(select(func.min(col(BodyLog.log_date))))
+        ).scalar_one_or_none()
+        start_date = date.fromisoformat(min_date) if min_date else today_date
 
     if user_end is not None:
         end_date_date = user_end
     else:
-        cursor = await db.execute("SELECT MAX(log_date) AS max_date FROM body_log")
-        last_row = await cursor.fetchone()
-        end_date_date = (
-            date.fromisoformat(str(last_row["max_date"]))
-            if last_row and last_row["max_date"]
-            else today_date
-        )
+        max_date = (
+            await session.execute(select(func.max(col(BodyLog.log_date))))
+        ).scalar_one_or_none()
+        end_date_date = date.fromisoformat(max_date) if max_date else today_date
 
     buffer_start = start_date - timedelta(days=14)
     all_dates = date_series(buffer_start, end_date_date)
@@ -280,14 +274,12 @@ async def dashboard_report(
     # 身体数据
     raw_weight: dict[date, float] = {}
     raw_body_fat: dict[date, float] = {}
-    cursor = await db.execute("SELECT log_date, weight_kg, body_fat_pct FROM body_log")
-    body_rows = await cursor.fetchall()
+    body_rows = (await session.execute(select(BodyLog))).scalars().all()
     for r in body_rows:
-        bd = dict(r)
-        d_date = date.fromisoformat(str(bd["log_date"]))
+        d_date = date.fromisoformat(r.log_date)
         if d_date >= buffer_start:
-            raw_weight[d_date] = float(bd["weight_kg"])
-            raw_body_fat[d_date] = float(bd["body_fat_pct"])
+            raw_weight[d_date] = r.weight_kg
+            raw_body_fat[d_date] = r.body_fat_pct
 
     weight_filled = linear_interpolate(raw_weight, all_dates)
     bf_filled = linear_interpolate(raw_body_fat, all_dates)
@@ -312,34 +304,26 @@ async def dashboard_report(
 
     # 饮食汇总
     daily_diet: dict[date, float] = dict.fromkeys(display_dates, 0.0)
-    cursor = await db.execute("SELECT log_time, food_name, grams FROM diet_log")
-    diet_rows = await cursor.fetchall()
+    diet_rows = (await session.execute(select(DietLog))).scalars().all()
     for dr in diet_rows:
-        dd = dict(dr)
-        log_time_str = str(dd["log_time"])
-        d_date = datetime.fromisoformat(log_time_str).date()
+        d_date = datetime.fromisoformat(dr.log_time).date()
         if d_date not in daily_diet:
             continue
-        food_name = str(dd["food_name"])
-        grams_val = float(dd["grams"])
-        cf = await db.execute(
-            "SELECT calories_per_100g FROM food WHERE name = ?", (food_name,)
-        )
-        frow = await cf.fetchone()
-        if frow is not None:
+        food = (
+            await session.execute(select(Food).where(Food.id == dr.food_id))
+        ).scalar_one_or_none()
+        if food is not None:
             daily_diet[d_date] += nutrition_for(
-                float(frow["calories_per_100g"]), 0, 0, 0, grams_val
+                food.calories_per_100g, 0, 0, 0, dr.grams
             )["calories_kcal"]
 
     # 运动汇总
     daily_exercise: dict[date, float] = dict.fromkeys(display_dates, 0.0)
-    cursor = await db.execute("SELECT log_time, calories_kcal FROM exercise_log")
-    ex_rows = await cursor.fetchall()
+    ex_rows = (await session.execute(select(ExerciseLog))).scalars().all()
     for er in ex_rows:
-        ed = dict(er)
-        d_date = datetime.fromisoformat(str(ed["log_time"])).date()
+        d_date = datetime.fromisoformat(er.log_time).date()
         if d_date in daily_exercise:
-            daily_exercise[d_date] += float(ed["calories_kcal"])
+            daily_exercise[d_date] += er.calories_kcal
 
     weekly_deficit = profile.get("weekly_deficit_needed")
     daily_expected = float(weekly_deficit) / 7 if weekly_deficit is not None else None

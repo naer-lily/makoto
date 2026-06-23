@@ -13,10 +13,9 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from makoto.server.auth import get_token
-from makoto.server.database import connect
-from makoto.server.database import disconnect
-from makoto.server.database import init_db
-from makoto.server.database import set_db_path
+from makoto.server.database import create_db_and_tables
+from makoto.server.database import dispose_engine
+from makoto.server.database import init_engine
 from makoto.server.routes import body
 from makoto.server.routes import circumference
 from makoto.server.routes import dashboard
@@ -39,14 +38,13 @@ def _resolve_db_path() -> str:
 async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
     db_path = _resolve_db_path()
     Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-    set_db_path(db_path)
-    db = await connect()
-    await init_db(db)
+    engine = init_engine(db_path)
+    await create_db_and_tables(engine)
     token = get_token()
     print(f"[makoto-server] 数据库: {db_path}")
     print(f"[makoto-server] Token: {token}")
     yield
-    await disconnect()
+    await dispose_engine()
 
 
 app = FastAPI(

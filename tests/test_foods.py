@@ -147,7 +147,7 @@ def test_update_food_not_found(client: TestClient) -> None:
 
 
 def test_update_food_name_cascade(client: TestClient) -> None:
-    """改名食物应同步更新饮食记录中的 food_name。"""
+    """改名食物后，饮食记录响应的 food_name 经外键实时反映新名称。"""
     resp = client.post(
         "/api/v1/foods",
         json={"name": "糙米", "calories_per_100g": 111},
@@ -159,7 +159,7 @@ def test_update_food_name_cascade(client: TestClient) -> None:
         "/api/v1/diet-logs",
         json={
             "log_time": "2026-06-15T12:00:00",
-            "food_name": "糙米",
+            "food_id": food_id,
             "grams": 100,
         },
         headers=auth_headers(),
@@ -190,7 +190,7 @@ def test_delete_food_with_diet_refs(client: TestClient) -> None:
         "/api/v1/diet-logs",
         json={
             "log_time": "2026-06-15T12:01:00",
-            "food_name": "三文鱼",
+            "food_id": food_id,
             "grams": 150,
         },
         headers=auth_headers(),

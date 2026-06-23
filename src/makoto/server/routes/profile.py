@@ -5,13 +5,15 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
-import aiosqlite
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select
 
 from makoto.server.auth import verify_token
-from makoto.server.database import get_db
+from makoto.server.database import get_session
+from makoto.server.db_models import Profile
 from makoto.server.models import ActivityLevel
 from makoto.server.models import Gender
 from makoto.server.models import ProfileCreate
@@ -47,6 +49,43 @@ def _compute_profile_fields(
     return ffm, bmr, ree, weekly, days
 
 
+async def _load_profile(session: AsyncSession) -> Profile | None:
+    return (
+        await session.execute(select(Profile).where(Profile.id == 1))
+    ).scalar_one_or_none()
+
+
+def _build_response(row: Profile) -> ProfileResponse:
+    target_date = date.fromisoformat(row.target_date)
+    d = {
+        "weight_kg": row.weight_kg,
+        "height_cm": row.height_cm,
+        "age": row.age,
+        "body_fat_pct": row.body_fat_pct,
+        "gender": row.gender,
+        "activity_level": row.activity_level,
+        "target_weight_kg": row.target_weight_kg,
+    }
+    ffm, bmr, ree, weekly, days_remaining = _compute_profile_fields(d, target_date)
+    return ProfileResponse(
+        name=row.name,
+        gender=Gender(row.gender),
+        age=row.age,
+        height_cm=row.height_cm,
+        weight_kg=row.weight_kg,
+        body_fat_pct=row.body_fat_pct,
+        target_weight_kg=row.target_weight_kg,
+        target_date=target_date,
+        activity_level=ActivityLevel(row.activity_level),
+        keep_token=row.keep_token,
+        ffm_kg=ffm,
+        bmr_kcal=bmr,
+        ree_kcal=ree,
+        weekly_deficit_needed=weekly,
+        days_remaining=days_remaining,
+    )
+
+
 @router.get(
     "",
     response_model=ProfileResponse,
@@ -55,32 +94,12 @@ def _compute_profile_fields(
 )
 async def get_profile(
     _token: str = Depends(verify_token),
-    db: aiosqlite.Connection = Depends(get_db),
+    session: AsyncSession = Depends(get_session),
 ) -> ProfileResponse:
-    cursor = await db.execute("SELECT * FROM profile WHERE id = 1")
-    row = await cursor.fetchone()
+    row = await _load_profile(session)
     if row is None:
         raise HTTPException(status_code=404, detail="用户画像未设置")
-    d = dict(row)
-    target_date = date.fromisoformat(str(d["target_date"]))
-    ffm, bmr, ree, weekly, days_remaining = _compute_profile_fields(d, target_date)
-    return ProfileResponse(
-        name=str(d["name"]),
-        gender=Gender(str(d["gender"])),
-        age=int(d["age"]),
-        height_cm=float(d["height_cm"]),
-        weight_kg=float(d["weight_kg"]),
-        body_fat_pct=float(d["body_fat_pct"]),
-        target_weight_kg=float(d["target_weight_kg"]),
-        target_date=target_date,
-        activity_level=ActivityLevel(str(d["activity_level"])),
-        keep_token=str(d["keep_token"]) if d.get("keep_token") else None,
-        ffm_kg=ffm,
-        bmr_kcal=bmr,
-        ree_kcal=ree,
-        weekly_deficit_needed=weekly,
-        days_remaining=days_remaining,
-    )
+    return _build_response(row)
 
 
 @router.put(
@@ -92,52 +111,29 @@ async def get_profile(
 async def set_profile(
     data: ProfileCreate,
     _token: str = Depends(verify_token),
-    db: aiosqlite.Connection = Depends(get_db),
+    session: AsyncSession = Depends(get_session),
 ) -> ProfileResponse:
-    await db.execute(
-        """INSERT OR REPLACE INTO profile
-           (id, name, gender, age, height_cm, weight_kg, body_fat_pct,
-            target_weight_kg, target_date, activity_level, keep_token)
-           VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-        (
-            data.name,
-            data.gender.value,
-            data.age,
-            data.height_cm,
-            data.weight_kg,
-            data.body_fat_pct,
-            data.target_weight_kg,
-            data.target_date.isoformat(),
-            data.activity_level.value,
-            data.keep_token,
-        ),
-    )
-    await db.commit()
-    d = {
-        "name": data.name,
-        "gender": data.gender.value,
-        "age": data.age,
-        "height_cm": data.height_cm,
-        "weight_kg": data.weight_kg,
-        "body_fat_pct": data.body_fat_pct,
-        "target_weight_kg": data.target_weight_kg,
-        "activity_level": data.activity_level.value,
-    }
-    ffm, bmr, ree, weekly, days_remaining = _compute_profile_fields(d, data.target_date)
-    return ProfileResponse(
-        name=data.name,
-        gender=data.gender,
-        age=data.age,
-        height_cm=data.height_cm,
-        weight_kg=data.weight_kg,
-        body_fat_pct=data.body_fat_pct,
-        target_weight_kg=data.target_weight_kg,
-        target_date=data.target_date,
-        activity_level=data.activity_level,
-        keep_token=data.keep_token,
-        ffm_kg=ffm,
-        bmr_kcal=bmr,
-        ree_kcal=ree,
-        weekly_deficit_needed=weekly,
-        days_remaining=days_remaining,
-    )
+    row = await _load_profile(session)
+    if row is None:
+        row = Profile(id=1, name=data.name, gender=data.gender.value, age=data.age,
+                      height_cm=data.height_cm, weight_kg=data.weight_kg,
+                      body_fat_pct=data.body_fat_pct,
+                      target_weight_kg=data.target_weight_kg,
+                      target_date=data.target_date.isoformat(),
+                      activity_level=data.activity_level.value,
+                      keep_token=data.keep_token)
+    else:
+        row.name = data.name
+        row.gender = data.gender.value
+        row.age = data.age
+        row.height_cm = data.height_cm
+        row.weight_kg = data.weight_kg
+        row.body_fat_pct = data.body_fat_pct
+        row.target_weight_kg = data.target_weight_kg
+        row.target_date = data.target_date.isoformat()
+        row.activity_level = data.activity_level.value
+        row.keep_token = data.keep_token
+    session.add(row)
+    await session.commit()
+    await session.refresh(row)
+    return _build_response(row)

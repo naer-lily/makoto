@@ -2,7 +2,7 @@ import http from './client'
 
 export interface DietLogCreate {
   log_time: string
-  food_name: string
+  food_id: number
   grams: number
   note: string | null
 }
@@ -10,6 +10,7 @@ export interface DietLogCreate {
 export interface DietLogResponse {
   id: number
   log_time: string
+  food_id: number
   food_name: string
   grams: number
   note: string | null

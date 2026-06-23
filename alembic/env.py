@@ -1,0 +1,72 @@
+"""Alembic 迁移环境（同步 SQLite + SQLModel metadata + batch mode）。
+
+运行时应用使用 ``sqlite+aiosqlite``，但迁移用同步 ``sqlite`` 驱动执行更简单。
+SQLite 对 ALTER 支持有限，统一开启 batch mode（render_as_batch）以重建表方式落地结构变更。
+"""
+
+from __future__ import annotations
+
+import sys
+from logging.config import fileConfig
+from pathlib import Path
+
+from sqlalchemy import engine_from_config
+from sqlalchemy import pool
+from sqlmodel import SQLModel
+
+from alembic import context
+
+# 让 alembic 能 import src/ 布局下的 makoto 包
+_SRC = Path(__file__).resolve().parent.parent / "src"
+if str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
+
+import makoto.server.db_models  # noqa: E402,F401  导入以注册全部表
+from makoto.utils.data_paths import db_path  # noqa: E402
+
+config = context.config
+
+# 动态指定数据库 URL（同步驱动），覆盖 alembic.ini 中的占位值
+config.set_main_option("sqlalchemy.url", f"sqlite:///{db_path().as_posix()}")
+
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
+
+target_metadata = SQLModel.metadata
+
+
+def run_migrations_offline() -> None:
+    """离线模式：仅用 URL 生成 SQL。"""
+    url = config.get_main_option("sqlalchemy.url")
+    context.configure(
+        url=url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+        render_as_batch=True,
+    )
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+def run_migrations_online() -> None:
+    """在线模式：创建 engine 并绑定连接执行迁移。"""
+    connectable = engine_from_config(
+        config.get_section(config.config_ini_section, {}),
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+    with connectable.connect() as connection:
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            render_as_batch=True,
+        )
+        with context.begin_transaction():
+            context.run_migrations()
+
+
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()

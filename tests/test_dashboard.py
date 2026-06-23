@@ -44,12 +44,13 @@ def _seed_body_logs(client: TestClient) -> None:
         )
 
 
-def _seed_food(client: TestClient) -> None:
-    client.post(
+def _seed_food(client: TestClient) -> int:
+    resp = client.post(
         "/api/v1/foods",
         json={"name": "鸡胸肉", "calories_per_100g": 133, "protein_per_100g": 31},
         headers=auth_headers(),
     )
+    return int(resp.json()["id"])
 
 
 def test_today_without_profile(client: TestClient) -> None:
@@ -70,7 +71,7 @@ def test_today_no_data(client: TestClient) -> None:
 
 def test_today_with_body_and_diet(client: TestClient) -> None:
     _setup_profile(client)
-    _seed_food(client)
+    food_id = _seed_food(client)
 
     today = __import__("datetime").date.today().isoformat()
     log_time = f"{today}T12:30:00"
@@ -86,7 +87,7 @@ def test_today_with_body_and_diet(client: TestClient) -> None:
     )
     client.post(
         "/api/v1/diet-logs",
-        json={"log_time": log_time, "food_name": "鸡胸肉", "grams": 200},
+        json={"log_time": log_time, "food_id": food_id, "grams": 200},
         headers=auth_headers(),
     )
 

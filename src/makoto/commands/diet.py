@@ -88,9 +88,16 @@ def log(
     log_time_aware = ensure_aware(log_time)
     cli = get_client()
     try:
+        foods = cli.list_foods()
+        match = next((f for f in foods if f.get("name") == food_name), None)
+        if match is None:
+            console.print(
+                f"[red]食物 '{food_name}' 未注册，请先用 'makoto food add' 添加[/red]"
+            )
+            raise typer.Exit(1)
         result = cli.create_diet_log({
             "log_time": to_store_str(log_time_aware),
-            "food_name": food_name,
+            "food_id": int(match["id"]),
             "grams": grams,
             "note": note,
         })

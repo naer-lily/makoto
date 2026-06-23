@@ -37,12 +37,12 @@
           />
         </el-form-item>
         <el-form-item label="食物" required>
-          <el-select v-model="form.food_name" filterable placeholder="选择食物" style="width:100%">
+          <el-select v-model="form.food_id" filterable placeholder="选择食物" style="width:100%">
             <el-option
               v-for="food in foodOptions"
-              :key="food.name"
+              :key="food.id"
               :label="food.name"
-              :value="food.name"
+              :value="food.id"
             />
           </el-select>
         </el-form-item>
@@ -82,9 +82,16 @@ const dialogVisible = ref(false)
 const editing = ref(false)
 const editingId = ref<number | null>(null)
 
-const form = ref<DietLogCreate>({
+interface DietForm {
+  log_time: string
+  food_id: number | null
+  grams: number
+  note: string | null
+}
+
+const form = ref<DietForm>({
   log_time: '',
-  food_name: '',
+  food_id: null,
   grams: 0,
   note: null,
 })
@@ -92,7 +99,7 @@ const form = ref<DietLogCreate>({
 function resetForm() {
   form.value = {
     log_time: '',
-    food_name: '',
+    food_id: null,
     grams: 0,
     note: null,
   }
@@ -123,7 +130,7 @@ function openEdit(row: DietLogResponse) {
   editingId.value = row.id
   form.value = {
     log_time: row.log_time,
-    food_name: row.food_name,
+    food_id: row.food_id,
     grams: row.grams,
     note: row.note,
   }
@@ -131,13 +138,23 @@ function openEdit(row: DietLogResponse) {
 }
 
 async function handleSave() {
+  if (form.value.food_id == null) {
+    ElMessage.error('请选择食物')
+    return
+  }
   saving.value = true
+  const payload: DietLogCreate = {
+    log_time: form.value.log_time,
+    food_id: form.value.food_id,
+    grams: form.value.grams,
+    note: form.value.note,
+  }
   try {
     if (editing.value && editingId.value != null) {
-      await updateDietLog(editingId.value, form.value)
+      await updateDietLog(editingId.value, payload)
       ElMessage.success('已更新')
     } else {
-      await createDietLog(form.value)
+      await createDietLog(payload)
       ElMessage.success('已记录')
     }
     dialogVisible.value = false

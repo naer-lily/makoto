@@ -5,14 +5,20 @@
 
 from __future__ import annotations
 
-import aiosqlite
+from datetime import datetime
+
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
 from fastapi import Query
+from sqlalchemy import func
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import col
+from sqlmodel import select
 
 from makoto.server.auth import verify_token
-from makoto.server.database import get_db
+from makoto.server.database import get_session
+from makoto.server.db_models import ExerciseLog
 from makoto.server.models import ExerciseLogCreate
 from makoto.server.models import ExerciseLogResponse
 from makoto.utils.tz import to_store_str
@@ -20,16 +26,16 @@ from makoto.utils.tz import to_store_str
 router = APIRouter(prefix="/api/v1/exercise-logs", tags=["exercise"])
 
 
-def _row_to_response(row: aiosqlite.Row) -> ExerciseLogResponse:
-    d = dict(row)
+def _to_response(row: ExerciseLog) -> ExerciseLogResponse:
+    assert row.id is not None
     return ExerciseLogResponse(
-        id=int(d["id"]),
-        log_time=__import__("datetime").datetime.fromisoformat(str(d["log_time"])),
-        exercise_name=str(d["exercise_name"]),
-        duration_desc=str(d["duration_desc"]),
-        calories_kcal=float(d["calories_kcal"]),
-        note=str(d["note"]) if d["note"] else None,
-        created_at=str(d["created_at"]),
+        id=row.id,
+        log_time=datetime.fromisoformat(row.log_time),
+        exercise_name=row.exercise_name,
+        duration_desc=row.duration_desc,
+        calories_kcal=row.calories_kcal,
+        note=row.note,
+        created_at=row.created_at or "",
     )
 
 
@@ -53,23 +59,16 @@ async def list_exercise_logs(
     ),
     limit: int = Query(50, ge=1, le=500, description="最大返回条数，范围 1-500。"),
     _token: str = Depends(verify_token),
-    db: aiosqlite.Connection = Depends(get_db),
+    session: AsyncSession = Depends(get_session),
 ) -> list[ExerciseLogResponse]:
-    clauses: list[str] = []
-    params: list[object] = []
+    stmt = select(ExerciseLog)
     if start is not None:
-        clauses.append("date(log_time) >= date(?)")
-        params.append(start)
+        stmt = stmt.where(func.date(col(ExerciseLog.log_time)) >= func.date(start))
     if end is not None:
-        clauses.append("date(log_time) <= date(?)")
-        params.append(end)
-    where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
-    params.append(limit)
-    cursor = await db.execute(
-        f"SELECT * FROM exercise_log{where} ORDER BY log_time DESC LIMIT ?", params
-    )
-    rows = await cursor.fetchall()
-    return [_row_to_response(r) for r in rows]
+        stmt = stmt.where(func.date(col(ExerciseLog.log_time)) <= func.date(end))
+    stmt = stmt.order_by(col(ExerciseLog.log_time).desc()).limit(limit)
+    rows = (await session.execute(stmt)).scalars().all()
+    return [_to_response(r) for r in rows]
 
 
 @router.post(
@@ -82,28 +81,28 @@ async def list_exercise_logs(
 async def create_exercise_log(
     data: ExerciseLogCreate,
     _token: str = Depends(verify_token),
-    db: aiosqlite.Connection = Depends(get_db),
+    session: AsyncSession = Depends(get_session),
 ) -> ExerciseLogResponse:
     time_str = to_store_str(data.log_time)
-
-    cursor = await db.execute(
-        "SELECT id FROM exercise_log WHERE log_time = ?", (time_str,)
-    )
-    if await cursor.fetchone():
+    existing = (
+        await session.execute(
+            select(ExerciseLog).where(ExerciseLog.log_time == time_str)
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
         raise HTTPException(status_code=409, detail=f"{time_str} 已有记录，请错开至少 1 分钟")
 
-    cursor = await db.execute(
-        """INSERT INTO exercise_log (log_time, exercise_name, duration_desc, calories_kcal, note)
-           VALUES (?, ?, ?, ?, ?)""",
-        (time_str, data.exercise_name, data.duration_desc, data.calories_kcal, data.note),
+    row = ExerciseLog(
+        log_time=time_str,
+        exercise_name=data.exercise_name,
+        duration_desc=data.duration_desc,
+        calories_kcal=data.calories_kcal,
+        note=data.note,
     )
-    await db.commit()
-    log_id = cursor.lastrowid
-
-    cursor2 = await db.execute("SELECT * FROM exercise_log WHERE id = ?", (log_id,))
-    row = await cursor2.fetchone()
-    assert row is not None
-    return _row_to_response(row)
+    session.add(row)
+    await session.commit()
+    await session.refresh(row)
+    return _to_response(row)
 
 
 @router.put(
@@ -116,31 +115,34 @@ async def update_exercise_log(
     log_id: int,
     data: ExerciseLogCreate,
     _token: str = Depends(verify_token),
-    db: aiosqlite.Connection = Depends(get_db),
+    session: AsyncSession = Depends(get_session),
 ) -> ExerciseLogResponse:
-    cursor = await db.execute("SELECT id FROM exercise_log WHERE id = ?", (log_id,))
-    if await cursor.fetchone() is None:
+    row = (
+        await session.execute(select(ExerciseLog).where(ExerciseLog.id == log_id))
+    ).scalar_one_or_none()
+    if row is None:
         raise HTTPException(status_code=404, detail="记录不存在")
 
     time_str = to_store_str(data.log_time)
-    cursor2 = await db.execute(
-        "SELECT id FROM exercise_log WHERE log_time = ? AND id != ?", (time_str, log_id)
-    )
-    if await cursor2.fetchone():
+    dup = (
+        await session.execute(
+            select(ExerciseLog).where(
+                ExerciseLog.log_time == time_str, ExerciseLog.id != log_id
+            )
+        )
+    ).scalar_one_or_none()
+    if dup is not None:
         raise HTTPException(status_code=409, detail=f"{time_str} 已有记录，请错开至少 1 分钟")
 
-    await db.execute(
-        """UPDATE exercise_log
-           SET log_time=?, exercise_name=?, duration_desc=?, calories_kcal=?, note=?
-           WHERE id=?""",
-        (time_str, data.exercise_name, data.duration_desc, data.calories_kcal, data.note, log_id),
-    )
-    await db.commit()
-
-    cursor3 = await db.execute("SELECT * FROM exercise_log WHERE id = ?", (log_id,))
-    row = await cursor3.fetchone()
-    assert row is not None
-    return _row_to_response(row)
+    row.log_time = time_str
+    row.exercise_name = data.exercise_name
+    row.duration_desc = data.duration_desc
+    row.calories_kcal = data.calories_kcal
+    row.note = data.note
+    session.add(row)
+    await session.commit()
+    await session.refresh(row)
+    return _to_response(row)
 
 
 @router.delete(
@@ -152,13 +154,14 @@ async def update_exercise_log(
 async def delete_exercise_log(
     log_id: int,
     _token: str = Depends(verify_token),
-    db: aiosqlite.Connection = Depends(get_db),
+    session: AsyncSession = Depends(get_session),
 ) -> ExerciseLogResponse:
-    cursor = await db.execute("SELECT * FROM exercise_log WHERE id = ?", (log_id,))
-    row = await cursor.fetchone()
+    row = (
+        await session.execute(select(ExerciseLog).where(ExerciseLog.id == log_id))
+    ).scalar_one_or_none()
     if row is None:
         raise HTTPException(status_code=404, detail="记录不存在")
-    deleted = _row_to_response(row)
-    await db.execute("DELETE FROM exercise_log WHERE id = ?", (log_id,))
-    await db.commit()
+    deleted = _to_response(row)
+    await session.delete(row)
+    await session.commit()
     return deleted

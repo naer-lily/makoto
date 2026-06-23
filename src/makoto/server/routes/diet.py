@@ -1,18 +1,25 @@
 """饮食记录 API 路由。
 
-同分钟不可重复，记录时自动计算营养素。
+同分钟不可重复，记录时自动计算营养素。食物通过 food_id 外键关联。
 """
 
 from __future__ import annotations
 
-import aiosqlite
+from datetime import datetime
+
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
 from fastapi import Query
+from sqlalchemy import func
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import col
+from sqlmodel import select
 
 from makoto.server.auth import verify_token
-from makoto.server.database import get_db
+from makoto.server.database import get_session
+from makoto.server.db_models import DietLog
+from makoto.server.db_models import Food
 from makoto.server.models import DietLogCreate
 from makoto.server.models import DietLogResponse
 from makoto.server.models import DietLogUpdate
@@ -22,48 +29,32 @@ from makoto.utils.tz import to_store_str
 router = APIRouter(prefix="/api/v1/diet-logs", tags=["diet"])
 
 
-async def _food_base(
-    db: aiosqlite.Connection, food_name: str
-) -> tuple[float, float, float, float]:
-    """查询食物每 100g 基准营养。
-
-    Args:
-        db: 数据库连接。
-        food_name: 食物名称。
-
-    Returns:
-        (热量, 蛋白质, 碳水, 脂肪) 每 100g 基准值；食物未注册时返回全 0。
-    """
-    cursor = await db.execute(
-        "SELECT calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g "
-        "FROM food WHERE name = ?",
-        (food_name,),
-    )
-    row = await cursor.fetchone()
-    if row is None:
-        return 0.0, 0.0, 0.0, 0.0
+async def _food_by_id(session: AsyncSession, food_id: int) -> Food | None:
     return (
-        float(row["calories_per_100g"]),
-        float(row["protein_per_100g"]),
-        float(row["carbs_per_100g"]),
-        float(row["fat_per_100g"]),
-    )
+        await session.execute(select(Food).where(Food.id == food_id))
+    ).scalar_one_or_none()
 
 
-async def _row_to_response(
-    db: aiosqlite.Connection, row: aiosqlite.Row
-) -> DietLogResponse:
-    d = dict(row)
-    food_name = str(d["food_name"])
-    grams = float(d["grams"])
-    base_cal, base_pro, base_carb, base_fat = await _food_base(db, food_name)
-    n = nutrition_for(base_cal, base_pro, base_carb, base_fat, grams)
+async def _to_response(session: AsyncSession, row: DietLog) -> DietLogResponse:
+    """构造饮食记录响应（含食物名称与营养，外键保证食物存在）。"""
+    assert row.id is not None
+    food = await _food_by_id(session, row.food_id)
+    if food is None:
+        name, base_cal, base_pro, base_carb, base_fat = "", 0.0, 0.0, 0.0, 0.0
+    else:
+        name = food.name
+        base_cal = food.calories_per_100g
+        base_pro = food.protein_per_100g
+        base_carb = food.carbs_per_100g
+        base_fat = food.fat_per_100g
+    n = nutrition_for(base_cal, base_pro, base_carb, base_fat, row.grams)
     return DietLogResponse(
-        id=int(d["id"]),
-        log_time=__import__("datetime").datetime.fromisoformat(str(d["log_time"])),
-        food_name=food_name,
-        grams=grams,
-        note=str(d["note"]) if d["note"] else None,
+        id=row.id,
+        log_time=datetime.fromisoformat(row.log_time),
+        food_id=row.food_id,
+        food_name=name,
+        grams=row.grams,
+        note=row.note,
         calories_kcal=n["calories_kcal"],
         protein_g=n["protein_g"],
         carbs_g=n["carbs_g"],
@@ -72,7 +63,7 @@ async def _row_to_response(
         food_protein_per_100g=base_pro,
         food_carbs_per_100g=base_carb,
         food_fat_per_100g=base_fat,
-        created_at=str(d["created_at"]),
+        created_at=row.created_at or "",
     )
 
 
@@ -81,7 +72,7 @@ async def _row_to_response(
     response_model=list[DietLogResponse],
     summary="列出饮食记录",
     description=(
-        "按时间倒序返回饮食记录，包含食物名称、克数、自动计算的营养素，"
+        "按时间倒序返回饮食记录，包含食物 id/名称、克数、自动计算的营养素，"
         "以及该食物每 100g 的基准营养。支持 start/end 按日期前闭后闭过滤。"
     ),
 )
@@ -96,23 +87,16 @@ async def list_diet_logs(
     ),
     limit: int = Query(50, ge=1, le=500, description="最大返回条数，范围 1-500。"),
     _token: str = Depends(verify_token),
-    db: aiosqlite.Connection = Depends(get_db),
+    session: AsyncSession = Depends(get_session),
 ) -> list[DietLogResponse]:
-    clauses: list[str] = []
-    params: list[object] = []
+    stmt = select(DietLog)
     if start is not None:
-        clauses.append("date(log_time) >= date(?)")
-        params.append(start)
+        stmt = stmt.where(func.date(col(DietLog.log_time)) >= func.date(start))
     if end is not None:
-        clauses.append("date(log_time) <= date(?)")
-        params.append(end)
-    where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
-    params.append(limit)
-    cursor = await db.execute(
-        f"SELECT * FROM diet_log{where} ORDER BY log_time DESC LIMIT ?", params
-    )
-    rows = await cursor.fetchall()
-    return [await _row_to_response(db, r) for r in rows]
+        stmt = stmt.where(func.date(col(DietLog.log_time)) <= func.date(end))
+    stmt = stmt.order_by(col(DietLog.log_time).desc()).limit(limit)
+    rows = (await session.execute(stmt)).scalars().all()
+    return [await _to_response(session, r) for r in rows]
 
 
 @router.post(
@@ -125,72 +109,73 @@ async def list_diet_logs(
 async def create_diet_log(
     data: DietLogCreate,
     _token: str = Depends(verify_token),
-    db: aiosqlite.Connection = Depends(get_db),
+    session: AsyncSession = Depends(get_session),
 ) -> DietLogResponse:
     time_str = to_store_str(data.log_time)
 
-    # 验证食物存在
-    cursor = await db.execute("SELECT id FROM food WHERE name = ?", (data.food_name,))
-    if await cursor.fetchone() is None:
-        raise HTTPException(status_code=404, detail=f"食物 '{data.food_name}' 未注册")
+    food = await _food_by_id(session, data.food_id)
+    if food is None:
+        raise HTTPException(status_code=404, detail=f"食物 id={data.food_id} 未注册")
 
-    # 去重：同分钟不可重复
-    cursor = await db.execute(
-        "SELECT id FROM diet_log WHERE log_time = ?", (time_str,)
-    )
-    if await cursor.fetchone():
+    dup = (
+        await session.execute(select(DietLog).where(DietLog.log_time == time_str))
+    ).scalar_one_or_none()
+    if dup is not None:
         raise HTTPException(status_code=409, detail=f"{time_str} 已有记录，请错开至少 1 分钟")
 
-    cursor = await db.execute(
-        "INSERT INTO diet_log (log_time, food_name, grams, note) VALUES (?, ?, ?, ?)",
-        (time_str, data.food_name, data.grams, data.note),
+    row = DietLog(
+        log_time=time_str,
+        food_id=data.food_id,
+        grams=data.grams,
+        note=data.note,
     )
-    await db.commit()
-    log_id = cursor.lastrowid
-
-    cursor2 = await db.execute("SELECT * FROM diet_log WHERE id = ?", (log_id,))
-    row = await cursor2.fetchone()
-    assert row is not None
-    return await _row_to_response(db, row)
+    session.add(row)
+    await session.commit()
+    await session.refresh(row)
+    return await _to_response(session, row)
 
 
 @router.put(
     "/{log_id}",
     response_model=DietLogResponse,
     summary="更新饮食记录",
-    description="修改饮食记录的食物名称、克数、备注或时间。食物必须已在食物库中注册。",
+    description="修改饮食记录的食物、克数、备注或时间。食物必须已在食物库中注册。",
 )
 async def update_diet_log(
     log_id: int,
     data: DietLogUpdate,
     _token: str = Depends(verify_token),
-    db: aiosqlite.Connection = Depends(get_db),
+    session: AsyncSession = Depends(get_session),
 ) -> DietLogResponse:
-    cursor = await db.execute("SELECT id FROM diet_log WHERE id = ?", (log_id,))
-    if await cursor.fetchone() is None:
+    row = (
+        await session.execute(select(DietLog).where(DietLog.id == log_id))
+    ).scalar_one_or_none()
+    if row is None:
         raise HTTPException(status_code=404, detail="记录不存在")
 
-    cursor2 = await db.execute("SELECT id FROM food WHERE name = ?", (data.food_name,))
-    if await cursor2.fetchone() is None:
-        raise HTTPException(status_code=404, detail=f"食物 '{data.food_name}' 未注册")
+    food = await _food_by_id(session, data.food_id)
+    if food is None:
+        raise HTTPException(status_code=404, detail=f"食物 id={data.food_id} 未注册")
 
     time_str = to_store_str(data.log_time)
-    cursor3 = await db.execute(
-        "SELECT id FROM diet_log WHERE log_time = ? AND id != ?", (time_str, log_id)
-    )
-    if await cursor3.fetchone():
+    dup = (
+        await session.execute(
+            select(DietLog).where(
+                DietLog.log_time == time_str, DietLog.id != log_id
+            )
+        )
+    ).scalar_one_or_none()
+    if dup is not None:
         raise HTTPException(status_code=409, detail=f"{time_str} 已有记录，请错开至少 1 分钟")
 
-    await db.execute(
-        "UPDATE diet_log SET log_time=?, food_name=?, grams=?, note=? WHERE id=?",
-        (time_str, data.food_name, data.grams, data.note, log_id),
-    )
-    await db.commit()
-
-    cursor4 = await db.execute("SELECT * FROM diet_log WHERE id = ?", (log_id,))
-    row = await cursor4.fetchone()
-    assert row is not None
-    return await _row_to_response(db, row)
+    row.log_time = time_str
+    row.food_id = data.food_id
+    row.grams = data.grams
+    row.note = data.note
+    session.add(row)
+    await session.commit()
+    await session.refresh(row)
+    return await _to_response(session, row)
 
 
 @router.delete(
@@ -202,13 +187,14 @@ async def update_diet_log(
 async def delete_diet_log(
     log_id: int,
     _token: str = Depends(verify_token),
-    db: aiosqlite.Connection = Depends(get_db),
+    session: AsyncSession = Depends(get_session),
 ) -> DietLogResponse:
-    cursor = await db.execute("SELECT * FROM diet_log WHERE id = ?", (log_id,))
-    row = await cursor.fetchone()
+    row = (
+        await session.execute(select(DietLog).where(DietLog.id == log_id))
+    ).scalar_one_or_none()
     if row is None:
         raise HTTPException(status_code=404, detail="记录不存在")
-    deleted = await _row_to_response(db, row)
-    await db.execute("DELETE FROM diet_log WHERE id = ?", (log_id,))
-    await db.commit()
+    deleted = await _to_response(session, row)
+    await session.delete(row)
+    await session.commit()
     return deleted

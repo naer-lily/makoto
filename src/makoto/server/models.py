@@ -146,20 +146,21 @@ class CircumferenceLogResponse(CircumferenceLogCreate):
 
 class DietLogCreate(BaseModel):
     log_time: datetime
-    food_name: str
+    food_id: int
     grams: float = Field(ge=0)
     note: str | None = None
 
 
 class DietLogUpdate(BaseModel):
     log_time: datetime
-    food_name: str
+    food_id: int
     grams: float = Field(ge=0)
     note: str | None = None
 
 
 class DietLogResponse(DietLogCreate):
     id: int
+    food_name: str
     calories_kcal: float
     protein_g: float
     carbs_g: float
@@ -198,6 +199,7 @@ class TodayBody(BaseModel):
 
 class TodayDietItem(BaseModel):
     log_time: str
+    food_id: int
     food_name: str
     grams: float
     calories_kcal: float
