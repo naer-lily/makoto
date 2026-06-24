@@ -52,7 +52,7 @@ makoto profile set --name "张三" --gender male --age 30 --height 175 -w 80 -b 
 - `-b` / `--body-fat`: 体脂率（%）
 - `--target-date`: 目标达成日期，格式 `YYYY-MM-DD`
 
-系统会根据画像自动计算 FFM（去脂体重）、BMR（基础代谢）和 REE（每日消耗估算），并在 dashboard 中使用。
+系统会根据画像自动计算 FFM（去脂体重）、BMR（基础代谢）和 NETEE（非运动总能量消耗），并在 dashboard 中使用。
 
 ## 食物库
 

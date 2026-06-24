@@ -18,7 +18,7 @@ makoto (CLI) --httpx--> FastAPI Server --SQLModel/async SQLAlchemy--> SQLite (da
 
 | 模块 | 命令 | 说明 |
 |------|------|------|
-| 用户画像 | `makoto profile set/show` | 性别/身高/体重/体脂/目标/活动系数，自动计算 FFM/BMR/REE |
+| 用户画像 | `makoto profile set/show` | 性别/身高/体重/体脂/目标/活动系数，自动计算 FFM/BMR/NETEE |
 | 食物库 | `makoto food add/list/show/search/delete` | 注册食物（每100g营养），Levenshtein 模糊搜索 |
 | 身体测量 | `makoto body log/list/delete` | 晨起体重/体脂率/围度，每日仅一条，录后自动同步画像 |
 | 饮食记录 | `makoto diet log/list/delete` | 引用食物库，自动计算摄入营养，同分钟不可重复 |
@@ -28,7 +28,7 @@ makoto (CLI) --httpx--> FastAPI Server --SQLModel/async SQLAlchemy--> SQLite (da
 
 ### 核心设计
 
-- **REE 不含运动**：日常消耗 = BMR × 活动系数，运动消耗由 exercise log 独立计算。上班族即使天天运动仍选 `sedentary(×1.2)`。
+- **NETEE 不含运动**：非运动总消耗 = BMR × 活动系数，运动消耗由 exercise log 独立计算。上班族即使天天运动仍选 `sedentary(×1.2)`。
 - **食物先注册再引用**：饮食记录引用食物名称，自动按克数计算热量和宏观营养素。
 - **唯一性约束**：身体每日一条，饮食/运动同分钟不可重复。
 - **围度回溯**：今日没量围度自动取最近一次记录。
