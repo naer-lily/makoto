@@ -234,6 +234,11 @@ class TodayResponse(BaseModel):
     circumference: CircumferenceLogResponse | None = None
 
 
+# Alpert 公式：每磅体脂最多分解 ~31 kcal/天 → 68.34 kcal/kg/天
+# 保守取 60 kcal/kg/天（约 88% 理论极限，折合 27 kcal/lb/天）
+ALPERT_KCAL_PER_KG_FAT: float = 60.0
+
+
 class ReportRow(BaseModel):
     date: str
     weight_kg: float
@@ -247,6 +252,7 @@ class ReportRow(BaseModel):
     deficit_kcal: float
     expected_deficit_kcal: float | None
     ma_deficit_kcal: float | None
+    alpert_limit_kcal: float
     is_interpolated: bool
     weekly_loss_kg: float | None
 

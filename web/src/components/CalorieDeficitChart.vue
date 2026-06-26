@@ -22,6 +22,7 @@ let chart: echarts.ECharts | null = null
 function buildOption(): echarts.EChartsOption {
   const dates = props.rows.map((r) => r.date.substring(5))
   const deficitData = props.rows.map((r) => r.deficit_kcal)
+  const alpertData = props.rows.map((r) => r.alpert_limit_kcal)
 
   const option: echarts.EChartsOption = {
     backgroundColor: 'transparent',
@@ -29,14 +30,22 @@ function buildOption(): echarts.EChartsOption {
     tooltip: {
       trigger: 'axis',
       formatter: (params: any) => {
-        const p = Array.isArray(params) ? params[0] : params
-        const v = p.value
-        const label = v > 0 ? `缺口 +${v} kcal` : v < 0 ? `盈余 ${v} kcal` : '平衡'
-        return `${p.axisValue}<br/>${label}`
+        const items = Array.isArray(params) ? params : [params]
+        const lines: string[] = [items[0]?.axisValue || '']
+        for (const p of items) {
+          if (p.seriesName === 'Alpert 安全上限') {
+            lines.push(`安全上限 <span style="color:#F56C6C">${p.value} kcal</span>`)
+          } else if (p.seriesName === '热量缺口') {
+            const v = p.value
+            const label = v > 0 ? `缺口 +${v} kcal` : v < 0 ? `盈余 ${v} kcal` : '平衡'
+            lines.push(label)
+          }
+        }
+        return lines.join('<br/>')
       },
     },
     legend: {
-      data: ['热量缺口', '建议缺口 500-800'],
+      data: ['热量缺口', '建议缺口 500-800', 'Alpert 安全上限'],
       top: 28,
     },
     grid: { top: 60, right: 40, bottom: 30, left: 60 },
@@ -72,6 +81,16 @@ function buildOption(): echarts.EChartsOption {
         data: [],
         itemStyle: { color: 'rgba(103,194,58,0.1)' },
         barGap: '-100%',
+      },
+      {
+        name: 'Alpert 安全上限',
+        type: 'line',
+        data: alpertData,
+        symbol: 'none',
+        smooth: true,
+        lineStyle: { color: '#F56C6C', type: 'dashed', width: 2 },
+        itemStyle: { color: '#F56C6C' },
+        z: 10,
       },
     ],
   }

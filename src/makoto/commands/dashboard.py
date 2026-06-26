@@ -173,11 +173,13 @@ def report(
         mf_val = float(rd.get("ma_ffm_kg", 0))
         bal_val = float(rd.get("deficit_kcal", 0))
         exp_val = rd.get("expected_deficit_kcal")
+        alpert_val = float(rd.get("alpert_limit_kcal", 0))
         interp = bool(rd.get("is_interpolated", False))
 
         sign = "+" if bal_val > 0 else ""
         bal_str = f"{sign}{bal_val:.0f} kcal"
         exp_str = f"{exp_val:.0f} kcal" if exp_val is not None else "-"
+        alpert_str = f"{alpert_val:.0f} kcal"
 
         w_str = f"{w_val:.1f} kg{'*' if interp else ''}"
         bf_str = f"{bf_val:.1f}%{'*' if interp else ''}"
@@ -194,7 +196,7 @@ def report(
 
         table_rows.append([
             str(rd.get("date", "")), w_str, bf_str, ffm_str,
-            mw_str, mb_str, mf_str, bal_str, exp_str,
+            mw_str, mb_str, mf_str, bal_str, alpert_str, exp_str,
         ])
 
     w_delta = last_w - first_w
@@ -216,6 +218,7 @@ def report(
         f"[bold]{mb_delta:+.1f}%[/bold]",
         f"[bold]{mf_delta:+.1f} kg[/bold]",
         f"[bold]{total_balance:+.0f} kcal[/bold]",
+        "",
         f"[bold]{exp_total_str}[/bold]",
     ])
 
@@ -223,12 +226,12 @@ def report(
     render_table(
         columns=[
             "日期", "体重", "体脂率", "FFM",
-            "7日均重", "7日均脂", "7均FFM", "热量缺口", "日期望",
+            "7日均重", "7日均脂", "7均FFM", "热量缺口", "安全上限", "日期望",
         ],
         rows=table_rows,
         title=title_text,
-        align=["left"] + ["right"] * 8,
-        col_styles=["cyan", "", "", "", "", "", "", "yellow", "dim"],
+        align=["left"] + ["right"] * 9,
+        col_styles=["cyan", "", "", "", "", "", "", "yellow", "red", "dim"],
     )
 
     has_interp = any(bool(r.get("is_interpolated")) for r in rows_data)
@@ -243,4 +246,14 @@ def report(
     elif met is True:
         console.print(
             f"[green]实际缺口 {total_balance:.0f} >= 期望 {total_expected:.0f} kcal，达标[/green]"
+        )
+
+    alpert_exceeded = sum(
+        1
+        for rd in rows_data
+        if float(rd.get("deficit_kcal", 0)) > float(rd.get("alpert_limit_kcal", 0)) > 0
+    )
+    if alpert_exceeded > 0:
+        console.print(
+            f"[red]⚠ {alpert_exceeded} 天缺口超过 Alpert 安全上限，可能伴随瘦体重流失[/red]"
         )

@@ -128,8 +128,15 @@ def test_report_default_range(client: TestClient) -> None:
     assert "ma_ffm_kg" in first_row
     assert "ma_fat_kg" in first_row
     assert "deficit_kcal" in first_row
+    assert "alpert_limit_kcal" in first_row
     assert "is_interpolated" in first_row
     assert "weekly_loss_kg" in first_row
+
+    # 验证 Alpert 安全上限 = 脂肪重 kg × 60 kcal/kg
+    for row in rows:
+        fat_kg = float(row["fat_kg"])
+        expected_limit = round(fat_kg * 60, 1)
+        assert float(row["alpert_limit_kcal"]) == expected_limit
 
     # 验证 fat_kg + ffm_kg ≈ weight_kg
     for row in rows:

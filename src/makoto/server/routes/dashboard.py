@@ -24,6 +24,7 @@ from makoto.server.db_models import DietLog
 from makoto.server.db_models import ExerciseLog
 from makoto.server.db_models import Food
 from makoto.server.db_models import Profile
+from makoto.server.models import ALPERT_KCAL_PER_KG_FAT
 from makoto.server.models import ActivityLevel
 from makoto.server.models import CircumferenceLogResponse
 from makoto.server.models import Gender
@@ -360,6 +361,7 @@ async def dashboard_report(
         total_expected += exp
         is_orig = weight_original.get(d, False)
         md = ma_deficit.get(d)
+        alpert_limit = round(fat * ALPERT_KCAL_PER_KG_FAT, 1)
         data_rows.append(
             ReportRow(
                 date=str(d),
@@ -373,6 +375,7 @@ async def dashboard_report(
                 ma_fat_kg=round(mfa, 1),
                 deficit_kcal=round(balance, 1),
                 expected_deficit_kcal=round(exp, 1) if daily_expected is not None else None,
+                alpert_limit_kcal=alpert_limit,
                 is_interpolated=not is_orig,
                 weekly_loss_kg=weekly_loss,
                 ma_deficit_kcal=round(md, 1) if md is not None else None,
@@ -382,8 +385,8 @@ async def dashboard_report(
     first: ReportRow = data_rows[0] if data_rows else ReportRow(
         date="", weight_kg=0, body_fat_pct=0, ffm_kg=0, fat_kg=0,
         ma_weight_kg=0, ma_body_fat_pct=0, ma_ffm_kg=0, ma_fat_kg=0,
-        deficit_kcal=0, expected_deficit_kcal=None, is_interpolated=False,
-        weekly_loss_kg=None, ma_deficit_kcal=None,
+        deficit_kcal=0, expected_deficit_kcal=None, alpert_limit_kcal=0,
+        is_interpolated=False, weekly_loss_kg=None, ma_deficit_kcal=None,
     )
     last: ReportRow = data_rows[-1] if data_rows else first
 

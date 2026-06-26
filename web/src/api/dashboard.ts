@@ -65,6 +65,7 @@ export interface ReportRow {
   deficit_kcal: number
   expected_deficit_kcal: number | null
   ma_deficit_kcal: number | null
+  alpert_limit_kcal: number
   is_interpolated: boolean
   weekly_loss_kg: number | null
 }
