@@ -1,5 +1,8 @@
 <template>
   <div class="chart-container">
+    <el-button class="chart-copy-btn" size="small" text @click="handleCopy">
+      <el-icon :size="14"><CopyDocument /></el-icon>
+    </el-button>
     <div ref="chartRef" class="chart"></div>
   </div>
 </template>
@@ -10,8 +13,10 @@ import * as echarts from 'echarts'
 import type { ReportRow } from '../api/dashboard'
 import { useTheme } from '../composables/useTheme'
 import { useEChartsResize } from '../composables/useEChartsResize'
+import { useCopyChartMd } from '../composables/useCopyChartMd'
 
 const { isDark } = useTheme()
+const { copyChartMd } = useCopyChartMd()
 
 const props = defineProps<{
   rows: ReportRow[]
@@ -105,6 +110,15 @@ function initChart() {
   chart.value?.dispose()
   chart.value = echarts.init(chartRef.value!, isDark.value ? 'dark' : undefined)
   chart.value.setOption(buildOption())
+}
+
+function handleCopy() {
+  const rows = props.rows.map((r) => [
+    r.date.substring(5),
+    r.deficit_kcal > 0 ? `+${r.deficit_kcal}` : String(r.deficit_kcal),
+    String(r.alpert_limit_kcal),
+  ])
+  copyChartMd('每日热量缺口', ['日期', '热量缺口 (kcal)', 'Alpert 上限 (kcal)'], rows)
 }
 
 onMounted(() => {

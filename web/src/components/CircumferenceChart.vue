@@ -1,5 +1,8 @@
 <template>
   <div class="chart-container">
+    <el-button class="chart-copy-btn" size="small" text @click="handleCopy">
+      <el-icon :size="14"><CopyDocument /></el-icon>
+    </el-button>
     <div ref="chartRef" class="chart"></div>
   </div>
 </template>
@@ -9,6 +12,7 @@ import { ref, onMounted, watch, onUnmounted } from 'vue'
 import * as echarts from 'echarts'
 import { useTheme } from '../composables/useTheme'
 import { useEChartsResize } from '../composables/useEChartsResize'
+import { useCopyChartMd } from '../composables/useCopyChartMd'
 import type { CircumferenceRecord } from '../api/circumference'
 
 const props = defineProps<{
@@ -16,6 +20,7 @@ const props = defineProps<{
 }>()
 
 const { isDark } = useTheme()
+const { copyChartMd } = useCopyChartMd()
 const chartRef = ref<HTMLDivElement>()
 const chart = ref<echarts.EChartsType | null>(null)
 useEChartsResize(chart)
@@ -81,6 +86,19 @@ function initChart() {
   chart.value?.dispose()
   chart.value = echarts.init(chartRef.value!, isDark.value ? 'dark' : undefined)
   chart.value.setOption(buildOption())
+}
+
+function handleCopy() {
+  const sorted = [...props.rows].sort(
+    (a, b) => new Date(a.log_date).getTime() - new Date(b.log_date).getTime(),
+  )
+  const rows = sorted.map((r) => [
+    r.log_date.substring(5),
+    r.waist_cm != null ? String(r.waist_cm) : '-',
+    r.arm_cm != null ? String(r.arm_cm) : '-',
+    r.thigh_cm != null ? String(r.thigh_cm) : '-',
+  ])
+  copyChartMd('围度变化趋势', ['日期', '腰围 (cm)', '臂围 (cm)', '大腿围 (cm)'], rows)
 }
 
 onMounted(() => {

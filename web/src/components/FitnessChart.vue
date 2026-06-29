@@ -1,5 +1,8 @@
 <template>
   <div class="chart-container">
+    <el-button class="chart-copy-btn" size="small" text @click="handleCopy">
+      <el-icon :size="14"><CopyDocument /></el-icon>
+    </el-button>
     <div ref="chartRef" class="chart"></div>
   </div>
 </template>
@@ -9,6 +12,7 @@ import { ref, onMounted, watch, onUnmounted } from 'vue'
 import * as echarts from 'echarts'
 import { useTheme } from '../composables/useTheme'
 import { useEChartsResize } from '../composables/useEChartsResize'
+import { useCopyChartMd } from '../composables/useCopyChartMd'
 import type { FitnessRecord } from '../api/keep'
 
 const props = defineProps<{
@@ -16,6 +20,7 @@ const props = defineProps<{
 }>()
 
 const { isDark } = useTheme()
+const { copyChartMd } = useCopyChartMd()
 const chartRef = ref<HTMLDivElement>()
 const chart = ref<echarts.EChartsType | null>(null)
 useEChartsResize(chart)
@@ -142,6 +147,17 @@ function initChart() {
       chart.value?.setOption({ legend: { selected: { 'TSB 趋势': false } } })
     }
   })
+}
+
+function handleCopy() {
+  const rows = props.rows.map((r) => [
+    r.date.substring(4),
+    String(r.atl),
+    String(r.ctl),
+    String(r.tsb),
+    r.ctl > 0 ? String(+(r.atl / r.ctl).toFixed(2)) : '-',
+  ])
+  copyChartMd('体能水平 (Keep)', ['日期', 'ATL', 'CTL', 'TSB', 'ACWR'], rows)
 }
 
 onMounted(() => {

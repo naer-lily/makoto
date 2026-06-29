@@ -25,37 +25,53 @@ useEChartsResize(chart)
 
 function buildOption(): echarts.EChartsOption {
   const dates = props.rows.map((r) => r.date.substring(5))
-  const data = props.rows.map((r) => r.weekly_loss_kg ?? null)
+  const intake = props.rows.map((r) => r.intake_kcal)
+  const tdee = props.rows.map((r) => r.tdee_kcal)
+
   return {
     backgroundColor: 'transparent',
-    title: {
-      text: '周平均减重（kg），正数为减重',
-      left: 'center',
-      textStyle: { fontSize: 14 },
+    title: { text: '每日摄入 vs TDEE', left: 'center', textStyle: { fontSize: 14 } },
+    tooltip: {
+      trigger: 'axis',
+      formatter: (params: any) => {
+        const items = Array.isArray(params) ? params : [params]
+        let html = `${items[0]?.axisValue}<br/>`
+        let deficit = 0
+        for (const p of items) {
+          html += `${p.marker} ${p.seriesName}: <b>${p.value} kcal</b><br/>`
+          if (p.seriesName === 'TDEE') deficit += p.value
+          if (p.seriesName === '摄入') deficit -= p.value
+        }
+        const label = deficit > 0 ? `缺口 +${deficit} kcal` : deficit < 0 ? `盈余 ${deficit} kcal` : '平衡'
+        html += `<b>${label}</b>`
+        return html
+      },
     },
-    tooltip: { trigger: 'axis' },
-    grid: { top: 50, right: 20, bottom: 30, left: 50 },
+    legend: { data: ['TDEE', '摄入'], top: 28 },
+    grid: { top: 60, right: 20, bottom: 30, left: 60 },
     xAxis: { type: 'category', data: dates },
     yAxis: {
       type: 'value',
-      name: 'kg',
-      min: -1,
-      max: 1.5,
+      name: 'kcal',
+      axisLabel: { formatter: (v: number) => v.toFixed(0) },
     },
     series: [
       {
-        name: '周减重',
+        name: 'TDEE',
         type: 'line',
-        data,
+        data: tdee,
         smooth: true,
-        itemStyle: { color: '#EE6666' },
-        lineStyle: { color: '#EE6666' },
-        connectNulls: false,
-        markArea: {
-          silent: true,
-          itemStyle: { color: 'rgba(103,194,58,0.08)' },
-          data: [[{ yAxis: 0.5 }, { yAxis: 1.0 }]],
-        },
+        lineStyle: { color: '#F56C6C', width: 2 },
+        itemStyle: { color: '#F56C6C' },
+        areaStyle: { color: 'rgba(103,194,58,0.06)' },
+      },
+      {
+        name: '摄入',
+        type: 'line',
+        data: intake,
+        smooth: true,
+        lineStyle: { color: '#5470C6', width: 2 },
+        itemStyle: { color: '#5470C6' },
       },
     ],
   }
@@ -71,9 +87,11 @@ function initChart() {
 function handleCopy() {
   const rows = props.rows.map((r) => [
     r.date.substring(5),
-    r.weekly_loss_kg != null ? String(r.weekly_loss_kg) : '-',
+    String(r.tdee_kcal),
+    String(r.intake_kcal),
+    String(r.deficit_kcal),
   ])
-  copyChartMd('周平均减重 (kg)', ['日期', '周减重 (kg)'], rows)
+  copyChartMd('每日摄入 vs TDEE', ['日期', 'TDEE (kcal)', '摄入 (kcal)', '缺口 (kcal)'], rows)
 }
 
 onMounted(() => {

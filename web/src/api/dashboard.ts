@@ -68,6 +68,8 @@ export interface ReportRow {
   alpert_limit_kcal: number
   is_interpolated: boolean
   weekly_loss_kg: number | null
+  intake_kcal: number
+  tdee_kcal: number
 }
 
 export interface ReportSummary {

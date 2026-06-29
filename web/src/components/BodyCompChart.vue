@@ -1,5 +1,8 @@
 <template>
   <div class="chart-container">
+    <el-button class="chart-copy-btn" size="small" text @click="handleCopy">
+      <el-icon :size="14"><CopyDocument /></el-icon>
+    </el-button>
     <div ref="chartRef" class="chart"></div>
   </div>
 </template>
@@ -10,8 +13,10 @@ import * as echarts from 'echarts'
 import type { ReportRow } from '../api/dashboard'
 import { useTheme } from '../composables/useTheme'
 import { useEChartsResize } from '../composables/useEChartsResize'
+import { useCopyChartMd } from '../composables/useCopyChartMd'
 
 const { isDark } = useTheme()
+const { copyChartMd } = useCopyChartMd()
 
 const props = defineProps<{ rows: ReportRow[] }>()
 const chartRef = ref<HTMLDivElement>()
@@ -107,6 +112,20 @@ function initChart() {
   chart.value?.dispose()
   chart.value = echarts.init(chartRef.value!, isDark.value ? 'dark' : undefined)
   chart.value.setOption(buildOption())
+}
+
+function handleCopy() {
+  const rows: string[][] = []
+  for (let i = 7; i < props.rows.length; i++) {
+    const r = props.rows[i]
+    const prev = props.rows[i - 7]
+    rows.push([
+      r.date.substring(5),
+      String(+(r.ma_fat_kg - prev.ma_fat_kg).toFixed(2)),
+      String(+(r.ma_ffm_kg - prev.ma_ffm_kg).toFixed(2)),
+    ])
+  }
+  copyChartMd('体成分周变化 (kg)', ['日期', '脂肪变化 (kg)', '去脂体重变化 (kg)'], rows)
 }
 
 onMounted(() => {

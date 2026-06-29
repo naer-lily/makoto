@@ -362,6 +362,8 @@ async def dashboard_report(
         is_orig = weight_original.get(d, False)
         md = ma_deficit.get(d)
         alpert_limit = round(fat * ALPERT_KCAL_PER_KG_FAT, 1)
+        intake = round(daily_diet.get(d, 0.0), 1)
+        tdee = round(netee + daily_exercise.get(d, 0.0), 1)
         data_rows.append(
             ReportRow(
                 date=str(d),
@@ -379,6 +381,8 @@ async def dashboard_report(
                 is_interpolated=not is_orig,
                 weekly_loss_kg=weekly_loss,
                 ma_deficit_kcal=round(md, 1) if md is not None else None,
+                intake_kcal=intake,
+                tdee_kcal=tdee,
             )
         )
 
@@ -387,6 +391,7 @@ async def dashboard_report(
         ma_weight_kg=0, ma_body_fat_pct=0, ma_ffm_kg=0, ma_fat_kg=0,
         deficit_kcal=0, expected_deficit_kcal=None, alpert_limit_kcal=0,
         is_interpolated=False, weekly_loss_kg=None, ma_deficit_kcal=None,
+        intake_kcal=0, tdee_kcal=0,
     )
     last: ReportRow = data_rows[-1] if data_rows else first
 

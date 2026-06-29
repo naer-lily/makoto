@@ -1,5 +1,8 @@
 <template>
   <div class="chart-container">
+    <el-button class="chart-copy-btn" size="small" text @click="handleCopy">
+      <el-icon :size="14"><CopyDocument /></el-icon>
+    </el-button>
     <div ref="chartRef" class="chart"></div>
   </div>
 </template>
@@ -9,6 +12,7 @@ import { ref, onMounted, watch, onUnmounted } from 'vue'
 import * as echarts from 'echarts'
 import { useTheme } from '../composables/useTheme'
 import { useEChartsResize } from '../composables/useEChartsResize'
+import { useCopyChartMd } from '../composables/useCopyChartMd'
 import type { WeeklyLoadRecord } from '../api/keep'
 
 const props = defineProps<{
@@ -16,6 +20,7 @@ const props = defineProps<{
 }>()
 
 const { isDark } = useTheme()
+const { copyChartMd } = useCopyChartMd()
 const chartRef = ref<HTMLDivElement>()
 const chart = ref<echarts.EChartsType | null>(null)
 useEChartsResize(chart)
@@ -88,6 +93,19 @@ function initChart() {
   chart.value?.dispose()
   chart.value = echarts.init(chartRef.value!, isDark.value ? 'dark' : undefined)
   chart.value.setOption(buildOption())
+}
+
+function handleCopy() {
+  const sorted = [...props.rows].sort(
+    (a, b) => a.week_start.localeCompare(b.week_start),
+  )
+  const rows = sorted.map((r) => [
+    r.week_start.substring(0, 10),
+    r.training_load != null ? String(r.training_load) : '-',
+    String(r.load_lower),
+    String(r.load_upper),
+  ])
+  copyChartMd('周运动负荷 (Keep)', ['周起始', '训练负荷', '推荐下界', '推荐上界'], rows)
 }
 
 onMounted(() => {

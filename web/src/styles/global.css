@@ -16,6 +16,20 @@ html, body, #app {
   border-radius: 8px;
   padding: 16px;
   overflow: hidden;
+  position: relative;
+}
+
+.chart-copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.chart-container:hover .chart-copy-btn {
+  opacity: 1;
 }
 
 .chart-grid {
