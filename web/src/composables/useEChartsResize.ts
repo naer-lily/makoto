@@ -1,7 +1,8 @@
 import { onMounted, onUnmounted, type Ref } from 'vue'
-import type { ECharts } from 'echarts'
 
-export function useEChartsResize(chartRef: Ref<ECharts | null>) {
+type ChartLike = { resize: () => void; getDom?: () => HTMLElement | undefined } | null
+
+export function useEChartsResize(chartRef: Ref<ChartLike>) {
   let observer: ResizeObserver | null = null
 
   function handleResize() {

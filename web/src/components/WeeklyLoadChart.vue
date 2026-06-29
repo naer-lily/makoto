@@ -17,7 +17,7 @@ const props = defineProps<{
 
 const { isDark } = useTheme()
 const chartRef = ref<HTMLDivElement>()
-const chart = ref<echarts.ECharts | null>(null)
+const chart = ref<echarts.EChartsType | null>(null)
 useEChartsResize(chart)
 
 function buildOption(): echarts.EChartsOption {
