@@ -37,6 +37,21 @@ def today() -> None:
         if body.get("note"):
             console.print(f"  [dim]备注: {body['note']}[/dim]")
 
+    # 体能水平 (Keep)
+    atl = data.get("atl")
+    ctl = data.get("ctl")
+    tsb = data.get("tsb")
+    if atl is not None or ctl is not None:
+        atl_s = str(atl) if atl is not None else "-"
+        ctl_s = str(ctl) if ctl is not None else "-"
+        tsb_s = str(tsb) if tsb is not None else "-"
+        acwr_s = f"{atl / ctl:.2f}" if (atl is not None and ctl is not None and ctl > 0) else "-"
+        console.print("\n[bold]体能水平 (Keep)[/bold]")
+        console.print(
+            f"  ATL 疲劳度: {atl_s}    CTL 体能: {ctl_s}"
+            f"    TSB 趋势: {tsb_s}    ACWR: {acwr_s}"
+        )
+
     # 围度
     circ = data.get("circumference")
     if circ is not None:
@@ -175,11 +190,15 @@ def report(
         exp_val = rd.get("expected_deficit_kcal")
         alpert_val = float(rd.get("alpert_limit_kcal", 0))
         interp = bool(rd.get("is_interpolated", False))
+        atl_val = rd.get("atl")
+        ctl_val = rd.get("ctl")
 
         sign = "+" if bal_val > 0 else ""
         bal_str = f"{sign}{bal_val:.0f} kcal"
         exp_str = f"{exp_val:.0f} kcal" if exp_val is not None else "-"
         alpert_str = f"{alpert_val:.0f} kcal"
+        atl_str = str(atl_val) if atl_val is not None else "-"
+        ctl_str = str(ctl_val) if ctl_val is not None else "-"
 
         w_str = f"{w_val:.1f} kg{'*' if interp else ''}"
         bf_str = f"{bf_val:.1f}%{'*' if interp else ''}"
@@ -197,6 +216,7 @@ def report(
         table_rows.append([
             str(rd.get("date", "")), w_str, bf_str, ffm_str,
             mw_str, mb_str, mf_str, bal_str, alpert_str, exp_str,
+            atl_str, ctl_str,
         ])
 
     w_delta = last_w - first_w
@@ -220,6 +240,7 @@ def report(
         f"[bold]{total_balance:+.0f} kcal[/bold]",
         "",
         f"[bold]{exp_total_str}[/bold]",
+        "", "",
     ])
 
     title_text = f"{data['start_date']} ~ {data['end_date']} ({data['days']} 天)"
@@ -227,11 +248,12 @@ def report(
         columns=[
             "日期", "体重", "体脂率", "FFM",
             "7日均重", "7日均脂", "7均FFM", "热量缺口", "安全上限", "日期望",
+            "ATL", "CTL",
         ],
         rows=table_rows,
         title=title_text,
-        align=["left"] + ["right"] * 9,
-        col_styles=["cyan", "", "", "", "", "", "", "yellow", "red", "dim"],
+        align=["left"] + ["right"] * 11,
+        col_styles=["cyan", "", "", "", "", "", "", "yellow", "red", "dim", "", ""],
     )
 
     has_interp = any(bool(r.get("is_interpolated")) for r in rows_data)

@@ -24,6 +24,8 @@ from makoto.server.db_models import DietLog
 from makoto.server.db_models import ExerciseLog
 from makoto.server.db_models import Food
 from makoto.server.db_models import Profile
+from makoto.server.keep_client import FitnessRecord
+from makoto.server.keep_client import Keep
 from makoto.server.models import ALPERT_KCAL_PER_KG_FAT
 from makoto.server.models import ActivityLevel
 from makoto.server.models import CircumferenceLogResponse
@@ -42,6 +44,27 @@ from makoto.utils.timeseries import rolling_mean
 from makoto.utils.tz import today_local
 
 router = APIRouter(prefix="/api/v1/dashboard", tags=["dashboard"])
+
+
+async def _fetch_fitness(session: AsyncSession) -> list[FitnessRecord]:
+    """获取 Keep 体能水平数据。token 为空或请求失败时返回空列表。"""
+    row = (await session.execute(select(Profile).where(Profile.id == 1))).scalar_one_or_none()
+    if row is None or not row.keep_token:
+        return []
+    try:
+        async with Keep(token=row.keep_token) as k:
+            records: list[FitnessRecord] = await k.get_fitness()
+            return records
+    except Exception:
+        return []
+
+
+def _fitness_latest(records: list[FitnessRecord]) -> tuple[int | None, int | None, int | None]:
+    """从 fitness 列表中取最新一条的 ATL / CTL / TSB。"""
+    if not records:
+        return None, None, None
+    latest = records[-1]
+    return latest.atl, latest.ctl, latest.tsb
 
 
 def _bmr(weight: float, height: float, age: int, gender: Gender) -> float:
@@ -217,6 +240,7 @@ async def today_dashboard(
         if prev_week is not None and body.body_fat_pct is not None:
             body_fat_delta_week = round(body.body_fat_pct - prev_week.body_fat_pct, 1)
 
+    fitness = await _fetch_fitness(session)
     return TodayResponse(
         date=today_date,
         body=body,
@@ -234,6 +258,9 @@ async def today_dashboard(
         weight_delta_week=weight_delta_week,
         body_fat_delta_week=body_fat_delta_week,
         circumference=circumference,
+        atl=_fitness_latest(fitness)[0],
+        ctl=_fitness_latest(fitness)[1],
+        tsb=_fitness_latest(fitness)[2],
     )
 
 
@@ -334,6 +361,12 @@ async def dashboard_report(
 
     netee = float(profile["netee_kcal"])
 
+    # Keep 体能数据 — 以 YYYY-MM-DD 为 key 构建查找表
+    fitness_records = await _fetch_fitness(session)
+    fitness_map: dict[str, FitnessRecord] = {
+        f.date.replace(".", "-"): f for f in fitness_records
+    }
+
     # 热量缺口 7 日均线
     daily_balance: dict[date, float] = {}
     for d in display_dates:
@@ -364,6 +397,7 @@ async def dashboard_report(
         alpert_limit = round(fat * ALPERT_KCAL_PER_KG_FAT, 1)
         intake = round(daily_diet.get(d, 0.0), 1)
         tdee = round(netee + daily_exercise.get(d, 0.0), 1)
+        fr = fitness_map.get(str(d))
         data_rows.append(
             ReportRow(
                 date=str(d),
@@ -383,6 +417,9 @@ async def dashboard_report(
                 ma_deficit_kcal=round(md, 1) if md is not None else None,
                 intake_kcal=intake,
                 tdee_kcal=tdee,
+                atl=fr.atl if fr else None,
+                ctl=fr.ctl if fr else None,
+                tsb=fr.tsb if fr else None,
             )
         )
 

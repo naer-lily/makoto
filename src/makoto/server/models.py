@@ -232,6 +232,9 @@ class TodayResponse(BaseModel):
     weight_delta_week: float | None = None
     body_fat_delta_week: float | None = None
     circumference: CircumferenceLogResponse | None = None
+    atl: int | None = None
+    ctl: int | None = None
+    tsb: int | None = None
 
 
 # Alpert 公式：每磅体脂最多分解 ~31 kcal/天 → 68.34 kcal/kg/天
@@ -257,6 +260,9 @@ class ReportRow(BaseModel):
     weekly_loss_kg: float | None
     intake_kcal: float
     tdee_kcal: float
+    atl: int | None = None
+    ctl: int | None = None
+    tsb: int | None = None
 
 
 class ReportSummary(BaseModel):
