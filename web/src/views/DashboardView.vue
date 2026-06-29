@@ -90,23 +90,31 @@
     </div>
 
     <template v-else-if="reportData">
+      <div class="section-header">体重与体成分</div>
       <div class="chart-grid">
         <WeightTrendChart :rows="reportData.rows" :target-weight="reportData.target_weight_kg" />
-        <CalorieDeficitChart :rows="reportData.rows" />
+        <BodyFatTrendChart :rows="reportData.rows" />
       </div>
       <div class="chart-grid">
-        <FitnessChart :rows="fitnessData" />
+        <WeightFfmChart :rows="reportData.rows" />
+        <BodyCompChart :rows="reportData.rows" />
+      </div>
+      <div class="chart-grid">
+        <RawWeightChart :rows="reportData.rows" />
+        <WeeklyLossChart :rows="reportData.rows" />
+      </div>
+
+      <div class="section-header">热量与运动负荷</div>
+      <div class="chart-grid">
+        <CalorieDeficitChart :rows="reportData.rows" />
         <WeeklyLoadChart :rows="weeklyLoadData" />
       </div>
-      <div class="chart-grid">
-        <BodyFatTrendChart :rows="reportData.rows" />
-        <WeightFfmChart :rows="reportData.rows" />
+      <div class="chart-grid chart-full">
+        <FitnessChart :rows="fitnessData" />
       </div>
-      <div class="chart-grid">
-        <WeeklyLossChart :rows="reportData.rows" />
-        <RawWeightChart :rows="reportData.rows" />
-      </div>
-      <div class="chart-row-full">
+
+      <div class="section-header">围度</div>
+      <div class="chart-grid chart-full">
         <CircumferenceChart :rows="circData" />
       </div>
     </template>
@@ -134,6 +142,7 @@ import FitnessChart from '../components/FitnessChart.vue'
 import WeeklyLoadChart from '../components/WeeklyLoadChart.vue'
 import BodyFatTrendChart from '../components/BodyFatTrendChart.vue'
 import WeightFfmChart from '../components/WeightFfmChart.vue'
+import BodyCompChart from '../components/BodyCompChart.vue'
 import WeeklyLossChart from '../components/WeeklyLossChart.vue'
 import RawWeightChart from '../components/RawWeightChart.vue'
 import CircumferenceChart from '../components/CircumferenceChart.vue'
@@ -161,6 +170,7 @@ async function loadReport() {
   try {
     const [start, end] = dateRange.value || [undefined, undefined]
     reportData.value = await fetchReport(start, end)
+    await loadKeep()
   } finally {
     reportLoading.value = false
   }
@@ -175,13 +185,19 @@ async function loadCirc() {
 }
 
 async function loadKeep() {
+  const [start, end] = dateRange.value || [undefined, undefined]
   try {
-    fitnessData.value = await fetchFitness()
+    fitnessData.value = await fetchFitness(start, end)
   } catch {
     // non-critical
   }
+  let weekCount: number | undefined
+  if (start && end) {
+    const days = Math.ceil((new Date(end).getTime() - new Date(start).getTime()) / 86400000)
+    weekCount = Math.ceil(days / 7)
+  }
   try {
-    weeklyLoadData.value = await fetchWeeklyLoad()
+    weeklyLoadData.value = await fetchWeeklyLoad(weekCount)
   } catch {
     // non-critical
   }
@@ -219,7 +235,6 @@ onMounted(() => {
   loadToday()
   loadReport()
   loadCirc()
-  loadKeep()
 })
 </script>
 
@@ -255,13 +270,13 @@ onMounted(() => {
   font-variant-numeric: tabular-nums;
 }
 
-.chart-row-full {
-  display: grid;
-  grid-template-columns: 1fr;
-  margin-bottom: 20px;
-}
+@media (max-width: 768px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
 
-@media (max-width: 900px) {
   .detail-grid {
     grid-template-columns: 1fr;
   }

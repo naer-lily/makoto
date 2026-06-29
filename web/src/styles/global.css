@@ -15,11 +15,35 @@ html, body, #app {
   background: var(--el-bg-color);
   border-radius: 8px;
   padding: 16px;
-  margin-bottom: 16px;
 }
 
 .chart-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+  margin-bottom: 16px;
+}
+
+.chart-grid.chart-full {
+  grid-template-columns: 1fr;
+}
+
+.section-header {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 24px 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--el-border-color-light);
+  color: var(--el-text-color-secondary);
+}
+
+@media (max-width: 768px) {
+  .el-main {
+    padding: 12px;
+  }
+
+  .chart-grid,
+  .chart-grid.chart-full {
+    grid-template-columns: 1fr;
+  }
 }

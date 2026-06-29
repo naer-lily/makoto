@@ -15,10 +15,15 @@ export interface WeeklyLoadRecord {
   load_upper: number
 }
 
-export function fetchFitness(): Promise<FitnessRecord[]> {
-  return http.get('/keep/fitness').then((r) => r.data)
+export function fetchFitness(startDate?: string, endDate?: string): Promise<FitnessRecord[]> {
+  const params: Record<string, string> = {}
+  if (startDate) params.start_date = startDate
+  if (endDate) params.end_date = endDate
+  return http.get('/keep/fitness', { params }).then((r) => r.data)
 }
 
-export function fetchWeeklyLoad(): Promise<WeeklyLoadRecord[]> {
-  return http.get('/keep/weekly-load').then((r) => r.data)
+export function fetchWeeklyLoad(weekCount?: number): Promise<WeeklyLoadRecord[]> {
+  const params: Record<string, string> = {}
+  if (weekCount !== undefined) params.week_count = String(weekCount)
+  return http.get('/keep/weekly-load', { params }).then((r) => r.data)
 }

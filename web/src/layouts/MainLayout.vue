@@ -1,8 +1,8 @@
 <template>
   <el-container class="layout">
-    <el-aside width="200px" class="aside">
-      <div class="logo">makoto</div>
-      <el-menu :default-active="route.path" router class="menu">
+    <el-aside :width="isCollapse ? '64px' : '200px'" class="aside">
+      <div class="logo">{{ isCollapse ? 'M' : 'makoto' }}</div>
+      <el-menu :default-active="route.path" router :collapse="isCollapse" class="menu">
         <el-menu-item index="/">
           <el-icon><DataAnalysis /></el-icon>
           <span>仪表盘</span>
@@ -35,6 +35,12 @@
     </el-aside>
     <el-container>
       <el-header class="header">
+        <el-button text class="collapse-btn" @click="isCollapse = !isCollapse">
+          <el-icon :size="18">
+            <Fold v-if="!isCollapse" />
+            <Expand v-else />
+          </el-icon>
+        </el-button>
         <div class="header-right">
           <el-tooltip :content="modeLabel" placement="bottom">
             <el-button text class="theme-btn" @click="toggleTheme">
@@ -56,12 +62,28 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTheme } from '../composables/useTheme'
 
 const { mode, modeLabel, toggleTheme } = useTheme()
 const route = useRoute()
 const router = useRouter()
+
+const isCollapse = ref(false)
+
+function handleResize() {
+  isCollapse.value = window.innerWidth < 768
+}
+
+onMounted(() => {
+  handleResize()
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+})
 
 function handleLogout() {
   localStorage.removeItem('makoto_token')
@@ -79,6 +101,8 @@ function handleLogout() {
   border-right: 1px solid var(--el-border-color-light);
   display: flex;
   flex-direction: column;
+  transition: width 0.2s;
+  overflow: hidden;
 }
 
 .logo {
@@ -91,6 +115,7 @@ function handleLogout() {
   color: var(--el-color-primary);
   border-bottom: 1px solid var(--el-border-color-light);
   letter-spacing: 2px;
+  white-space: nowrap;
 }
 
 .menu {
@@ -98,12 +123,20 @@ function handleLogout() {
   flex: 1;
 }
 
+.menu:not(.el-menu--collapse) {
+  width: 200px;
+}
+
 .header {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   border-bottom: 1px solid var(--el-border-color-light);
   background: var(--el-bg-color);
+}
+
+.collapse-btn {
+  padding: 8px;
 }
 
 .header-right {
@@ -115,5 +148,12 @@ function handleLogout() {
 .theme-btn {
   padding: 8px;
   font-size: 18px;
+}
+
+@media (max-width: 768px) {
+  .logo {
+    font-size: 16px;
+    letter-spacing: 0;
+  }
 }
 </style>

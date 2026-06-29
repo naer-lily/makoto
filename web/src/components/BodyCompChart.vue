@@ -9,12 +9,14 @@ import { ref, onMounted, watch, onUnmounted } from 'vue'
 import * as echarts from 'echarts'
 import type { ReportRow } from '../api/dashboard'
 import { useTheme } from '../composables/useTheme'
+import { useEChartsResize } from '../composables/useEChartsResize'
 
 const { isDark } = useTheme()
 
 const props = defineProps<{ rows: ReportRow[] }>()
 const chartRef = ref<HTMLDivElement>()
-let chart: echarts.ECharts | null = null
+const chart = ref<echarts.ECharts | null>(null)
+useEChartsResize(chart)
 
 function buildOption(): echarts.EChartsOption {
   const dates: string[] = []
@@ -102,32 +104,26 @@ function buildOption(): echarts.EChartsOption {
 
 function initChart() {
   if (!chartRef.value) return
-  chart?.dispose()
-  chart = echarts.init(chartRef.value!, isDark.value ? 'dark' : undefined)
-  chart.setOption(buildOption())
-}
-
-function onResize() {
-  chart?.resize()
+  chart.value?.dispose()
+  chart.value = echarts.init(chartRef.value!, isDark.value ? 'dark' : undefined)
+  chart.value.setOption(buildOption())
 }
 
 onMounted(() => {
   initChart()
-  window.addEventListener('resize', onResize)
 })
 
-watch(() => props.rows, () => chart?.setOption(buildOption()), { deep: true })
+watch(() => props.rows, () => chart.value?.setOption(buildOption()), { deep: true })
 watch(isDark, () => initChart())
 
 onUnmounted(() => {
-  window.removeEventListener('resize', onResize)
-  chart?.dispose()
+  chart.value?.dispose()
 })
 </script>
 
 <style scoped>
 .chart {
   width: 100%;
-  height: 360px;
+  height: 340px;
 }
 </style>
