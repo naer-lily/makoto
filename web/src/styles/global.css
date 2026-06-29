@@ -15,6 +15,7 @@ html, body, #app {
   background: var(--el-bg-color);
   border-radius: 8px;
   padding: 16px;
+  overflow: hidden;
 }
 
 .chart-grid {
@@ -39,11 +40,27 @@ html, body, #app {
 
 @media (max-width: 768px) {
   .el-main {
-    padding: 12px;
+    padding: 8px;
+  }
+
+  .chart-container {
+    padding: 8px;
+    border-radius: 6px;
   }
 
   .chart-grid,
   .chart-grid.chart-full {
     grid-template-columns: 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .section-header {
+    margin: 16px 0 8px;
+    font-size: 13px;
+  }
+
+  .el-table {
+    font-size: 12px;
   }
 }
