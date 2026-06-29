@@ -57,14 +57,27 @@ function buildOption(): echarts.EChartsOption {
 
   if (props.targetWeight != null && props.targetDate) {
     const lastWeight = weightData[weightData.length - 1]
-    const lastDate = dates[dates.length - 1]
+    const lastDateStr = dates[dates.length - 1]
     const targetDateShort = props.targetDate.substring(5)
 
-    if (targetDateShort > lastDate) {
-      dates.push(targetDateShort)
-      weightData.push(null as any)
+    if (targetDateShort > lastDateStr) {
+      const lastFull = new Date(props.rows[props.rows.length - 1].date)
+      const targetFull = new Date(props.targetDate)
+      const extraDates: string[] = []
+      const cursor = new Date(lastFull.getTime() + 86400000)
+      while (cursor <= targetFull) {
+        const m = String(cursor.getMonth() + 1).padStart(2, '0')
+        const d = String(cursor.getDate()).padStart(2, '0')
+        extraDates.push(`${m}-${d}`)
+        cursor.setDate(cursor.getDate() + 1)
+      }
+      const lastIdx = dates.length - 1
+      dates.push(...extraDates)
+      for (let i = 0; i < extraDates.length; i++) {
+        weightData.push(null as any)
+      }
       const proj = new Array<number | null>(dates.length).fill(null)
-      proj[dates.length - 2] = lastWeight
+      proj[lastIdx] = lastWeight
       proj[dates.length - 1] = props.targetWeight
       series.push({
         name: '目标斜率',
