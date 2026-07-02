@@ -105,6 +105,28 @@
       </el-card>
 
       <el-card shadow="hover" class="stat-card">
+        <div class="stat-icon-wrap" style="background: rgba(245,108,108,0.12); color: #F56C6C">
+          <el-icon :size="20"><Calendar /></el-icon>
+        </div>
+        <div class="stat-label">本周热量缺口</div>
+        <div class="stat-value" :class="weekDeficitClass">
+          {{ weekDeficitText }} <span class="unit">kcal</span>
+        </div>
+        <div class="stat-sub">不含今日</div>
+      </el-card>
+
+      <el-card shadow="hover" class="stat-card">
+        <div class="stat-icon-wrap" style="background: rgba(230,162,60,0.12); color: #E6A23C">
+          <el-icon :size="20"><Calendar /></el-icon>
+        </div>
+        <div class="stat-label">本月热量缺口</div>
+        <div class="stat-value" :class="monthDeficitClass">
+          {{ monthDeficitText }} <span class="unit">kcal</span>
+        </div>
+        <div class="stat-sub">不含今日</div>
+      </el-card>
+
+      <el-card shadow="hover" class="stat-card">
         <div class="stat-icon-wrap" style="background: rgba(230,162,60,0.12); color: #E6A23C">
           <el-icon :size="20"><Apple /></el-icon>
         </div>
@@ -143,6 +165,28 @@ const netClass = computed(() => {
   if (!props.data) return ''
   return props.data.net_kcal > 0 ? 'positive' : props.data.net_kcal < 0 ? 'negative' : ''
 })
+
+const weekDeficitText = computed(() => {
+  if (!props.data || props.data.deficit_week_kcal == null) return '--'
+  const v = props.data.deficit_week_kcal
+  return v >= 0 ? `+${v.toFixed(0)}` : v.toFixed(0)
+})
+
+const weekDeficitClass = computed(() => {
+  if (!props.data || props.data.deficit_week_kcal == null) return ''
+  return props.data.deficit_week_kcal > 0 ? 'positive' : 'negative'
+})
+
+const monthDeficitText = computed(() => {
+  if (!props.data || props.data.deficit_month_kcal == null) return '--'
+  const v = props.data.deficit_month_kcal
+  return v >= 0 ? `+${v.toFixed(0)}` : v.toFixed(0)
+})
+
+const monthDeficitClass = computed(() => {
+  if (!props.data || props.data.deficit_month_kcal == null) return ''
+  return props.data.deficit_month_kcal > 0 ? 'positive' : 'negative'
+})
 </script>
 
 <style scoped>
@@ -154,7 +198,7 @@ const netClass = computed(() => {
 }
 
 .stat-row + .stat-row {
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   margin-bottom: 20px;
 }
 

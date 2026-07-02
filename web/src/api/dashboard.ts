@@ -49,6 +49,8 @@ export interface TodayResponse {
   body_fat_delta_day: number | null
   weight_delta_week: number | null
   body_fat_delta_week: number | null
+  deficit_week_kcal: number | null
+  deficit_month_kcal: number | null
   circumference: CircumferenceResponse | null
 }
 

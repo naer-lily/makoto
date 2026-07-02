@@ -20,13 +20,17 @@
 - **类型检查**: mypy (strict)
 - **测试**: pytest + pytest-cov
 - **日志**: loguru
+- **Web 前端**: Vue 3 + TypeScript + Vite + Element Plus + ECharts (web/ 目录)
 
 ## 架构
 
+- **Web 前端** (`web/`) — 给用户使用的图形界面，浏览器端通过 Element Plus 组件展示
+- **CLI** (`makoto/`) — 给 AI 使用的命令行接口，通过 httpx 调用 Server API
+
 ```
-makoto/                          # CLI 客户端
-    --httpx--> FastAPI Server    # makoto-server 入口
-                  --SQLModel/async SQLAlchemy--> SQLite (data/makoto.db)
+web/ (Vue 3 SPA) ──axios──┐
+                           ├──> FastAPI Server ──SQLModel/async SQLAlchemy──> SQLite (data/makoto.db)
+makoto/ (CLI)  ──httpx───┘
 ```
 
 两个入口点：
@@ -223,6 +227,16 @@ makoto/
 ├── data/
 │   └── makoto.db                  # SQLite 数据库
 ├── tests/
+├── web/                            # Vue 3 Web 前端
+│   ├── src/                        # 源码
+│   │   ├── api/                    # HTTP API 封装 (axios)
+│   │   ├── components/             # 可复用组件
+│   │   ├── views/                  # 页面视图
+│   │   ├── composables/            # 组合式函数
+│   │   ├── layouts/                # 布局组件
+│   │   ├── router/                 # 路由配置
+│   │   └── styles/                 # 全局样式
+│   └── index.html
 ├── pyproject.toml
 ├── Dockerfile
 ├── docker-compose.yml

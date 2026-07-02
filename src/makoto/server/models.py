@@ -231,6 +231,8 @@ class TodayResponse(BaseModel):
     body_fat_delta_day: float | None = None
     weight_delta_week: float | None = None
     body_fat_delta_week: float | None = None
+    deficit_week_kcal: float | None = None
+    deficit_month_kcal: float | None = None
     circumference: CircumferenceLogResponse | None = None
     atl: int | None = None
     ctl: int | None = None

@@ -46,6 +46,52 @@ from makoto.utils.tz import today_local
 router = APIRouter(prefix="/api/v1/dashboard", tags=["dashboard"])
 
 
+async def _compute_deficit(
+    session: AsyncSession,
+    start_iso: str,
+    end_iso: str,
+    daily_netee: float,
+    start_date: date,
+    end_date: date,
+) -> float:
+    """计算指定日期段（含两端）的累计热量缺口。
+
+    缺口 = NETEE * 天数 + 运动消耗 - 饮食摄入
+    """
+    diet_total = 0.0
+    diet_rows = (
+        await session.execute(
+            select(DietLog).where(
+                func.date(col(DietLog.log_time)) >= start_iso,
+                func.date(col(DietLog.log_time)) <= end_iso,
+            )
+        )
+    ).scalars().all()
+    for dr in diet_rows:
+        food = (
+            await session.execute(select(Food).where(Food.id == dr.food_id))
+        ).scalar_one_or_none()
+        if food is not None:
+            diet_total += nutrition_for(
+                food.calories_per_100g, 0, 0, 0, dr.grams
+            )["calories_kcal"]
+
+    ex_total = 0.0
+    ex_rows = (
+        await session.execute(
+            select(ExerciseLog).where(
+                func.date(col(ExerciseLog.log_time)) >= start_iso,
+                func.date(col(ExerciseLog.log_time)) <= end_iso,
+            )
+        )
+    ).scalars().all()
+    for er in ex_rows:
+        ex_total += er.calories_kcal
+
+    days = (end_date - start_date).days + 1
+    return round(daily_netee * days + ex_total - diet_total, 1)
+
+
 async def _fetch_fitness(session: AsyncSession) -> list[FitnessRecord]:
     """获取 Keep 体能水平数据。token 为空或请求失败时返回空列表。"""
     row = (await session.execute(select(Profile).where(Profile.id == 1))).scalar_one_or_none()
@@ -240,6 +286,25 @@ async def today_dashboard(
         if prev_week is not None and body.body_fat_pct is not None:
             body_fat_delta_week = round(body.body_fat_pct - prev_week.body_fat_pct, 1)
 
+    # 本周、本月热量缺口（不含今日）
+    deficit_week: float | None = None
+    deficit_month: float | None = None
+
+    yesterday_date = today_date - timedelta(days=1)
+    yesterday_date_iso = yesterday_date.isoformat()
+
+    week_start = today_date - timedelta(days=today_date.weekday())  # 本周一
+    if week_start < today_date:
+        deficit_week = await _compute_deficit(
+            session, week_start.isoformat(), yesterday_date_iso, netee, week_start, yesterday_date
+        )
+
+    month_start = today_date.replace(day=1)
+    if month_start < today_date:
+        deficit_month = await _compute_deficit(
+            session, month_start.isoformat(), yesterday_date_iso, netee, month_start, yesterday_date
+        )
+
     fitness = await _fetch_fitness(session)
     return TodayResponse(
         date=today_date,
@@ -257,6 +322,8 @@ async def today_dashboard(
         body_fat_delta_day=body_fat_delta_day,
         weight_delta_week=weight_delta_week,
         body_fat_delta_week=body_fat_delta_week,
+        deficit_week_kcal=deficit_week,
+        deficit_month_kcal=deficit_month,
         circumference=circumference,
         atl=_fitness_latest(fitness)[0],
         ctl=_fitness_latest(fitness)[1],
