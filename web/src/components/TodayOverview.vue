@@ -44,67 +44,6 @@
       </el-card>
 
       <el-card shadow="hover" class="stat-card">
-        <div class="stat-icon-wrap" style="background: rgba(103,194,58,0.12); color: #67C23A">
-          <el-icon :size="20"><Sunny /></el-icon>
-        </div>
-        <el-tooltip
-          content="NETEE (Non-Exercise Total Energy Expenditure) = 非运动总能量消耗。BMR × 活动系数，不含刻意运动的一日总消耗基线。加上运动消耗即为 TDEE。"
-          placement="top"
-        >
-          <div class="stat-label">NETEE <el-icon :size="13"><QuestionFilled /></el-icon></div>
-        </el-tooltip>
-        <div class="stat-value">
-          {{ data?.netee_kcal ?? '--' }} <span class="unit">kcal/天</span>
-        </div>
-      </el-card>
-
-      <el-card shadow="hover" class="stat-card">
-        <div class="stat-icon-wrap" style="background: rgba(230,162,60,0.12); color: #E6A23C">
-          <el-icon :size="20"><ForkSpoon /></el-icon>
-        </div>
-        <div class="stat-label">今日摄入</div>
-        <div class="stat-value">
-          {{ data?.total_intake_kcal ?? '--' }} <span class="unit">kcal</span>
-        </div>
-      </el-card>
-
-      <el-card shadow="hover" class="stat-card">
-        <div class="stat-icon-wrap" style="background: rgba(103,128,200,0.12); color: #6788C8">
-          <el-icon :size="20"><DataLine /></el-icon>
-        </div>
-        <div class="stat-label">净热量</div>
-        <div class="stat-value" :class="netClass">
-          {{ data ? (data.net_kcal >= 0 ? '+' : '') + data.net_kcal.toFixed(0) : '--' }}
-          <span class="unit">kcal</span>
-        </div>
-      </el-card>
-    </div>
-
-    <div class="stat-row">
-      <el-card shadow="hover" class="stat-card">
-        <div class="stat-icon-wrap" style="background: rgba(245,108,108,0.12); color: #F56C6C">
-          <el-icon :size="20"><Baseball /></el-icon>
-        </div>
-        <div class="stat-label">运动消耗</div>
-        <div class="stat-value">
-          {{ data?.total_burned_kcal ?? '--' }} <span class="unit">kcal</span>
-        </div>
-      </el-card>
-
-      <el-card shadow="hover" class="stat-card">
-        <div class="stat-icon-wrap" style="background: rgba(84,112,198,0.12); color: #5470C6">
-          <el-icon :size="20"><Star /></el-icon>
-        </div>
-        <div class="stat-label">蛋白质</div>
-        <div class="stat-value">
-          {{ data?.total_protein_g ?? '--' }} <span class="unit">g</span>
-        </div>
-        <div v-if="data?.body?.weight_kg != null" class="stat-sub">
-          推荐 {{ Math.round(data.body.weight_kg * 1.6) }}–{{ Math.round(data.body.weight_kg * 2.2) }}g
-        </div>
-      </el-card>
-
-      <el-card shadow="hover" class="stat-card">
         <div class="stat-icon-wrap" style="background: rgba(245,108,108,0.12); color: #F56C6C">
           <el-icon :size="20"><Calendar /></el-icon>
         </div>
@@ -127,25 +66,95 @@
       </el-card>
 
       <el-card shadow="hover" class="stat-card">
-        <div class="stat-icon-wrap" style="background: rgba(230,162,60,0.12); color: #E6A23C">
-          <el-icon :size="20"><Apple /></el-icon>
+        <div class="stat-icon-wrap" style="background: rgba(103,128,200,0.12); color: #6788C8">
+          <el-icon :size="20"><DataLine /></el-icon>
         </div>
-        <div class="stat-label">碳水</div>
-        <div class="stat-value">
-          {{ data?.total_carbs_g ?? '--' }} <span class="unit">g</span>
+        <div class="stat-label">净热量</div>
+        <div class="stat-value" :class="netClass">
+          {{ data ? (data.net_kcal >= 0 ? '+' : '') + data.net_kcal.toFixed(0) : '--' }}
+          <span class="unit">kcal</span>
         </div>
-        <div v-if="data?.body?.weight_kg != null" class="stat-sub">
-          推荐 {{ Math.round(data.body.weight_kg * 2) }}g
+      </el-card>
+    </div>
+
+    <div class="stat-row">
+      <el-card shadow="hover" class="stat-card nutrition-card">
+        <div class="stat-label">今日营养</div>
+        <div class="nutrition-rows">
+          <div class="nutrition-item">
+            <div class="nutrition-head">
+              <span class="nutrition-name">蛋白质</span>
+              <span class="nutrition-value">{{ data?.total_protein_g ?? '--' }}<span class="unit">g</span></span>
+              <span class="nutrition-target">/ {{ proteinTargetText }}</span>
+            </div>
+            <el-progress
+              :percentage="Math.min(proteinPct, 100)"
+              :stroke-width="6"
+              :color="progressColor(proteinPct)"
+              :show-text="false"
+            />
+          </div>
+          <div class="nutrition-item">
+            <div class="nutrition-head">
+              <span class="nutrition-name">碳水</span>
+              <span class="nutrition-value">{{ data?.total_carbs_g ?? '--' }}<span class="unit">g</span></span>
+              <span class="nutrition-target">/ {{ carbsTargetText }}</span>
+            </div>
+            <el-progress
+              :percentage="Math.min(carbsPct, 100)"
+              :stroke-width="6"
+              :color="progressColor(carbsPct)"
+              :show-text="false"
+            />
+          </div>
+          <div class="nutrition-item">
+            <div class="nutrition-head">
+              <span class="nutrition-name">脂肪</span>
+              <span class="nutrition-value">{{ data?.total_fat_g ?? '--' }}<span class="unit">g</span></span>
+              <span class="nutrition-target">/ &ge; {{ fatMinText }}</span>
+            </div>
+            <el-progress
+              :percentage="Math.min(fatPct, 100)"
+              :stroke-width="6"
+              :color="fatPct >= 100 ? '#67C23A' : '#E6A23C'"
+              :show-text="false"
+            />
+          </div>
         </div>
       </el-card>
 
       <el-card shadow="hover" class="stat-card">
         <div class="stat-icon-wrap" style="background: rgba(245,108,108,0.12); color: #F56C6C">
-          <el-icon :size="20"><WarningFilled /></el-icon>
+          <el-icon :size="20"><Baseball /></el-icon>
         </div>
-        <div class="stat-label">脂肪</div>
+        <div class="stat-label">运动消耗</div>
         <div class="stat-value">
-          {{ data?.total_fat_g ?? '--' }} <span class="unit">g</span>
+          {{ data?.total_burned_kcal ?? '--' }} <span class="unit">kcal</span>
+        </div>
+      </el-card>
+
+      <el-card shadow="hover" class="stat-card">
+        <div class="stat-icon-wrap" style="background: rgba(103,194,58,0.12); color: #67C23A">
+          <el-icon :size="20"><Sunny /></el-icon>
+        </div>
+        <el-tooltip
+          content="NETEE (Non-Exercise Total Energy Expenditure) = 非运动总能量消耗。BMR × 活动系数，不含刻意运动的一日总消耗基线。加上运动消耗即为 TDEE。"
+          placement="top"
+        >
+          <div class="stat-label">NETEE <el-icon :size="13"><QuestionFilled /></el-icon></div>
+        </el-tooltip>
+        <div class="stat-value">
+          {{ data?.netee_kcal ?? '--' }} <span class="unit">kcal/天</span>
+        </div>
+      </el-card>
+
+      <el-card shadow="hover" class="stat-card">
+        <div class="stat-icon-wrap" style="background: rgba(230,162,60,0.12); color: #E6A23C">
+          <el-icon :size="20"><ForkSpoon /></el-icon>
+        </div>
+        <div class="stat-label">今日摄入</div>
+        <div class="stat-value">
+          {{ data?.total_intake_kcal ?? '--' }} <span class="unit">kcal</span>
         </div>
       </el-card>
     </div>
@@ -187,6 +196,48 @@ const monthDeficitClass = computed(() => {
   if (!props.data || props.data.deficit_month_kcal == null) return ''
   return props.data.deficit_month_kcal > 0 ? 'positive' : 'negative'
 })
+
+const weightKg = computed(() => props.data?.body?.weight_kg ?? null)
+
+const proteinTargetText = computed(() => {
+  if (weightKg.value == null) return '--g'
+  return `${Math.round(weightKg.value * 1.6)}–${Math.round(weightKg.value * 2.2)}g`
+})
+
+const proteinPct = computed(() => {
+  if (!props.data || weightKg.value == null) return 0
+  const target = weightKg.value * 2.2
+  return Math.round((props.data.total_protein_g / target) * 100)
+})
+
+const carbsTargetText = computed(() => {
+  if (weightKg.value == null) return '--g'
+  return `${Math.round(weightKg.value * 2)}g`
+})
+
+const carbsPct = computed(() => {
+  if (!props.data || weightKg.value == null) return 0
+  const target = weightKg.value * 2
+  return Math.round((props.data.total_carbs_g / target) * 100)
+})
+
+const fatMinText = computed(() => {
+  if (weightKg.value == null) return '--g'
+  return `${Math.round(weightKg.value * 0.5)}g`
+})
+
+const fatPct = computed(() => {
+  if (!props.data || weightKg.value == null) return 0
+  const min = weightKg.value * 0.5
+  if (min <= 0) return 100
+  return Math.round((props.data.total_fat_g / min) * 100)
+})
+
+function progressColor(pct: number): string {
+  if (pct >= 90) return '#67C23A'
+  if (pct >= 60) return '#E6A23C'
+  return '#F56C6C'
+}
 </script>
 
 <style scoped>
@@ -198,7 +249,7 @@ const monthDeficitClass = computed(() => {
 }
 
 .stat-row + .stat-row {
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   margin-bottom: 20px;
 }
 
@@ -271,6 +322,53 @@ const monthDeficitClass = computed(() => {
 .na {
   color: var(--el-text-color-placeholder);
   font-weight: 400;
+}
+
+.nutrition-card {
+  grid-column: span 2;
+}
+
+.nutrition-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.nutrition-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nutrition-head {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.nutrition-name {
+  font-weight: 500;
+  color: var(--el-text-color-regular);
+  width: 40px;
+}
+
+.nutrition-value {
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--el-text-color-primary);
+}
+
+.nutrition-value .unit {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--el-text-color-secondary);
+  margin-left: 1px;
+}
+
+.nutrition-target {
+  color: var(--el-text-color-placeholder);
+  font-size: 12px;
 }
 
 .positive {
