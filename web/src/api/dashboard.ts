@@ -1,4 +1,5 @@
 import http from './client'
+import type { TodayPainting } from './painting'
 
 export interface TodayBody {
   weight_kg: number | null
@@ -52,6 +53,10 @@ export interface TodayResponse {
   deficit_week_kcal: number | null
   deficit_month_kcal: number | null
   circumference: CircumferenceResponse | null
+  atl: number | null
+  ctl: number | null
+  tsb: number | null
+  painting: TodayPainting
 }
 
 export interface ReportRow {

@@ -54,6 +54,12 @@ const router = createRouter({
           component: () => import('../views/CircumferenceLogsView.vue'),
           meta: { title: '围度记录' },
         },
+        {
+          path: 'painting',
+          name: 'painting',
+          component: () => import('../views/PaintingLogsView.vue'),
+          meta: { title: '绘画记录' },
+        },
       ],
     },
   ],

@@ -14,6 +14,19 @@ from makoto.utils.console import render_table
 dashboard_app = typer.Typer(no_args_is_help=True)
 
 
+def _seconds_display(seconds: float) -> str:
+    """将秒数转为人类可读的显示字符串。"""
+    if seconds < 60:
+        return f"{seconds:.0f} 秒"
+    if seconds < 3600:
+        m = int(seconds // 60)
+        s = int(seconds % 60)
+        return f"{m} 分 {s} 秒"
+    h = int(seconds // 3600)
+    m = int((seconds % 3600) // 60)
+    return f"{h} 小时 {m} 分"
+
+
 @dashboard_app.command()
 def today() -> None:
     """查看今日数据总览。"""
@@ -117,6 +130,30 @@ def today() -> None:
         console.print(f"  运动消耗:      {total_burned:.0f} kcal")
     else:
         console.print("  [dim]本日未录入[/dim]")
+
+    # 绘画
+    painting = data.get("painting", {})
+    console.print("\n[bold]绘画[/bold]")
+    if painting.get("painted_today"):
+        sessions = painting.get("sessions", [])
+        console.print(
+            f"  今日: [green]已打卡 ✓[/green]  "
+            f"{painting.get('session_count', 0)} 次会话  "
+            f"{_seconds_display(painting.get('duration_seconds', 0))}"
+        )
+        if sessions:
+            for s in sessions:
+                console.print(
+                    f"    {s['log_time'][11:16]}  {s['file_id']}  "
+                    f"{_seconds_display(s['duration_seconds'])}"
+                )
+    else:
+        console.print("  今日: [dim]未打卡[/dim]")
+    console.print(
+        f"  连续打卡: {painting.get('current_streak', 0)} 天  "
+        f"最长: {painting.get('longest_streak', 0)} 天  "
+        f"累计: {painting.get('total_days', 0)} 天"
+    )
 
     # 净热量
     netee = data.get("netee_kcal", 0)

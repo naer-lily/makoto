@@ -88,6 +88,38 @@
             </el-table>
           </el-card>
         </div>
+
+        <el-card v-if="todayData" shadow="hover" class="painting-card">
+          <template #header>
+            <div class="detail-card-header">
+              <el-icon :size="16"><Brush /></el-icon>
+              <span>今日绘画</span>
+              <el-tag v-if="todayData.painting.painted_today" size="small" effect="plain" round type="success">已打卡</el-tag>
+              <el-tag v-else size="small" effect="plain" round type="info">未打卡</el-tag>
+              <div class="header-spacer"></div>
+              <span class="streak-info">
+                连续 {{ todayData.painting.current_streak }} 天
+                · 最长 {{ todayData.painting.longest_streak }} 天
+                · 累计 {{ todayData.painting.total_days }} 天
+              </span>
+            </div>
+          </template>
+          <el-empty v-if="!todayData.painting.sessions.length" description="今天还没有绘画记录" :image-size="60" />
+          <el-table v-else :data="todayData.painting.sessions" size="small" stripe>
+            <el-table-column label="时间" width="65">
+              <template #default="{ row }">
+                <span class="time-cell">{{ row.log_time.slice(11, 16) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="file_id" label="文件 ID" min-width="180" />
+            <el-table-column prop="duration_seconds" label="时长" width="100" align="right">
+              <template #default="{ row }">{{ formatDuration(row.duration_seconds) }}</template>
+            </el-table-column>
+          </el-table>
+          <div v-if="todayData.painting.sessions.length" class="painting-summary">
+            今日 {{ todayData.painting.session_count }} 次会话 · 合计 {{ formatDuration(todayData.painting.duration_seconds) }}
+          </div>
+        </el-card>
       </el-tab-pane>
 
       <el-tab-pane label="体重与体成分" name="weight">
@@ -177,6 +209,18 @@ const dateRange = ref<[string, string] | null>(null)
 const circData = ref<CircumferenceRecord[]>([])
 const fitnessData = ref<FitnessRecord[]>([])
 const weeklyLoadData = ref<WeeklyLoadRecord[]>([])
+
+function formatDuration(seconds: number): string {
+  if (seconds < 60) return `${seconds} 秒`
+  if (seconds < 3600) {
+    const m = Math.floor(seconds / 60)
+    const s = seconds % 60
+    return `${m} 分 ${s} 秒`
+  }
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  return `${h} 小时 ${m} 分`
+}
 
 async function loadToday() {
   todayLoading.value = true
@@ -301,6 +345,22 @@ onMounted(() => {
 .time-cell {
   color: var(--el-text-color-secondary);
   font-variant-numeric: tabular-nums;
+}
+
+.painting-card {
+  margin-bottom: 20px;
+}
+
+.streak-info {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.painting-summary {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  text-align: right;
 }
 
 @media (max-width: 768px) {

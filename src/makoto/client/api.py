@@ -158,6 +158,24 @@ class MakotoClient:
     def update_exercise_log(self, log_id: int, data: dict[str, object]) -> dict[str, Any]:
         return self._put(f"/api/v1/exercise-logs/{log_id}", data)  # type: ignore[no-any-return]
 
+    # ── Painting Logs ──
+
+    def list_painting_logs(
+        self, start: str | None = None, end: str | None = None, limit: int = 200
+    ) -> list[dict[str, Any]]:
+        return self._get(  # type: ignore[no-any-return]
+            "/api/v1/painting-logs", {"start": start, "end": end, "limit": limit}
+        )
+
+    def create_painting_log(self, data: dict[str, object]) -> dict[str, Any]:
+        return self._post("/api/v1/painting-logs", data)  # type: ignore[no-any-return]
+
+    def delete_painting_log(self, log_id: int) -> dict[str, Any]:
+        return self._delete(f"/api/v1/painting-logs/{log_id}")  # type: ignore[no-any-return]
+
+    def update_painting_log(self, log_id: int, data: dict[str, object]) -> dict[str, Any]:
+        return self._put(f"/api/v1/painting-logs/{log_id}", data)  # type: ignore[no-any-return]
+
     # ── Dashboard ──
 
     def dashboard_today(self) -> dict[str, Any]:

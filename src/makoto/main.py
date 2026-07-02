@@ -101,6 +101,11 @@ app.add_typer(
     name="dashboard",
     help="数据总览（今日/历史）",
 )
+app.add_typer(
+    _LazyApp("makoto.commands.painting", "painting_app"),  # type: ignore[arg-type]
+    name="painting",
+    help="绘画会话记录",
+)
 
 
 @app.command()

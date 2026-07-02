@@ -123,3 +123,20 @@ class ExerciseLog(SQLModel, table=True):
         default=None,
         sa_column=sa.Column(sa.Text, nullable=False, server_default=_CREATED_AT),
     )
+
+
+class PaintingLog(SQLModel, table=True):
+    """绘画会话记录（每次心跳/自动保存一条，同一天可有多条）。"""
+
+    __tablename__ = "painting_log"
+
+    id: int | None = Field(default=None, primary_key=True)
+    log_time: str
+    file_path: str
+    file_id: str
+    duration_seconds: float
+    note: str | None = Field(default=None)
+    created_at: str | None = Field(
+        default=None,
+        sa_column=sa.Column(sa.Text, nullable=False, server_default=_CREATED_AT),
+    )

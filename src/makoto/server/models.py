@@ -188,6 +188,30 @@ class ExerciseLogResponse(ExerciseLogCreate):
     created_at: str
 
 
+# ── Painting Log ──
+
+
+class PaintingLogCreate(BaseModel):
+    log_time: datetime
+    file_path: str
+    file_id: str
+    duration_seconds: float = Field(ge=0)
+    note: str | None = None
+
+
+class PaintingLogUpdate(BaseModel):
+    log_time: datetime
+    file_path: str
+    file_id: str
+    duration_seconds: float = Field(ge=0)
+    note: str | None = None
+
+
+class PaintingLogResponse(PaintingLogCreate):
+    id: int
+    created_at: str
+
+
 # ── Dashboard ──
 
 
@@ -215,6 +239,23 @@ class TodayExerciseItem(BaseModel):
     calories_kcal: float
 
 
+class TodayPaintingItem(BaseModel):
+    log_time: str
+    file_id: str
+    file_path: str
+    duration_seconds: float
+
+
+class TodayPainting(BaseModel):
+    painted_today: bool
+    duration_seconds: float
+    session_count: int
+    sessions: list[TodayPaintingItem]
+    current_streak: int
+    longest_streak: int
+    total_days: int
+
+
 class TodayResponse(BaseModel):
     date: date
     body: TodayBody | None = None
@@ -237,6 +278,7 @@ class TodayResponse(BaseModel):
     atl: int | None = None
     ctl: int | None = None
     tsb: int | None = None
+    painting: TodayPainting
 
 
 # Alpert 公式：每磅体脂最多分解 ~31 kcal/天 → 68.34 kcal/kg/天

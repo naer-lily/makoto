@@ -23,6 +23,7 @@ from makoto.server.db_models import CircumferenceLog
 from makoto.server.db_models import DietLog
 from makoto.server.db_models import ExerciseLog
 from makoto.server.db_models import Food
+from makoto.server.db_models import PaintingLog
 from makoto.server.db_models import Profile
 from makoto.server.keep_client import FitnessRecord
 from makoto.server.keep_client import Keep
@@ -36,6 +37,8 @@ from makoto.server.models import ReportSummary
 from makoto.server.models import TodayBody
 from makoto.server.models import TodayDietItem
 from makoto.server.models import TodayExerciseItem
+from makoto.server.models import TodayPainting
+from makoto.server.models import TodayPaintingItem
 from makoto.server.models import TodayResponse
 from makoto.server.models import nutrition_for
 from makoto.utils.timeseries import date_series
@@ -306,6 +309,60 @@ async def today_dashboard(
         )
 
     fitness = await _fetch_fitness(session)
+
+    # 绘画
+    paint_rows = (
+        await session.execute(
+            select(PaintingLog).where(func.date(col(PaintingLog.log_time)) == today_iso)
+        )
+    ).scalars().all()
+    paint_sessions = [
+        TodayPaintingItem(
+            log_time=r.log_time,
+            file_id=r.file_id,
+            file_path=r.file_path,
+            duration_seconds=r.duration_seconds,
+        )
+        for r in paint_rows
+    ]
+    paint_duration = sum(r.duration_seconds for r in paint_rows)
+
+    # 计算连续打卡天数
+    all_dates_stmt = (
+        select(func.date(col(PaintingLog.log_time)))
+        .distinct()
+        .order_by(col(PaintingLog.log_time).desc())
+    )
+    all_dates_result = await session.execute(all_dates_stmt)
+    paint_dates_set = {date.fromisoformat(row[0]) for row in all_dates_result.all()}
+
+    current_streak = 0
+    d = today_date
+    while d in paint_dates_set:
+        current_streak += 1
+        d -= timedelta(days=1)
+
+    longest_streak = 0
+    current_run = 0
+    prev_date: date | None = None
+    for d_sorted in sorted(paint_dates_set):
+        if prev_date is not None and (d_sorted - prev_date).days == 1:
+            current_run += 1
+        else:
+            current_run = 1
+        longest_streak = max(longest_streak, current_run)
+        prev_date = d_sorted
+
+    painting = TodayPainting(
+        painted_today=len(paint_rows) > 0,
+        duration_seconds=paint_duration,
+        session_count=len(paint_rows),
+        sessions=paint_sessions,
+        current_streak=current_streak,
+        longest_streak=longest_streak,
+        total_days=len(paint_dates_set),
+    )
+
     return TodayResponse(
         date=today_date,
         body=body,
@@ -328,6 +385,7 @@ async def today_dashboard(
         atl=_fitness_latest(fitness)[0],
         ctl=_fitness_latest(fitness)[1],
         tsb=_fitness_latest(fitness)[2],
+        painting=painting,
     )
 
 
