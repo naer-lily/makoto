@@ -194,6 +194,33 @@ class MakotoClient:
         qs = "&" + "&".join(params) if params else ""
         return self._get(f"/api/v1/dashboard/report{qs}")  # type: ignore[no-any-return]
 
+    # ── Weather ──
+
+    def list_weather_watches(self) -> list[dict[str, Any]]:
+        return self._get("/api/v1/weather/watches")  # type: ignore[no-any-return]
+
+    def add_weather_watch(self, data: dict[str, object]) -> dict[str, Any]:
+        return self._post("/api/v1/weather/watches", data)  # type: ignore[no-any-return]
+
+    def get_weather_watch(self, watch_id: int) -> dict[str, Any]:
+        return self._get(f"/api/v1/weather/watches/{watch_id}")  # type: ignore[no-any-return]
+
+    def update_weather_watch(self, watch_id: int, data: dict[str, object]) -> dict[str, Any]:
+        return self._put(f"/api/v1/weather/watches/{watch_id}", data)  # type: ignore[no-any-return]
+
+    def delete_weather_watch(self, watch_id: int) -> dict[str, Any]:
+        return self._delete(f"/api/v1/weather/watches/{watch_id}")  # type: ignore[no-any-return]
+
+    def weather_forecast(
+        self, watch_id: int | None = None, refresh: bool = False
+    ) -> list[dict[str, Any]] | dict[str, Any]:
+        if watch_id is not None:
+            path = f"/api/v1/weather/forecast/{watch_id}"
+        else:
+            path = "/api/v1/weather/forecast"
+        params = "?refresh=true" if refresh else ""
+        return self._get(f"{path}{params}")  # type: ignore[no-any-return]
+
 
 _client: MakotoClient | None = None
 

@@ -329,3 +329,53 @@ class ReportResponse(BaseModel):
     target_date: str | None
     rows: list[ReportRow]
     summary: ReportSummary
+
+
+# ── Weather ──
+
+
+class WeatherWatchCreate(BaseModel):
+    """新增天气监视地点。"""
+
+    label: str
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+
+
+class WeatherWatchUpdate(BaseModel):
+    """修改天气监视地点（全部字段可选）。"""
+
+    label: str | None = None
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
+
+
+class WeatherWatchResponse(BaseModel):
+    id: int
+    label: str
+    latitude: float
+    longitude: float
+    created_at: str
+
+
+class WeatherDay(BaseModel):
+    """单日天气预报。"""
+
+    date: str
+    temp_max: float
+    temp_min: float
+    precip_sum: float
+    precip_probability: int
+    weather_code: int
+    weather_desc: str
+
+
+class WeatherForecastResponse(BaseModel):
+    """单个地点的天气预报（含缓存时间）。"""
+
+    watch_id: int
+    label: str
+    latitude: float
+    longitude: float
+    fetched_at: str
+    days: list[WeatherDay]

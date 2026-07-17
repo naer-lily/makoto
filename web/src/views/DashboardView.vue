@@ -370,6 +370,14 @@ onMounted(() => {
     gap: 8px;
   }
 
+  .toolbar > div {
+    width: 100%;
+  }
+
+  .toolbar > div > .el-date-editor {
+    width: 100%;
+  }
+
   .detail-grid {
     grid-template-columns: 1fr;
   }

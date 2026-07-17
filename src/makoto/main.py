@@ -18,7 +18,7 @@ app = typer.Typer(
     no_args_is_help=True,
 )
 
-_WHITELISTED = {"profile", "version"}
+_WHITELISTED = {"profile", "version", "weather"}
 """无需画像即可运行的命令。"""
 
 
@@ -105,6 +105,11 @@ app.add_typer(
     _LazyApp("makoto.commands.painting", "painting_app"),  # type: ignore[arg-type]
     name="painting",
     help="绘画会话记录",
+)
+app.add_typer(
+    _LazyApp("makoto.commands.weather", "weather_app"),  # type: ignore[arg-type]
+    name="weather",
+    help="天气监视（管理地点/查看预报）",
 )
 
 

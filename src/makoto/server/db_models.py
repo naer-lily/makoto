@@ -140,3 +140,33 @@ class PaintingLog(SQLModel, table=True):
         default=None,
         sa_column=sa.Column(sa.Text, nullable=False, server_default=_CREATED_AT),
     )
+
+
+class WeatherWatch(SQLModel, table=True):
+    """天气监视地点。"""
+
+    __tablename__ = "weather_watch"
+
+    id: int | None = Field(default=None, primary_key=True)
+    label: str = Field(sa_column=sa.Column(sa.Text, nullable=False))
+    latitude: float
+    longitude: float
+    created_at: str | None = Field(
+        default=None,
+        sa_column=sa.Column(sa.Text, nullable=False, server_default=_CREATED_AT),
+    )
+
+
+class WeatherCache(SQLModel, table=True):
+    """天气预报缓存（每个 watch 一条，定时刷新）。"""
+
+    __tablename__ = "weather_cache"
+
+    id: int | None = Field(default=None, primary_key=True)
+    watch_id: int = Field(foreign_key="weather_watch.id", unique=True, index=True)
+    forecast_json: str = Field(default="")
+    fetched_at: str
+    created_at: str | None = Field(
+        default=None,
+        sa_column=sa.Column(sa.Text, nullable=False, server_default=_CREATED_AT),
+    )

@@ -60,6 +60,12 @@ const router = createRouter({
           component: () => import('../views/PaintingLogsView.vue'),
           meta: { title: '绘画记录' },
         },
+        {
+          path: 'weather',
+          name: 'weather',
+          component: () => import('../views/WeatherView.vue'),
+          meta: { title: '天气监视' },
+        },
       ],
     },
   ],

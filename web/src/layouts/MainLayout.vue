@@ -11,6 +11,7 @@
         <el-menu-item index="/profile"><el-icon><UserFilled /></el-icon><span>个人画像</span></el-menu-item>
         <el-menu-item index="/circumference"><el-icon><SetUp /></el-icon><span>围度记录</span></el-menu-item>
         <el-menu-item index="/painting"><el-icon><Brush /></el-icon><span>绘画记录</span></el-menu-item>
+        <el-menu-item index="/weather"><el-icon><Sunny /></el-icon><span>天气监视</span></el-menu-item>
       </el-menu>
     </el-aside>
 
@@ -25,7 +26,9 @@
         <el-menu-item index="/profile"><el-icon><UserFilled /></el-icon><span>个人画像</span></el-menu-item>
         <el-menu-item index="/circumference"><el-icon><SetUp /></el-icon><span>围度记录</span></el-menu-item>
         <el-menu-item index="/painting"><el-icon><Brush /></el-icon><span>绘画记录</span></el-menu-item>
+        <el-menu-item index="/weather"><el-icon><Sunny /></el-icon><span>天气监视</span></el-menu-item>
       </el-menu>
+
       <div class="drawer-footer">
         <el-button type="danger" text @click="handleLogout">退出登录</el-button>
       </div>

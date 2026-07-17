@@ -5,12 +5,16 @@ makoto-server 启动 uvicorn，提供 REST API 服务。
 
 from __future__ import annotations
 
+import asyncio
 import os
 from contextlib import asynccontextmanager
+from datetime import datetime
+from datetime import timedelta
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from loguru import logger
 
 from makoto.server.auth import get_token
 from makoto.server.database import create_db_and_tables
@@ -25,6 +29,8 @@ from makoto.server.routes import foods
 from makoto.server.routes import keep
 from makoto.server.routes import painting
 from makoto.server.routes import profile
+from makoto.server.routes import weather
+from makoto.utils.tz import server_tz
 
 
 def _resolve_db_path() -> str:
@@ -44,7 +50,32 @@ async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
     token = get_token()
     print(f"[makoto-server] 数据库: {db_path}")
     print(f"[makoto-server] Token: {token}")
+
+    scheduler_task: asyncio.Task[None] | None = None
+
+    async def _scheduler_loop() -> None:
+        """每小时整点刷新所有天气监视地点的预报。"""
+        await asyncio.sleep(10)
+
+        while True:
+            try:
+                await weather.refresh_all_watches()
+                logger.info("天气缓存已刷新")
+            except Exception:
+                logger.warning("天气定时刷新失败")
+
+            tz = server_tz()
+            now = datetime.now(tz)
+            next_hour = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+            await asyncio.sleep((next_hour - now).total_seconds())
+
+    if os.environ.get("MAKOTO_WEATHER_SCHEDULER", "1") != "0":
+        scheduler_task = asyncio.create_task(_scheduler_loop())
+
     yield
+
+    if scheduler_task is not None:
+        scheduler_task.cancel()
     await dispose_engine()
 
 
@@ -62,6 +93,7 @@ app.include_router(diet.router)
 app.include_router(exercise.router)
 app.include_router(keep.router)
 app.include_router(painting.router)
+app.include_router(weather.router)
 app.include_router(dashboard.router)
 
 # 生产环境：挂载前端静态文件

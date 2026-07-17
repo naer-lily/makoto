@@ -74,3 +74,9 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
     assert _sessionmaker is not None, "数据库未初始化，请确保 lifespan 已启动"
     async with _sessionmaker() as session:
         yield session
+
+
+def get_async_sessionmaker() -> async_sessionmaker[AsyncSession]:
+    """获取异步 sessionmaker（供后台定时任务创建独立 session）。"""
+    assert _sessionmaker is not None, "数据库未初始化，请确保 lifespan 已启动"
+    return _sessionmaker

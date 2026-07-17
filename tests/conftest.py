@@ -7,6 +7,7 @@ async SQLite 内存库必须使用 StaticPool + 单连接，否则每次连接�
 
 from __future__ import annotations
 
+import os
 from collections.abc import AsyncGenerator
 from collections.abc import Generator
 from typing import Any
@@ -20,6 +21,8 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel
+
+os.environ["MAKOTO_WEATHER_SCHEDULER"] = "0"
 
 import makoto.server.db_models  # noqa: F401  注册全部表
 from makoto.server.app import app

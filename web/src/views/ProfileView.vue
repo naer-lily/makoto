@@ -34,6 +34,7 @@
             type="date"
             value-format="YYYY-MM-DD"
             placeholder="选择目标日期"
+            style="width:100%"
           />
         </el-form-item>
         <el-form-item required>
@@ -156,3 +157,15 @@ async function handleSave() {
 
 onMounted(() => loadProfile())
 </script>
+
+<style scoped>
+@media (max-width: 600px) {
+  .el-form {
+    --el-form-label-width: 80px !important;
+  }
+
+  .el-descriptions {
+    --el-descriptions-item-bordered-label-background: var(--el-bg-color);
+  }
+}
+</style>
