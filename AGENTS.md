@@ -21,21 +21,26 @@
 - **测试**: pytest + pytest-cov
 - **日志**: loguru
 - **Web 前端**: Vue 3 + TypeScript + Vite + Element Plus + ECharts (web/ 目录)
+- **Android 应用**: Kotlin 1.9 + Jetpack Compose + `libs.versions.toml` 版本目录 (android/ 目录)
 
 ## 架构
 
 - **Web 前端** (`web/`) — 给用户使用的图形界面，浏览器端通过 Element Plus 组件展示
 - **CLI** (`makoto/`) — 给 AI 使用的命令行接口，通过 httpx 调用 Server API
+- **Android 应用** (`android/`) — 纯只读浏览应用，通过 Retrofit 调用 Server API，含 Glance 桌面小组件
 
 ```
 web/ (Vue 3 SPA) ──axios──┐
                            ├──> FastAPI Server ──SQLModel/async SQLAlchemy──> SQLite (data/makoto.db)
 makoto/ (CLI)  ──httpx───┘
+android/ (Kotlin) ──Retrofit──┘
 ```
 
 两个入口点：
 - `makoto` — CLI 客户端（`makoto.main:app`）
 - `makoto-server` — FastAPI 服务端（`makoto.server.app:main`）
+
+Android 应用通过 Gradle 构建，入口为 `MainActivity.kt`。
 
 ## 代码风格
 
@@ -200,7 +205,8 @@ makoto/
 │       │       ├── diet.py            # /api/v1/diet-logs
 │       │       ├── exercise.py        # /api/v1/exercise-logs
 │       │       ├── keep.py            # /api/v1/keep（Keep 数据代理）
-│       │       └── dashboard.py       # /api/v1/dashboard/{today,report}
+│       │       ├── dashboard.py       # /api/v1/dashboard/{today,report}
+│       │       └── weather.py         # /api/v1/weather（监视地点 CRUD + 预报缓存/刷新）
 │       ├── client/                # HTTP 客户端
 │       │   ├── __init__.py
 │       │   ├── config.py          # MAKOTO_ENDPOINT / MAKOTO_TOKEN
@@ -212,7 +218,8 @@ makoto/
 │       │   ├── circumference.py   # 围度测量（腰围、臂围、大腿围）
 │       │   ├── diet.py            # 饮食记录
 │       │   ├── exercise.py        # 运动记录
-│       │   └── dashboard.py       # 数据总览
+│       │   ├── dashboard.py       # 数据总览
+│       │   └── weather.py         # 天气监视（管理地点/查看预报）
 │       └── utils/                 # 工具函数
 │           ├── console.py         # 终端输出 / Markdown 降级
 │           ├── tz.py              # 时区处理
@@ -230,13 +237,47 @@ makoto/
 ├── web/                            # Vue 3 Web 前端
 │   ├── src/                        # 源码
 │   │   ├── api/                    # HTTP API 封装 (axios)
+│   │   │   ├── weather.ts          # 天气监视 API
+│   │   │   └── ...
 │   │   ├── components/             # 可复用组件
 │   │   ├── views/                  # 页面视图
+│   │   │   ├── WeatherView.vue     # 天气监视（地点管理 + 预报卡片）
+│   │   │   └── ...
 │   │   ├── composables/            # 组合式函数
 │   │   ├── layouts/                # 布局组件
 │   │   ├── router/                 # 路由配置
 │   │   └── styles/                 # 全局样式
 │   └── index.html
+├── android/                        # Kotlin Android 应用
+│   ├── app/
+│   │   ├── build.gradle.kts
+│   │   └── src/main/
+│   │       ├── AndroidManifest.xml
+│   │       └── java/com/makoto/android/
+│   │           ├── MakotoApp.kt           # Application
+│   │           ├── MainActivity.kt        # 单 Activity 入口
+│   │           ├── data/
+│   │           │   ├── remote/            # Retrofit + OkHttp + DTO
+│   │           │   ├── local/             # DataStore Preferences
+│   │           │   └── repository/        # 仓库层
+│   │           ├── ui/                    # Compose 页面
+│   │           │   ├── navigation/
+│   │           │   ├── theme/
+│   │           │   ├── components/
+│   │           │   ├── login/
+│   │           │   ├── dashboard/
+│   │           │   ├── foods/
+│   │           │   ├── diet/
+│   │           │   ├── body/
+│   │           │   ├── exercise/
+│   │           │   ├── profile/
+│   │           │   └── settings/
+│   │           └── widget/                # Glance 桌面小组件
+│   ├── build.gradle.kts
+│   ├── settings.gradle.kts
+│   └── gradle/
+│       ├── libs.versions.toml
+│       └── wrapper/
 ├── pyproject.toml
 ├── Dockerfile
 ├── docker-compose.yml

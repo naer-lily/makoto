@@ -7,11 +7,16 @@ makoto（真）是一个 CLI + API 健身助手，名字来源于《偶像大师
 ## 架构
 
 ```
-makoto (CLI) --httpx--> FastAPI Server --SQLModel/async SQLAlchemy--> SQLite (data/makoto.db)
+web/ (Vue 3 SPA) ──axios──┐
+makoto (CLI)  ──httpx────┤
+                          ├──> FastAPI Server ──SQLModel/async SQLAlchemy──> SQLite (data/makoto.db)
+android/ (Kotlin) ──Retrofit─┘
 ```
 
 - **`makoto`** — CLI 客户端，通过 HTTP 调用 API
 - **`makoto-server`** — FastAPI 服务端，操作 SQLite 数据，提供 REST API
+- **`web/`** — Vue 3 Web 前端（浏览器 + PWA）
+- **`android/`** — Kotlin 原生 Android 应用（纯只读浏览 + 桌面小组件）
 - 鉴权：Bearer Token（环境变量 `MAKOTO_TOKEN`）
 
 ## 功能
@@ -24,6 +29,7 @@ makoto (CLI) --httpx--> FastAPI Server --SQLModel/async SQLAlchemy--> SQLite (da
 | 饮食记录 | `makoto diet log/list/delete` | 引用食物库，自动计算摄入营养，同分钟不可重复 |
 | 运动记录 | `makoto exercise log/list/delete` | 运动名称/时长/消耗热量，同分钟不可重复 |
 | 数据总览 | `makoto dashboard today/report` | 今日净热量、7/30日趋势报告（插值+均线），支持 `--json` 输出 |
+| 天气监视 | `makoto weather watch {add,list,update,delete}` / `forecast [--refresh]` | 管理监视地点（城市/经纬度），缓存 + 定时刷新 Open-Meteo 天气预报 |
 | 服务端 | `makoto-server` | 启动 FastAPI 服务端 |
 
 ### 核心设计
@@ -80,6 +86,11 @@ makoto exercise log -t "2026-06-15 18:00" -n 跑步 -d "5公里" -c 320
 makoto dashboard today
 makoto dashboard report -r week
 makoto dashboard report -r month --json
+
+# 天气监视
+makoto weather watch add 北京 -a 39.906 -o 116.391
+makoto weather forecast
+makoto weather forecast --refresh
 ```
 
 ### Docker 部署
@@ -97,6 +108,52 @@ MAKOTO_TOKEN=your-secret docker-compose up -d
 | `MAKOTO_TOKEN` | 鉴权 token（服务端+客户端共用） | 自动生成（仅服务端） |
 | `MAKOTO_ENDPOINT` | CLI 客户端 API 地址 | `http://127.0.0.1:8000` |
 | `MAKOTO_DATA_DIR` | 数据目录 | 项目根 `data/` |
+| `MAKOTO_TZ` | 服务端时区 | 系统本地时区 |
+| `MAKOTO_WEATHER_SCHEDULER` | 天气定时刷新开关（`0` 禁用） | `1` |
+
+## Android 应用
+
+`android/` 目录包含一个 Kotlin + Jetpack Compose 原生 Android 应用，纯只读浏览模式。
+
+### 功能
+
+| 页面 | 说明 |
+|------|------|
+| 登录 | 输入服务器地址 + Token 连接后端 |
+| 仪表盘 | 今日摄入/消耗/净热量/蛋白质/体重概览 |
+| 食物库 | 浏览食物列表 + 模糊搜索 + 营养详情 |
+| 饮食记录 | 按日期查看饮食记录及营养明细 |
+| 身体测量 | 体重/体脂历史记录 + 90天变化统计 |
+| 运动记录 | 按日期查看运动记录 |
+| 个人画像 | 查看身体指标、目标、能量消耗计算值 |
+| 设置 | 查看服务器地址、断开连接（登出） |
+| 桌面小组件 | 今日卡路里摄入/消耗/净热量/蛋白质速览 |
+
+### 技术栈
+
+- Kotlin 1.9 + Jetpack Compose + Material 3
+- Retrofit 2 + OkHttp + Kotlinx Serialization
+- DataStore Preferences（本地存储）
+- Vico 2（图表库，待集成）
+- Jetpack Glance 1.1（桌面小组件）
+
+### 编译
+
+需要 Android Studio (Hedgehog+) 或命令行 Android SDK。
+
+```bash
+# 方式一：Android Studio
+#   File → Open → 选择 android/ 目录 → Build → Make Project
+#   或直接 Run 'app' 到模拟器/真机
+
+# 方式二：命令行（需要配置 ANDROID_HOME 环境变量）
+cd android
+./gradlew assembleDebug
+# APK 输出：android/app/build/outputs/apk/debug/app-debug.apk
+
+# 安装到设备
+adb install app/build/outputs/apk/debug/app-debug.apk
+```
 
 ## 开发
 
