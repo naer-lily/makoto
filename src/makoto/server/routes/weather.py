@@ -25,6 +25,7 @@ from makoto.server.db_models import WeatherCache
 from makoto.server.db_models import WeatherWatch
 from makoto.server.models import WeatherDay
 from makoto.server.models import WeatherForecastResponse
+from makoto.server.models import WeatherHour
 from makoto.server.models import WeatherWatchCreate
 from makoto.server.models import WeatherWatchResponse
 from makoto.server.models import WeatherWatchUpdate
@@ -89,29 +90,51 @@ def _build_forecast_response(
     watch: WeatherWatch, cache: WeatherCache | None
 ) -> WeatherForecastResponse:
     days: list[WeatherDay] = []
+    hours: list[WeatherHour] = []
     fetched_at = ""
+
     if cache and cache.forecast_json:
         raw = json.loads(cache.forecast_json)
+        fetched_at = cache.fetched_at
+
         daily = raw.get("daily", {})
-        times = daily.get("time", [])
-        tmax = daily.get("temperature_2m_max", [])
-        tmin = daily.get("temperature_2m_min", [])
-        precip = daily.get("precipitation_sum", [])
-        precip_prob = daily.get("precipitation_probability_max", [])
-        codes = daily.get("weathercode", [])
-        for i in range(len(times)):
+        d_times = daily.get("time", [])
+        d_tmax = daily.get("temperature_2m_max", [])
+        d_tmin = daily.get("temperature_2m_min", [])
+        d_precip = daily.get("precipitation_sum", [])
+        d_prob = daily.get("precipitation_probability_max", [])
+        d_codes = daily.get("weathercode", [])
+        for i in range(len(d_times)):
             days.append(
                 WeatherDay(
-                    date=str(times[i]),
-                    temp_max=float(tmax[i]) if i < len(tmax) else 0.0,
-                    temp_min=float(tmin[i]) if i < len(tmin) else 0.0,
-                    precip_sum=float(precip[i]) if i < len(precip) else 0.0,
-                    precip_probability=int(precip_prob[i]) if i < len(precip_prob) else 0,
-                    weather_code=int(codes[i]) if i < len(codes) else 0,
-                    weather_desc=_wmo_desc(int(codes[i])) if i < len(codes) else "",
+                    date=str(d_times[i]),
+                    temp_max=float(d_tmax[i]) if i < len(d_tmax) else 0.0,
+                    temp_min=float(d_tmin[i]) if i < len(d_tmin) else 0.0,
+                    precip_sum=float(d_precip[i]) if i < len(d_precip) else 0.0,
+                    precip_probability=int(d_prob[i]) if i < len(d_prob) else 0,
+                    weather_code=int(d_codes[i]) if i < len(d_codes) else 0,
+                    weather_desc=_wmo_desc(int(d_codes[i])) if i < len(d_codes) else "",
                 )
             )
-        fetched_at = cache.fetched_at
+
+        hourly = raw.get("hourly", {})
+        h_times = hourly.get("time", [])
+        h_temp = hourly.get("temperature_2m", [])
+        h_prob = hourly.get("precipitation_probability", [])
+        h_codes = hourly.get("weathercode", [])
+        limit = min(len(h_times), 24)
+        for i in range(limit):
+            code = int(h_codes[i]) if i < len(h_codes) else 0
+            hours.append(
+                WeatherHour(
+                    time=str(h_times[i]),
+                    temp=float(h_temp[i]) if i < len(h_temp) else 0.0,
+                    precip_probability=int(h_prob[i]) if i < len(h_prob) else 0,
+                    weather_code=code,
+                    weather_desc=_wmo_desc(code),
+                )
+            )
+
     return WeatherForecastResponse(
         watch_id=watch.id,  # type: ignore[arg-type]
         label=watch.label,
@@ -119,6 +142,7 @@ def _build_forecast_response(
         longitude=watch.longitude,
         fetched_at=fetched_at,
         days=days,
+        hours=hours,
     )
 
 
@@ -135,8 +159,12 @@ async def _fetch_from_open_meteo(lat: float, lon: float) -> str:
             "temperature_2m_max,temperature_2m_min,precipitation_sum,"
             "precipitation_probability_max,weathercode"
         ),
+        "hourly": (
+            "temperature_2m,precipitation_probability,weathercode"
+        ),
         "timezone": "Asia/Shanghai",
         "forecast_days": 7,
+        "forecast_hours": 24,
     }
     async with httpx.AsyncClient(timeout=30.0) as client:
         resp = await client.get(url, params=params)

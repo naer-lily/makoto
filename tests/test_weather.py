@@ -16,7 +16,12 @@ _MOCK_FORECAST_JSON = (
     '"temperature_2m_min":[26.1,25.3],'
     '"precipitation_sum":[0.0,2.3],'
     '"precipitation_probability_max":[5,45],'
-    '"weathercode":[3,80]}}'
+    '"weathercode":[3,80]},'
+    '"hourly":{'
+    '"time":["2026-07-17T00:00","2026-07-17T01:00","2026-07-17T02:00"],'
+    '"temperature_2m":[26.1,25.8,25.5],'
+    '"precipitation_probability":[0,0,5],'
+    '"weathercode":[0,0,1]}}'
 )
 
 

@@ -370,6 +370,16 @@ class WeatherDay(BaseModel):
     weather_desc: str
 
 
+class WeatherHour(BaseModel):
+    """逐小时天气预报。"""
+
+    time: str
+    temp: float
+    precip_probability: int
+    weather_code: int
+    weather_desc: str
+
+
 class WeatherForecastResponse(BaseModel):
     """单个地点的天气预报（含缓存时间）。"""
 
@@ -379,3 +389,4 @@ class WeatherForecastResponse(BaseModel):
     longitude: float
     fetched_at: str
     days: list[WeatherDay]
+    hours: list[WeatherHour]

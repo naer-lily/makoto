@@ -20,6 +20,14 @@ export interface WeatherWatchUpdate {
   longitude?: number
 }
 
+export interface WeatherHour {
+  time: string
+  temp: number
+  precip_probability: number
+  weather_code: number
+  weather_desc: string
+}
+
 export interface WeatherDay {
   date: string
   temp_max: number
@@ -37,6 +45,7 @@ export interface WeatherForecast {
   longitude: number
   fetched_at: string
   days: WeatherDay[]
+  hours: WeatherHour[]
 }
 
 export function fetchWatches(): Promise<WeatherWatch[]> {

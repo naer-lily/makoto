@@ -70,3 +70,16 @@ data/
 *.swo
 *~
 nul
+
+# ── Android ──
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/captures/
+android/.externalNativeBuild/
+*.apk
+*.aab
+*.jks
+*.keystore
+keystore.properties

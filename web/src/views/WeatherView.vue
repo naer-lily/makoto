@@ -98,6 +98,26 @@
               </div>
             </div>
           </div>
+
+          <div v-if="fc.hours && fc.hours.length" class="hourly-section">
+            <div class="hourly-label">未来 24 小时</div>
+            <div class="hourly-strip">
+              <div
+                v-for="h in fc.hours"
+                :key="h.time"
+                class="hour-card"
+                :class="{ 'hour-danger': [95, 96, 99].includes(h.weather_code) }"
+              >
+                <div class="hour-time">{{ h.time.slice(11, 16) }}</div>
+                <div class="hour-temp">{{ Math.round(h.temp) }}°</div>
+                <div class="hour-desc">{{ h.weather_desc }}</div>
+                <div class="hour-prob">
+                  <el-icon :size="10"><Drizzling /></el-icon>
+                  {{ h.precip_probability }}%
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </el-tab-pane>
     </el-tabs>
@@ -318,6 +338,75 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   gap: 4px;
+}
+
+.hourly-section {
+  margin-top: 16px;
+}
+
+.hourly-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+  margin-bottom: 8px;
+}
+
+.hourly-strip {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.hourly-strip::-webkit-scrollbar {
+  height: 4px;
+}
+
+.hourly-strip::-webkit-scrollbar-thumb {
+  background: var(--el-border-color);
+  border-radius: 2px;
+}
+
+.hour-card {
+  flex: 0 0 auto;
+  width: 72px;
+  background: var(--el-bg-color);
+  border-radius: 6px;
+  padding: 8px 4px;
+  border: 1px solid var(--el-border-color-light);
+  text-align: center;
+}
+
+.hour-card.hour-danger {
+  border-color: var(--el-color-danger);
+  background: var(--el-color-danger-light-9);
+}
+
+.hour-time {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  margin-bottom: 4px;
+}
+
+.hour-temp {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.hour-desc {
+  font-size: 11px;
+  margin-bottom: 4px;
+  white-space: nowrap;
+}
+
+.hour-prob {
+  font-size: 10px;
+  color: var(--el-color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
 }
 
 @media (max-width: 768px) {
