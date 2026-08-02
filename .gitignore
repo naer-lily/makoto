@@ -62,8 +62,8 @@ ENV/
 env.bak/
 venv.bak/
 
-# Project data (user-generated)
-data/
+# Project data (user-generated) — 仅根目录 data/（SQLite 用户数据）
+/data/
 .vscode/
 .idea/
 *.swp
