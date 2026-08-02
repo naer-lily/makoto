@@ -380,7 +380,8 @@ function progressColor(pct: number): string {
 .nutrition-name {
   font-weight: 500;
   color: var(--el-text-color-regular);
-  width: 40px;
+  width: 56px;
+  flex-shrink: 0;
 }
 
 .nutrition-value {
