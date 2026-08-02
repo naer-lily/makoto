@@ -24,7 +24,7 @@ android/ (Kotlin) ──Retrofit─┘
 | 模块 | 命令 | 说明 |
 |------|------|------|
 | 用户画像 | `makoto profile set/show` | 性别/身高/体重/体脂/目标/活动系数，自动计算 FFM/BMR/NETEE |
-| 食物库 | `makoto food add/list/show/search/delete` | 注册食物（每100g营养），Levenshtein 模糊搜索 |
+| 食物库 | `makoto food add/list/show/search/update/delete` | 注册食物（每100g营养，含膳食纤维），Levenshtein 模糊搜索，支持编辑已有食物 |
 | 身体测量 | `makoto body log/list/delete` | 晨起体重/体脂率/围度，每日仅一条，录后自动同步画像 |
 | 饮食记录 | `makoto diet log/list/delete` | 引用食物库，自动计算摄入营养，同分钟不可重复 |
 | 运动记录 | `makoto exercise log/list/delete` | 运动名称/时长/消耗热量，同分钟不可重复 |
@@ -70,8 +70,12 @@ makoto profile set \
   --name "真" --gender male --age 30 --height 178 --weight 78 \
   -b 21 --target-weight 72 --target-date 2026-09-15 --activity sedentary
 
-# 注册食物
+# 注册食物（热量/蛋白质/碳水/脂肪/膳食纤维，每100g）
 makoto food add 米饭 -c 116 -p 2.6 --carbs 25.9 -f 0.3 -k "主食,碳水"
+makoto food add 燕麦 -c 389 -p 16.9 --carbs 66.3 -f 6.9 --fiber 10.6
+
+# 编辑已有食物（未指定的字段保持原值，例如为存量食物补膳食纤维）
+makoto food update --id 3 --fiber 10.6
 
 # 记录身体数据
 makoto body log -d 2026-06-15 -w 78 -b 21 --waist 80
