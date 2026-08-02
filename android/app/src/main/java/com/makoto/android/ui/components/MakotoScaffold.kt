@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 fun MakotoScaffold(
     title: String,
     navController: NavController,
+    actions: @Composable RowScope.() -> Unit = {},
     content: @Composable (PaddingValues) -> Unit,
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -58,6 +59,10 @@ fun MakotoScaffold(
                     scope.launch { drawerState.close() }
                     navController.navigate("profile") { launchSingleTop = true }
                 })
+                DrawerNavItem(Icons.Default.Cloud, "天气监视", onClick = {
+                    scope.launch { drawerState.close() }
+                    navController.navigate("weather") { launchSingleTop = true }
+                })
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 28.dp, vertical = 8.dp))
                 DrawerNavItem(Icons.Default.Settings, "设置", onClick = {
                     scope.launch { drawerState.close() }
@@ -75,6 +80,7 @@ fun MakotoScaffold(
                             Icon(Icons.Default.Menu, contentDescription = "菜单")
                         }
                     },
+                    actions = actions,
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         titleContentColor = MaterialTheme.colorScheme.onPrimary,

@@ -14,6 +14,7 @@ import com.makoto.android.ui.foods.FoodsScreen
 import com.makoto.android.ui.login.LoginScreen
 import com.makoto.android.ui.profile.ProfileScreen
 import com.makoto.android.ui.settings.SettingsScreen
+import com.makoto.android.ui.weather.WeatherScreen
 
 @Composable
 fun MakotoNavGraph(
@@ -28,6 +29,7 @@ fun MakotoNavGraph(
     val dietRepo = DietRepository(api)
     val exerciseRepo = ExerciseRepository(api)
     val profileRepo = ProfileRepository(api)
+    val weatherRepo = WeatherRepository(api)
 
     NavHost(
         navController = navController,
@@ -81,6 +83,13 @@ fun MakotoNavGraph(
         composable(Screen.Profile.route) {
             ProfileScreen(
                 profileRepo = profileRepo,
+                navController = navController,
+            )
+        }
+
+        composable(Screen.Weather.route) {
+            WeatherScreen(
+                weatherRepo = weatherRepo,
                 navController = navController,
             )
         }
