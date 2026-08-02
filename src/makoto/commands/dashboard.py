@@ -94,20 +94,23 @@ def today() -> None:
                 f"{d.get('protein_g', 0):.1f}g",
                 f"{d.get('carbs_g', 0):.1f}g",
                 f"{d.get('fat_g', 0):.1f}g",
+                f"{d.get('fiber_g', 0):.1f}g",
             ])
         render_table(
-            columns=["食物", "克数", "热量", "蛋白质", "碳水", "脂肪"],
+            columns=["食物", "克数", "热量", "蛋白质", "碳水", "脂肪", "纤维"],
             rows=diet_rows,
-            align=["left", "right", "right", "right", "right", "right"],
-            col_styles=["green", "", "yellow", "", "", ""],
+            align=["left", "right", "right", "right", "right", "right", "right"],
+            col_styles=["green", "", "yellow", "", "", "", ""],
         )
         total_intake = data.get("total_intake_kcal", 0)
         total_protein = data.get("total_protein_g", 0)
         total_carbs = data.get("total_carbs_g", 0)
         total_fat = data.get("total_fat_g", 0)
+        total_fiber = data.get("total_fiber_g", 0)
         console.print(
             f"  [bold]合计: {total_intake:.0f} kcal"
-            f"  P:{total_protein:.1f}g  C:{total_carbs:.1f}g  F:{total_fat:.1f}g[/bold]"
+            f"  P:{total_protein:.1f}g  C:{total_carbs:.1f}g"
+            f"  F:{total_fat:.1f}g  Fib:{total_fiber:.1f}g[/bold]"
         )
     else:
         console.print("  [dim]本日未录入[/dim]")

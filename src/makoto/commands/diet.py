@@ -41,11 +41,13 @@ def _diet_detail_fields(r: dict[str, Any]) -> list[tuple[str, str]]:
         ("基准蛋白质", f"{float(r.get('food_protein_per_100g', 0)):.1f} g/100g"),
         ("基准碳水", f"{float(r.get('food_carbs_per_100g', 0)):.1f} g/100g"),
         ("基准脂肪", f"{float(r.get('food_fat_per_100g', 0)):.1f} g/100g"),
+        ("基准膳食纤维", f"{float(r.get('food_fiber_per_100g', 0)):.1f} g/100g"),
         ("── 本次摄入营养 ──", ""),
         ("热量", f"{float(r.get('calories_kcal', 0)):.0f} kcal"),
         ("蛋白质", f"{float(r.get('protein_g', 0)):.1f} g"),
         ("碳水", f"{float(r.get('carbs_g', 0)):.1f} g"),
         ("脂肪", f"{float(r.get('fat_g', 0)):.1f} g"),
+        ("膳食纤维", f"{float(r.get('fiber_g', 0)):.1f} g"),
         ("创建时间", str(r.get("created_at", ""))),
     ]
 
@@ -183,6 +185,7 @@ def list_diet(
         p = r.get("protein_g", 0)
         c = r.get("carbs_g", 0)
         fv = r.get("fat_g", 0)
+        fb = r.get("fiber_g", 0)
         total_cal += float(cal)
         rows.append([
             str(r.get("id", "")),
@@ -193,15 +196,19 @@ def list_diet(
             f"{p:.1f} g",
             f"{c:.1f} g",
             f"{fv:.1f} g",
+            f"{fb:.1f} g",
             r.get("note") or "",
         ])
 
     render_table(
-        columns=["ID", "时间", "食物", "克数", "热量", "蛋白质", "碳水", "脂肪", "备注"],
+        columns=["ID", "时间", "食物", "克数", "热量", "蛋白质", "碳水", "脂肪", "纤维", "备注"],
         rows=rows,
         title="饮食记录",
-        align=["right", "left", "left", "right", "right", "right", "right", "right", "left"],
-        col_styles=["magenta", "cyan", "green", "", "yellow", "", "", "", "dim"],
+        align=[
+            "right", "left", "left", "right", "right",
+            "right", "right", "right", "right", "left",
+        ],
+        col_styles=["magenta", "cyan", "green", "", "yellow", "", "", "", "", "dim"],
     )
 
     console.print(f"[bold]显示 {len(logs)} 条，合计 {total_cal:.0f} kcal[/bold]")
