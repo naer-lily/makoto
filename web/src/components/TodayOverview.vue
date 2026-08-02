@@ -120,6 +120,19 @@
               :show-text="false"
             />
           </div>
+          <div class="nutrition-item">
+            <div class="nutrition-head">
+              <span class="nutrition-name">膳食纤维</span>
+              <span class="nutrition-value">{{ data?.total_fiber_g ?? '--' }}<span class="unit">g</span></span>
+              <span class="nutrition-target">/ {{ FIBER_RANGE_TEXT }}</span>
+            </div>
+            <el-progress
+              :percentage="Math.min(fiberPct, 100)"
+              :stroke-width="6"
+              :color="fiberColor"
+              :show-text="false"
+            />
+          </div>
         </div>
       </el-card>
 
@@ -231,6 +244,23 @@ const fatPct = computed(() => {
   const min = weightKg.value * 0.5
   if (min <= 0) return 100
   return Math.round((props.data.total_fat_g / min) * 100)
+})
+
+// 中国居民膳食营养素参考摄入量（2023版）：成年人膳食纤维每日 25-30 克，与体重无关
+const FIBER_MIN_G = 25
+const FIBER_MAX_G = 30
+const FIBER_RANGE_TEXT = `${FIBER_MIN_G}–${FIBER_MAX_G}g`
+
+const fiberPct = computed(() => {
+  if (!props.data) return 0
+  return Math.round((props.data.total_fiber_g / FIBER_MAX_G) * 100)
+})
+
+const fiberColor = computed(() => {
+  if (!props.data) return '#F56C6C'
+  if (props.data.total_fiber_g >= FIBER_MIN_G) return '#67C23A'
+  if (props.data.total_fiber_g >= FIBER_MIN_G / 2) return '#E6A23C'
+  return '#F56C6C'
 })
 
 function progressColor(pct: number): string {

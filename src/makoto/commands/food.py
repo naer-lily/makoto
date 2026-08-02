@@ -34,6 +34,7 @@ def _food_detail_fields(f: dict[str, Any]) -> list[tuple[str, str]]:
         ("蛋白质/100g", f"{float(f.get('protein_per_100g', 0)):.1f} g"),
         ("碳水/100g", f"{float(f.get('carbs_per_100g', 0)):.1f} g"),
         ("脂肪/100g", f"{float(f.get('fat_per_100g', 0)):.1f} g"),
+        ("膳食纤维/100g", f"{float(f.get('fiber_per_100g', 0)):.1f} g"),
         ("搜索关键词", ", ".join(keywords) if keywords else "—"),
         ("备注", str(note) if note else "—"),
         ("创建时间", str(f.get("created_at", ""))),
@@ -56,6 +57,9 @@ def add(
     ),
     fat: float = typer.Option(
         ..., "--fat", "-f", min=0, help="每 100 克脂肪（克），非负数。"
+    ),
+    fiber: float = typer.Option(
+        0.0, "--fiber", min=0, help="每 100 克膳食纤维（克），非负数，选填，默认 0。"
     ),
     keywords: str | None = typer.Option(
         None,
@@ -82,6 +86,7 @@ def add(
             "protein_per_100g": protein,
             "carbs_per_100g": carbs,
             "fat_per_100g": fat,
+            "fiber_per_100g": fiber,
             "search_keywords": kw_list,
             "note": note,
         })
@@ -120,6 +125,90 @@ def delete(
     render_detail("被删除的食物", _food_detail_fields(deleted))
 
 
+@food_app.command()
+def update(
+    food_id: int = typer.Option(
+        ...,
+        "--id",
+        "-i",
+        min=1,
+        help="要修改的食物 ID（整数）。可先用 'makoto food list' 查看。",
+    ),
+    name: str | None = typer.Option(
+        None, "--name", help="新的食物名称（留空则不修改）。"
+    ),
+    calories: float | None = typer.Option(
+        None, "--calories", "-c", min=0, help="每 100 克热量（千卡），非负数。"
+    ),
+    protein: float | None = typer.Option(
+        None, "--protein", "-p", min=0, help="每 100 克蛋白质（克），非负数。"
+    ),
+    carbs: float | None = typer.Option(
+        None, "--carbs", min=0, help="每 100 克碳水化合物（克），非负数。"
+    ),
+    fat: float | None = typer.Option(
+        None, "--fat", "-f", min=0, help="每 100 克脂肪（克），非负数。"
+    ),
+    fiber: float | None = typer.Option(
+        None,
+        "--fiber",
+        min=0,
+        help="每 100 克膳食纤维（克），非负数。例如为已有食物补充纤维数据。",
+    ),
+    keywords: str | None = typer.Option(
+        None,
+        "--keywords",
+        "-k",
+        help="搜索关键词，多个以英文逗号分隔，用于模糊搜索。",
+    ),
+    note: str | None = typer.Option(
+        None, "--note", "-n", help="备注，自由文本。"
+    ),
+) -> None:
+    """修改已注册的食物（未指定的字段保持原值）。
+
+    常用场景：为已有食物补充膳食纤维，如
+    'makoto food update --id 3 --fiber 10.6'。
+    """
+    console = get_console()
+    cli = get_client()
+    try:
+        current = cli.get_food(food_id)
+    except ClientError as e:
+        console.print(f"[red]请求失败: {e.detail}[/red]")
+        raise typer.Exit(1) from e
+
+    merged: dict[str, object] = {
+        "name": name if name is not None else current["name"],
+        "calories_per_100g": (
+            calories if calories is not None else current["calories_per_100g"]
+        ),
+        "protein_per_100g": (
+            protein if protein is not None else current["protein_per_100g"]
+        ),
+        "carbs_per_100g": carbs if carbs is not None else current["carbs_per_100g"],
+        "fat_per_100g": fat if fat is not None else current["fat_per_100g"],
+        "fiber_per_100g": fiber if fiber is not None else current["fiber_per_100g"],
+        "search_keywords": current["search_keywords"],
+        "note": current["note"],
+    }
+    if keywords is not None:
+        merged["search_keywords"] = [
+            k.strip() for k in keywords.split(",") if k.strip()
+        ]
+    if note is not None:
+        merged["note"] = note
+
+    try:
+        result = cli.update_food(food_id, merged)
+    except ClientError as e:
+        console.print(f"[red]请求失败: {e.detail}[/red]")
+        raise typer.Exit(1) from e
+
+    console.print(f"[green]已更新食物 #{food_id}: {result.get('name', '')}[/green]")
+    render_detail("更新后的食物", _food_detail_fields(result))
+
+
 @food_app.command(name="list")
 def list_foods() -> None:
     """列出所有已注册食物（按名称排序）。
@@ -139,7 +228,16 @@ def list_foods() -> None:
         return
 
     render_table(
-        columns=["ID", "名称", "热量/100g", "蛋白质/100g", "碳水/100g", "脂肪/100g", "关键词"],
+        columns=[
+            "ID",
+            "名称",
+            "热量/100g",
+            "蛋白质/100g",
+            "碳水/100g",
+            "脂肪/100g",
+            "纤维/100g",
+            "关键词",
+        ],
         rows=[
             [
                 str(f.get("id", "")),
@@ -148,13 +246,14 @@ def list_foods() -> None:
                 f"{f['protein_per_100g']:.1f} g",
                 f"{f['carbs_per_100g']:.1f} g",
                 f"{f['fat_per_100g']:.1f} g",
+                f"{f.get('fiber_per_100g', 0):.1f} g",
                 ", ".join(f.get("search_keywords", [])),
             ]
             for f in foods
         ],
         title="食物库",
-        align=["right", "left", "right", "right", "right", "right", "left"],
-        col_styles=["magenta", "cyan", "yellow", "", "", "", "dim"],
+        align=["right", "left", "right", "right", "right", "right", "right", "left"],
+        col_styles=["magenta", "cyan", "yellow", "", "", "", "", "dim"],
     )
 
 
@@ -187,6 +286,7 @@ def show(
             float(f["protein_per_100g"]),
             float(f["carbs_per_100g"]),
             float(f["fat_per_100g"]),
+            float(f.get("fiber_per_100g", 0)),
             grams,
         )
         ref_rows.append([
@@ -195,13 +295,14 @@ def show(
             f"{n['protein_g']:.1f} g",
             f"{n['carbs_g']:.1f} g",
             f"{n['fat_g']:.1f} g",
+            f"{n['fiber_g']:.1f} g",
         ])
 
     render_table(
-        columns=["克数", "热量", "蛋白质", "碳水", "脂肪"],
+        columns=["克数", "热量", "蛋白质", "碳水", "脂肪", "膳食纤维"],
         rows=ref_rows,
-        align=["right", "right", "right", "right", "right"],
-        col_styles=["", "yellow", "", "", ""],
+        align=["right", "right", "right", "right", "right", "right"],
+        col_styles=["", "yellow", "", "", "", ""],
     )
 
 

@@ -51,6 +51,7 @@ class Food(SQLModel, table=True):
     protein_per_100g: float = Field(default=0.0)
     carbs_per_100g: float = Field(default=0.0)
     fat_per_100g: float = Field(default=0.0)
+    fiber_per_100g: float = Field(default=0.0)
     search_keywords: str = Field(default="[]")
     note: str | None = Field(default=None)
     created_at: str | None = Field(

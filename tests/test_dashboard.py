@@ -47,7 +47,12 @@ def _seed_body_logs(client: TestClient) -> None:
 def _seed_food(client: TestClient) -> int:
     resp = client.post(
         "/api/v1/foods",
-        json={"name": "鸡胸肉", "calories_per_100g": 133, "protein_per_100g": 31},
+        json={
+            "name": "鸡胸肉",
+            "calories_per_100g": 133,
+            "protein_per_100g": 31,
+            "fiber_per_100g": 1.5,
+        },
         headers=auth_headers(),
     )
     return int(resp.json()["id"])
@@ -97,7 +102,9 @@ def test_today_with_body_and_diet(client: TestClient) -> None:
     assert data["body"]["weight_kg"] == 69.5
     assert len(data["diets"]) == 1
     assert data["diets"][0]["calories_kcal"] == 266.0
+    assert data["diets"][0]["fiber_g"] == 3.0  # 1.5 * 2
     assert data["total_intake_kcal"] == 266.0
+    assert data["total_fiber_g"] == 3.0
     assert "net_kcal" in data
 
 

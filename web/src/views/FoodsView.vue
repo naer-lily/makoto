@@ -20,6 +20,7 @@
       <el-table-column prop="protein_per_100g" label="蛋白/100g" width="100" />
       <el-table-column prop="carbs_per_100g" label="碳水/100g" width="100" />
       <el-table-column prop="fat_per_100g" label="脂肪/100g" width="100" />
+      <el-table-column prop="fiber_per_100g" label="纤维/100g" width="100" />
       <el-table-column label="操作" width="140" fixed="right">
         <template #default="{ row }">
           <el-button size="small" text type="primary" @click="openEdit(row)">编辑</el-button>
@@ -48,6 +49,9 @@
         </el-form-item>
         <el-form-item label="脂肪/100g">
           <el-input-number v-model="form.fat_per_100g" :min="0" :precision="1" />
+        </el-form-item>
+        <el-form-item label="纤维/100g">
+          <el-input-number v-model="form.fiber_per_100g" :min="0" :precision="1" />
         </el-form-item>
         <el-form-item label="搜索关键词">
           <el-input v-model="keywordsStr" placeholder="逗号分隔" />
@@ -91,6 +95,7 @@ const form = ref<FoodCreate>({
   protein_per_100g: 0,
   carbs_per_100g: 0,
   fat_per_100g: 0,
+  fiber_per_100g: 0,
   search_keywords: [],
   note: null,
 })
@@ -104,6 +109,7 @@ function resetForm() {
     protein_per_100g: 0,
     carbs_per_100g: 0,
     fat_per_100g: 0,
+    fiber_per_100g: 0,
     search_keywords: [],
     note: null,
   }
@@ -152,6 +158,7 @@ function openEdit(row: FoodResponse) {
     protein_per_100g: row.protein_per_100g,
     carbs_per_100g: row.carbs_per_100g,
     fat_per_100g: row.fat_per_100g,
+    fiber_per_100g: row.fiber_per_100g,
     search_keywords: [...row.search_keywords],
     note: row.note,
   }

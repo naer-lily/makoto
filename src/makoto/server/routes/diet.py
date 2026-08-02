@@ -40,14 +40,22 @@ async def _to_response(session: AsyncSession, row: DietLog) -> DietLogResponse:
     assert row.id is not None
     food = await _food_by_id(session, row.food_id)
     if food is None:
-        name, base_cal, base_pro, base_carb, base_fat = "", 0.0, 0.0, 0.0, 0.0
+        name, base_cal, base_pro, base_carb, base_fat, base_fiber = (
+            "",
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+        )
     else:
         name = food.name
         base_cal = food.calories_per_100g
         base_pro = food.protein_per_100g
         base_carb = food.carbs_per_100g
         base_fat = food.fat_per_100g
-    n = nutrition_for(base_cal, base_pro, base_carb, base_fat, row.grams)
+        base_fiber = food.fiber_per_100g
+    n = nutrition_for(base_cal, base_pro, base_carb, base_fat, base_fiber, row.grams)
     return DietLogResponse(
         id=row.id,
         log_time=datetime.fromisoformat(row.log_time),
@@ -59,10 +67,12 @@ async def _to_response(session: AsyncSession, row: DietLog) -> DietLogResponse:
         protein_g=n["protein_g"],
         carbs_g=n["carbs_g"],
         fat_g=n["fat_g"],
+        fiber_g=n["fiber_g"],
         food_calories_per_100g=base_cal,
         food_protein_per_100g=base_pro,
         food_carbs_per_100g=base_carb,
         food_fat_per_100g=base_fat,
+        food_fiber_per_100g=base_fiber,
         created_at=row.created_at or "",
     )
 

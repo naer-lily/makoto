@@ -85,6 +85,7 @@ fun FoodsScreen(
                     NutritionRow("蛋白质", "${food.proteinPer100g} g/100g")
                     NutritionRow("碳水", "${food.carbsPer100g} g/100g")
                     NutritionRow("脂肪", "${food.fatPer100g} g/100g")
+                    NutritionRow("膳食纤维", "${food.fiberPer100g} g/100g")
                     if (food.note != null) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Text("备注: ${food.note}", style = MaterialTheme.typography.bodySmall)

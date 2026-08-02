@@ -18,6 +18,7 @@ export interface DietLogResponse {
   protein_g: number
   carbs_g: number
   fat_g: number
+  fiber_g: number
   created_at: string
 }
 

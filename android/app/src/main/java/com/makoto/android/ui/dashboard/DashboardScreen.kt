@@ -206,6 +206,7 @@ private fun DashboardContent(
                     MacroItem("碳水", String.format("%.0fg", today.totalCarbsG))
                     MacroItem("脂肪", String.format("%.0fg", today.totalFatG))
                     MacroItem("蛋白质", String.format("%.0fg", today.totalProteinG))
+                    MacroItem("膳食纤维", String.format("%.0fg", today.totalFiberG))
                 }
             }
         }
@@ -270,6 +271,7 @@ private fun DietItemCard(diet: TodayDietItem) {
                 Text("P ${String.format("%.1f", diet.proteinG)}g", style = MaterialTheme.typography.labelSmall)
                 Text("C ${String.format("%.1f", diet.carbsG)}g", style = MaterialTheme.typography.labelSmall)
                 Text("F ${String.format("%.1f", diet.fatG)}g", style = MaterialTheme.typography.labelSmall)
+                Text("Fib ${String.format("%.1f", diet.fiberG)}g", style = MaterialTheme.typography.labelSmall)
             }
         }
     }

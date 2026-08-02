@@ -24,7 +24,24 @@ def test_add_food(client: TestClient) -> None:
     data = resp.json()
     assert data["name"] == "鸡胸肉"
     assert data["id"] > 0
+    assert data["fiber_per_100g"] == 0.0
     assert "created_at" in data
+
+
+def test_add_food_with_fiber(client: TestClient) -> None:
+    """注册食物时可指定选填的膳食纤维含量。"""
+    payload = {
+        "name": "燕麦",
+        "calories_per_100g": 389.0,
+        "protein_per_100g": 16.9,
+        "carbs_per_100g": 66.3,
+        "fat_per_100g": 6.9,
+        "fiber_per_100g": 10.6,
+    }
+    resp = client.post("/api/v1/foods", json=payload, headers=auth_headers())
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["fiber_per_100g"] == 10.6
 
 
 def test_add_food_duplicate(client: TestClient) -> None:
@@ -126,6 +143,7 @@ def test_update_food(client: TestClient) -> None:
         "protein_per_100g": 3.2,
         "carbs_per_100g": 4.8,
         "fat_per_100g": 3.3,
+        "fiber_per_100g": 0.5,
     }
     resp2 = client.put(
         f"/api/v1/foods/{food_id}", json=payload, headers=auth_headers()
@@ -135,6 +153,7 @@ def test_update_food(client: TestClient) -> None:
     assert data["name"] == "全脂牛奶"
     assert data["calories_per_100g"] == 61.0
     assert data["protein_per_100g"] == 3.2
+    assert data["fiber_per_100g"] == 0.5
 
 
 def test_update_food_not_found(client: TestClient) -> None:

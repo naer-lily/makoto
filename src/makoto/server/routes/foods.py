@@ -33,6 +33,7 @@ def _to_response(row: Food) -> FoodResponse:
         protein_per_100g=row.protein_per_100g,
         carbs_per_100g=row.carbs_per_100g,
         fat_per_100g=row.fat_per_100g,
+        fiber_per_100g=row.fiber_per_100g,
         search_keywords=json.loads(row.search_keywords),
         note=row.note,
         created_at=row.created_at or "",
@@ -78,6 +79,7 @@ async def add_food(
         protein_per_100g=data.protein_per_100g,
         carbs_per_100g=data.carbs_per_100g,
         fat_per_100g=data.fat_per_100g,
+        fiber_per_100g=data.fiber_per_100g,
         search_keywords=json.dumps(data.search_keywords, ensure_ascii=False),
         note=data.note,
     )
@@ -167,6 +169,7 @@ async def update_food(
     row.protein_per_100g = data.protein_per_100g
     row.carbs_per_100g = data.carbs_per_100g
     row.fat_per_100g = data.fat_per_100g
+    row.fiber_per_100g = data.fiber_per_100g
     row.search_keywords = json.dumps(data.search_keywords, ensure_ascii=False)
     row.note = data.note
     session.add(row)

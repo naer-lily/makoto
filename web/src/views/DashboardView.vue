@@ -58,6 +58,9 @@
               <el-table-column prop="fat_g" label="脂肪" width="70" align="right">
                 <template #default="{ row }">{{ row.fat_g }}g</template>
               </el-table-column>
+              <el-table-column prop="fiber_g" label="纤维" width="70" align="right">
+                <template #default="{ row }">{{ row.fiber_g }}g</template>
+              </el-table-column>
             </el-table>
           </el-card>
 
@@ -272,13 +275,13 @@ async function loadKeep() {
 function copyDietMd() {
   const rows = todayData.value?.diets ?? []
   if (!rows.length) return
-  let md = '| 时间 | 食物 | 克数 | 热量 | 蛋白质 | 碳水 | 脂肪 |\n'
-  md += '|------|------|------|------|--------|------|------|\n'
+  let md = '| 时间 | 食物 | 克数 | 热量 | 蛋白质 | 碳水 | 脂肪 | 纤维 |\n'
+  md += '|------|------|------|------|--------|------|------|------|\n'
   for (const r of rows) {
     const t = r.log_time.slice(11, 16)
-    md += `| ${t} | ${r.food_name} | ${r.grams}g | ${r.calories_kcal} | ${r.protein_g}g | ${r.carbs_g}g | ${r.fat_g}g |\n`
+    md += `| ${t} | ${r.food_name} | ${r.grams}g | ${r.calories_kcal} | ${r.protein_g}g | ${r.carbs_g}g | ${r.fat_g}g | ${r.fiber_g}g |\n`
   }
-  md += `\n**合计**: ${todayData.value!.total_intake_kcal} kcal · 蛋白质 ${todayData.value!.total_protein_g}g · 碳水 ${todayData.value!.total_carbs_g}g · 脂肪 ${todayData.value!.total_fat_g}g`
+  md += `\n**合计**: ${todayData.value!.total_intake_kcal} kcal · 蛋白质 ${todayData.value!.total_protein_g}g · 碳水 ${todayData.value!.total_carbs_g}g · 脂肪 ${todayData.value!.total_fat_g}g · 纤维 ${todayData.value!.total_fiber_g}g`
   navigator.clipboard.writeText(md)
   ElMessage.success('已复制为 Markdown')
 }

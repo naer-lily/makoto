@@ -25,6 +25,7 @@ export interface TodayDietItem {
   protein_g: number
   carbs_g: number
   fat_g: number
+  fiber_g: number
 }
 
 export interface TodayExerciseItem {
@@ -44,6 +45,7 @@ export interface TodayResponse {
   total_protein_g: number
   total_carbs_g: number
   total_fat_g: number
+  total_fiber_g: number
   netee_kcal: number
   net_kcal: number
   weight_delta_day: number | null

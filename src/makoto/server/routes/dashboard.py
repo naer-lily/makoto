@@ -76,7 +76,7 @@ async def _compute_deficit(
         ).scalar_one_or_none()
         if food is not None:
             diet_total += nutrition_for(
-                food.calories_per_100g, 0, 0, 0, dr.grams
+                food.calories_per_100g, 0, 0, 0, 0, dr.grams
             )["calories_kcal"]
 
     ex_total = 0.0
@@ -189,6 +189,7 @@ async def today_dashboard(
     total_protein = 0.0
     total_carbs = 0.0
     total_fat = 0.0
+    total_fiber = 0.0
     diet_rows = (
         await session.execute(
             select(DietLog).where(func.date(col(DietLog.log_time)) == today_iso)
@@ -204,12 +205,14 @@ async def today_dashboard(
                 food.protein_per_100g,
                 food.carbs_per_100g,
                 food.fat_per_100g,
+                food.fiber_per_100g,
                 dr.grams,
             )
             total_intake += n["calories_kcal"]
             total_protein += n["protein_g"]
             total_carbs += n["carbs_g"]
             total_fat += n["fat_g"]
+            total_fiber += n["fiber_g"]
             diets.append(
                 TodayDietItem(
                     log_time=dr.log_time,
@@ -220,6 +223,7 @@ async def today_dashboard(
                     protein_g=n["protein_g"],
                     carbs_g=n["carbs_g"],
                     fat_g=n["fat_g"],
+                    fiber_g=n["fiber_g"],
                 )
             )
 
@@ -373,6 +377,7 @@ async def today_dashboard(
         total_protein_g=round(total_protein, 1),
         total_carbs_g=round(total_carbs, 1),
         total_fat_g=round(total_fat, 1),
+        total_fiber_g=round(total_fiber, 1),
         netee_kcal=netee,
         net_kcal=round(net, 1),
         weight_delta_day=weight_delta_day,
@@ -470,7 +475,7 @@ async def dashboard_report(
         ).scalar_one_or_none()
         if food is not None:
             daily_diet[d_date] += nutrition_for(
-                food.calories_per_100g, 0, 0, 0, dr.grams
+                food.calories_per_100g, 0, 0, 0, 0, dr.grams
             )["calories_kcal"]
 
     # 运动汇总

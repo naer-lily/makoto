@@ -155,6 +155,35 @@ def test_diet_log_includes_food_base_nutrition(client: TestClient) -> None:
     assert data["food_protein_per_100g"] == 31.0
     assert data["food_carbs_per_100g"] == 0.0
     assert data["food_fat_per_100g"] == 0.0
+    assert data["food_fiber_per_100g"] == 0.0
+    assert data["fiber_g"] == 0.0
+
+
+def test_diet_log_fiber_calculation(client: TestClient) -> None:
+    """饮食记录的膳食纤维按食物每 100g 含量 × 克数比例计算。"""
+    resp = client.post(
+        "/api/v1/foods",
+        json={
+            "name": "燕麦",
+            "calories_per_100g": 389.0,
+            "protein_per_100g": 16.9,
+            "carbs_per_100g": 66.3,
+            "fat_per_100g": 6.9,
+            "fiber_per_100g": 10.6,
+        },
+        headers=auth_headers(),
+    )
+    food_id = resp.json()["id"]
+
+    resp2 = client.post(
+        "/api/v1/diet-logs",
+        json={"log_time": "2026-06-15T12:30:00", "food_id": food_id, "grams": 150},
+        headers=auth_headers(),
+    )
+    assert resp2.status_code == 201
+    data = resp2.json()
+    assert data["food_fiber_per_100g"] == 10.6
+    assert data["fiber_g"] == 15.9  # 10.6 * 1.5
 
 
 def test_delete_diet_log_returns_full_record(client: TestClient) -> None:

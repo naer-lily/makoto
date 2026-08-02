@@ -46,12 +46,14 @@ def nutrition_for(
     protein_per_100g: float,
     carbs_per_100g: float,
     fat_per_100g: float,
+    fiber_per_100g: float,
     grams: float,
 ) -> dict[str, float]:
     """计算指定克数下的营养素。
 
     Returns:
-        {"calories_kcal": ..., "protein_g": ..., "carbs_g": ..., "fat_g": ...}
+        {"calories_kcal": ..., "protein_g": ..., "carbs_g": ...,
+         "fat_g": ..., "fiber_g": ...}
     """
     factor = grams / 100.0
     return {
@@ -59,6 +61,7 @@ def nutrition_for(
         "protein_g": round(protein_per_100g * factor, 1),
         "carbs_g": round(carbs_per_100g * factor, 1),
         "fat_g": round(fat_per_100g * factor, 1),
+        "fiber_g": round(fiber_per_100g * factor, 1),
     }
 
 
@@ -95,6 +98,7 @@ class FoodCreate(BaseModel):
     protein_per_100g: float = Field(default=0.0, ge=0)
     carbs_per_100g: float = Field(default=0.0, ge=0)
     fat_per_100g: float = Field(default=0.0, ge=0)
+    fiber_per_100g: float = Field(default=0.0, ge=0)
     search_keywords: list[str] = Field(default_factory=list)
     note: str | None = None
 
@@ -165,10 +169,12 @@ class DietLogResponse(DietLogCreate):
     protein_g: float
     carbs_g: float
     fat_g: float
+    fiber_g: float
     food_calories_per_100g: float
     food_protein_per_100g: float
     food_carbs_per_100g: float
     food_fat_per_100g: float
+    food_fiber_per_100g: float
     created_at: str
 
 
@@ -230,6 +236,7 @@ class TodayDietItem(BaseModel):
     protein_g: float
     carbs_g: float
     fat_g: float
+    fiber_g: float
 
 
 class TodayExerciseItem(BaseModel):
@@ -266,6 +273,7 @@ class TodayResponse(BaseModel):
     total_protein_g: float = 0.0
     total_carbs_g: float = 0.0
     total_fat_g: float = 0.0
+    total_fiber_g: float = 0.0
     netee_kcal: float = 0.0
     net_kcal: float = 0.0
     weight_delta_day: float | None = None

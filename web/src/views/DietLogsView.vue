@@ -13,6 +13,7 @@
       <el-table-column prop="protein_g" label="蛋白" width="70" />
       <el-table-column prop="carbs_g" label="碳水" width="70" />
       <el-table-column prop="fat_g" label="脂肪" width="70" />
+      <el-table-column prop="fiber_g" label="纤维" width="70" />
       <el-table-column label="操作" width="140" fixed="right">
         <template #default="{ row }">
           <el-button size="small" text type="primary" @click="openEdit(row)">编辑</el-button>

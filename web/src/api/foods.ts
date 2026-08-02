@@ -6,6 +6,7 @@ export interface FoodCreate {
   protein_per_100g: number
   carbs_per_100g: number
   fat_per_100g: number
+  fiber_per_100g: number
   search_keywords: string[]
   note: string | null
 }

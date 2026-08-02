@@ -122,7 +122,7 @@ private fun DietLogCard(diet: DietLogResponse) {
             }
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                "${diet.grams.toInt()}g  ·  P${String.format("%.1f", diet.proteinG)}  C${String.format("%.1f", diet.carbsG)}  F${String.format("%.1f", diet.fatG)}",
+                "${diet.grams.toInt()}g  ·  P${String.format("%.1f", diet.proteinG)}  C${String.format("%.1f", diet.carbsG)}  F${String.format("%.1f", diet.fatG)}  Fib${String.format("%.1f", diet.fiberG)}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
