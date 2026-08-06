@@ -59,6 +59,9 @@ export interface TodayResponse {
   ctl: number | null
   tsb: number | null
   painting: TodayPainting
+  ffm_kg: number | null
+  ea_kcal_per_kg_ffm: number | null
+  ea_level: 'low' | 'moderate' | 'good' | null
 }
 
 export interface ReportRow {
@@ -79,6 +82,8 @@ export interface ReportRow {
   weekly_loss_kg: number | null
   intake_kcal: number
   tdee_kcal: number
+  exercise_kcal: number
+  ea_kcal_per_kg_ffm: number | null
 }
 
 export interface ReportSummary {

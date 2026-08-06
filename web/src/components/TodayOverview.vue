@@ -170,6 +170,25 @@
           {{ data?.total_intake_kcal ?? '--' }} <span class="unit">kcal</span>
         </div>
       </el-card>
+
+      <el-card shadow="hover" class="stat-card" :class="eaClass">
+        <div class="stat-icon-wrap" :style="eaIconStyle">
+          <el-icon :size="20"><DataAnalysis /></el-icon>
+        </div>
+        <el-tooltip
+          content="能量可用性 EA = (摄入 − 运动消耗) ÷ 去脂体重(FFM)。&lt;20 偏低、20-30 适中、≥30 充足。普通减脂期（日缺口 300-500 kcal）通常落在 20-30。"
+          placement="top"
+        >
+          <div class="stat-label">能量可用性 <el-icon :size="13"><QuestionFilled /></el-icon></div>
+        </el-tooltip>
+        <div class="stat-value">
+          <template v-if="eaValue != null">
+            {{ eaValue }} <span class="unit">kcal/kg FFM</span>
+          </template>
+          <span v-else class="na">--</span>
+        </div>
+        <div class="stat-sub">{{ eaSubText }}</div>
+      </el-card>
     </div>
   </div>
 </template>
@@ -263,6 +282,34 @@ const fiberColor = computed(() => {
   return '#F56C6C'
 })
 
+const eaValue = computed(() => props.data?.ea_kcal_per_kg_ffm ?? null)
+
+const eaLevel = computed(() => props.data?.ea_level ?? null)
+
+const eaClass = computed(() => {
+  if (!eaLevel.value) return ''
+  return `ea-${eaLevel.value}`
+})
+
+const eaIconStyle = computed(() => {
+  const map: Record<string, { background: string; color: string }> = {
+    low: { background: 'rgba(245,108,108,0.12)', color: '#F56C6C' },
+    moderate: { background: 'rgba(230,162,60,0.12)', color: '#E6A23C' },
+    good: { background: 'rgba(103,194,58,0.12)', color: '#67C23A' },
+  }
+  return map[eaLevel.value ?? ''] ?? { background: 'rgba(103,128,200,0.12)', color: '#6788C8' }
+})
+
+const eaSubText = computed(() => {
+  if (eaValue.value == null) return '需先记录体重与体脂'
+  const map: Record<string, string> = {
+    low: '偏低 · 接近临界，注意补充摄入',
+    moderate: '适中 · 减脂期正常区间',
+    good: '充足 · 状态良好',
+  }
+  return map[eaLevel.value ?? ''] ?? '适中 · 减脂期正常区间'
+})
+
 function progressColor(pct: number): string {
   if (pct >= 90) return '#67C23A'
   if (pct >= 60) return '#E6A23C'
@@ -279,7 +326,7 @@ function progressColor(pct: number): string {
 }
 
 .stat-row + .stat-row {
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   margin-bottom: 20px;
 }
 
@@ -408,6 +455,18 @@ function progressColor(pct: number): string {
 
 .negative {
   color: #e6a23c;
+}
+
+.ea-low .stat-value {
+  color: #f56c6c;
+}
+
+.ea-moderate .stat-value {
+  color: #e6a23c;
+}
+
+.ea-good .stat-value {
+  color: #67c23a;
 }
 
 @media (max-width: 1200px) {

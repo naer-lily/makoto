@@ -155,7 +155,10 @@
             <IntakeTdeeChart :rows="reportData.rows" />
           </div>
           <div class="chart-grid">
+            <EnergyAvailabilityChart :rows="reportData.rows" />
             <FitnessChart :rows="fitnessData" />
+          </div>
+          <div class="chart-grid">
             <WeeklyLoadChart :rows="weeklyLoadData" />
           </div>
         </template>
@@ -194,6 +197,7 @@ import KeepStatus from '../components/KeepStatus.vue'
 import WeightTrendChart from '../components/WeightTrendChart.vue'
 import CalorieDeficitChart from '../components/CalorieDeficitChart.vue'
 import IntakeTdeeChart from '../components/IntakeTdeeChart.vue'
+import EnergyAvailabilityChart from '../components/EnergyAvailabilityChart.vue'
 import FitnessChart from '../components/FitnessChart.vue'
 import WeeklyLoadChart from '../components/WeeklyLoadChart.vue'
 import BodyFatTrendChart from '../components/BodyFatTrendChart.vue'
