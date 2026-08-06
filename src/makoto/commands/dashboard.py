@@ -187,7 +187,9 @@ def today() -> None:
         if ea_level == "low":
             ea_label = "[red]偏低[/red]"
         elif ea_level == "good":
-            ea_label = "[green]充足[/green]"
+            ea_label = "[green]良好[/green]"
+        elif ea_level == "optimal":
+            ea_label = "[blue]最佳[/blue]"
         else:
             ea_label = "[yellow]适中[/yellow]"
         console.print(f"  摄入   -{total_intake:>6.0f} kcal")
