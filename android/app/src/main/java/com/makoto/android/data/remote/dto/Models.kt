@@ -164,6 +164,9 @@ data class TodayResponse(
     val ctl: Int? = null,
     val tsb: Int? = null,
     val painting: TodayPainting = TodayPainting(),
+    @SerialName("ffm_kg") val ffmKg: Double? = null,
+    @SerialName("ea_kcal_per_kg_ffm") val eaKcalPerKgFfm: Double? = null,
+    @SerialName("ea_level") val eaLevel: String? = null,
 )
 
 @Serializable

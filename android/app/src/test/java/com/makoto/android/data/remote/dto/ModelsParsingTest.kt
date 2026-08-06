@@ -163,6 +163,7 @@ class ModelsParsingTest {
                 "duration_desc":"5公里","calories_kcal":320.0
             }],
             "circumference":null,
+            "ffm_kg":60.4,"ea_kcal_per_kg_ffm":14.1,"ea_level":"low",
             "painting":{
                 "painted_today":false,"duration_seconds":0.0,"session_count":0,
                 "sessions":[],"current_streak":0,"longest_streak":0,"total_days":0
@@ -174,6 +175,9 @@ class ModelsParsingTest {
         assertEquals(1, t.diets.size)
         assertEquals("米饭", t.diets[0].foodName)
         assertEquals(50, t.atl)
+        assertEquals(60.4, t.ffmKg!!, 0.01)
+        assertEquals(14.1, t.eaKcalPerKgFfm!!, 0.01)
+        assertEquals("low", t.eaLevel)
     }
 
     @Test
@@ -187,11 +191,15 @@ class ModelsParsingTest {
             "deficit_week_kcal":null,"deficit_month_kcal":null,
             "atl":null,"ctl":null,"tsb":null,
             "body":null,"diets":[],"exercises":[],"circumference":null,
+            "ffm_kg":null,"ea_kcal_per_kg_ffm":null,"ea_level":null,
             "painting":{"painted_today":false,"duration_seconds":0.0,"session_count":0,"sessions":[],"current_streak":0,"longest_streak":0,"total_days":0}
         }"""
         val t = makotoJson.decodeFromString<TodayResponse>(raw)
         assertNull(t.body)
         assertTrue(t.diets.isEmpty())
+        assertNull(t.ffmKg)
+        assertNull(t.eaKcalPerKgFfm)
+        assertNull(t.eaLevel)
     }
 
     @Test

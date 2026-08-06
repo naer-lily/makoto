@@ -168,6 +168,29 @@ private fun DashboardContent(
             }
         }
 
+        // Energy availability and FFM row
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                StatCard(
+                    label = "能量可用性",
+                    value = if (today.eaKcalPerKgFfm != null) String.format("%.1f", today.eaKcalPerKgFfm) else "-",
+                    subtitle = eaLevelText(today.eaLevel),
+                    accentColor = eaAccentColor(today.eaLevel),
+                    modifier = Modifier.weight(1f),
+                )
+                StatCard(
+                    label = "去脂体重",
+                    value = if (today.ffmKg != null) String.format("%.1f", today.ffmKg) else "-",
+                    subtitle = "kg",
+                    accentColor = Green700,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+
         // Weight and body fat row
         today.body?.let { body ->
             item {
@@ -363,6 +386,18 @@ private fun buildDeltaString(delta: Double?, unit: String): String {
     if (delta == null) return "-"
     val sign = if (delta > 0) "+" else ""
     return "$sign${String.format("%.1f", delta)} $unit"
+}
+
+private fun eaLevelText(level: String?): String = when (level) {
+    "low" -> "偏低 · 注意摄入"
+    "good" -> "充足 · 状态良好"
+    else -> "适中 · 减脂期正常区间"
+}
+
+private fun eaAccentColor(level: String?): Color = when (level) {
+    "low" -> Red500
+    "good" -> Green500
+    else -> Orange500
 }
 
 internal class DashboardViewModelFactory(
