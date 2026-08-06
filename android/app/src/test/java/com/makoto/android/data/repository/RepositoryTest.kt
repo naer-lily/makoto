@@ -34,6 +34,7 @@ class RepositoryTest {
             override suspend fun getReport(startDate: String, endDate: String) = error("not needed")
             override suspend fun getFitness(startDate: String?, endDate: String?) = error("not needed")
             override suspend fun getWeeklyLoad(weekCount: Int?) = error("not needed")
+            override suspend fun getWeatherForecast(refresh: Boolean) = error("not needed")
         }
         val repo = DashboardRepository(api)
         val result = repo.getToday()
@@ -57,6 +58,7 @@ class RepositoryTest {
             override suspend fun getReport(startDate: String, endDate: String) = error("not needed")
             override suspend fun getFitness(startDate: String?, endDate: String?) = error("not needed")
             override suspend fun getWeeklyLoad(weekCount: Int?) = error("not needed")
+            override suspend fun getWeatherForecast(refresh: Boolean) = error("not needed")
         }
         val repo = DashboardRepository(api)
         val result = repo.getToday()
@@ -70,8 +72,16 @@ class RepositoryTest {
     fun `getFoods returns sorted list`() = runTest {
         val api = object : MakotoApi {
             override suspend fun getFoods() = listOf(
-                FoodResponse(2, "鸡蛋", 155.0, 13.0, 1.1, 10.6, emptyList(), null, "2026-01-01T12:00:00"),
-                FoodResponse(1, "米饭", 116.0, 2.6, 25.9, 0.3, emptyList(), null, "2026-01-01T12:00:00"),
+                FoodResponse(
+                    id = 2, name = "鸡蛋", caloriesPer100g = 155.0, proteinPer100g = 13.0,
+                    carbsPer100g = 1.1, fatPer100g = 10.6, fiberPer100g = 0.0,
+                    searchKeywords = emptyList(), note = null, createdAt = "2026-01-01T12:00:00",
+                ),
+                FoodResponse(
+                    id = 1, name = "米饭", caloriesPer100g = 116.0, proteinPer100g = 2.6,
+                    carbsPer100g = 25.9, fatPer100g = 0.3, fiberPer100g = 0.0,
+                    searchKeywords = emptyList(), note = null, createdAt = "2026-01-01T12:00:00",
+                ),
             )
             override suspend fun getProfile() = error("not needed")
             override suspend fun getToday() = error("not needed")
@@ -85,6 +95,7 @@ class RepositoryTest {
             override suspend fun getReport(startDate: String, endDate: String) = error("not needed")
             override suspend fun getFitness(startDate: String?, endDate: String?) = error("not needed")
             override suspend fun getWeeklyLoad(weekCount: Int?) = error("not needed")
+            override suspend fun getWeatherForecast(refresh: Boolean) = error("not needed")
         }
         val repo = FoodRepository(api)
         val result = repo.getFoods()
@@ -110,6 +121,7 @@ class RepositoryTest {
             override suspend fun getReport(startDate: String, endDate: String) = error("not needed")
             override suspend fun getFitness(startDate: String?, endDate: String?) = error("not needed")
             override suspend fun getWeeklyLoad(weekCount: Int?) = error("not needed")
+            override suspend fun getWeatherForecast(refresh: Boolean) = error("not needed")
         }
         val repo = ProfileRepository(api)
         val result = repo.getProfile()
@@ -138,6 +150,7 @@ class RepositoryTest {
             override suspend fun getReport(startDate: String, endDate: String) = error("not needed")
             override suspend fun getFitness(startDate: String?, endDate: String?) = error("not needed")
             override suspend fun getWeeklyLoad(weekCount: Int?) = error("not needed")
+            override suspend fun getWeatherForecast(refresh: Boolean) = error("not needed")
         }
         assertTrue(DietRepository(api).getDietLogs().isFailure)
         assertTrue(ExerciseRepository(api).getExerciseLogs().isFailure)
