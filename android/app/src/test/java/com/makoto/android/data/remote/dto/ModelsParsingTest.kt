@@ -181,6 +181,26 @@ class ModelsParsingTest {
     }
 
     @Test
+    fun `parse TodayResponse optimal ea level`() {
+        val raw = """{
+            "date":"2026-07-09","total_intake_kcal":2500.0,"total_burned_kcal":100.0,
+            "total_protein_g":85.0,"total_carbs_g":150.0,"total_fat_g":40.0,
+            "netee_kcal":2040.0,"net_kcal":-360.0,
+            "weight_delta_day":null,"body_fat_delta_day":null,
+            "weight_delta_week":null,"body_fat_delta_week":null,
+            "deficit_week_kcal":null,"deficit_month_kcal":null,
+            "atl":null,"ctl":null,"tsb":null,
+            "body":{"weight_kg":75.5,"body_fat_pct":20.0},
+            "diets":[],"exercises":[],"circumference":null,
+            "ffm_kg":60.4,"ea_kcal_per_kg_ffm":39.7,"ea_level":"optimal",
+            "painting":{"painted_today":false,"duration_seconds":0.0,"session_count":0,"sessions":[],"current_streak":0,"longest_streak":0,"total_days":0}
+        }"""
+        val t = makotoJson.decodeFromString<TodayResponse>(raw)
+        assertEquals(39.7, t.eaKcalPerKgFfm!!, 0.01)
+        assertEquals("optimal", t.eaLevel)
+    }
+
+    @Test
     fun `parse TodayResponse null body`() {
         val raw = """{
             "date":"2026-07-09","total_intake_kcal":0.0,"total_burned_kcal":0.0,

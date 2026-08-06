@@ -390,13 +390,15 @@ private fun buildDeltaString(delta: Double?, unit: String): String {
 
 private fun eaLevelText(level: String?): String = when (level) {
     "low" -> "偏低 · 注意摄入"
-    "good" -> "充足 · 状态良好"
+    "good" -> "良好 · 摄入充足"
+    "optimal" -> "最佳 · 摄入充裕"
     else -> "适中 · 减脂期正常区间"
 }
 
 private fun eaAccentColor(level: String?): Color = when (level) {
     "low" -> Red500
     "good" -> Green500
+    "optimal" -> Blue500
     else -> Orange500
 }
 
