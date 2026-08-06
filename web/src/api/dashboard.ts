@@ -61,7 +61,7 @@ export interface TodayResponse {
   painting: TodayPainting
   ffm_kg: number | null
   ea_kcal_per_kg_ffm: number | null
-  ea_level: 'low' | 'moderate' | 'good' | null
+  ea_level: 'low' | 'moderate' | 'good' | 'optimal' | null
 }
 
 export interface ReportRow {

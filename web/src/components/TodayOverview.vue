@@ -176,7 +176,7 @@
           <el-icon :size="20"><DataAnalysis /></el-icon>
         </div>
         <el-tooltip
-          content="能量可用性 EA = (摄入 − 运动消耗) ÷ 去脂体重(FFM)。&lt;20 偏低、20-30 适中、≥30 充足。普通减脂期（日缺口 300-500 kcal）通常落在 20-30。"
+          content="能量可用性 EA = (摄入 − 运动消耗) ÷ 去脂体重(FFM)。&lt;20 偏低、20-30 适中、30-40 良好、≥40 最佳。普通减脂期（日缺口 300-500 kcal）通常落在 20-30。"
           placement="top"
         >
           <div class="stat-label">能量可用性 <el-icon :size="13"><QuestionFilled /></el-icon></div>
@@ -296,6 +296,7 @@ const eaIconStyle = computed(() => {
     low: { background: 'rgba(245,108,108,0.12)', color: '#F56C6C' },
     moderate: { background: 'rgba(230,162,60,0.12)', color: '#E6A23C' },
     good: { background: 'rgba(103,194,58,0.12)', color: '#67C23A' },
+    optimal: { background: 'rgba(64,158,255,0.12)', color: '#409EFF' },
   }
   return map[eaLevel.value ?? ''] ?? { background: 'rgba(103,128,200,0.12)', color: '#6788C8' }
 })
@@ -305,7 +306,8 @@ const eaSubText = computed(() => {
   const map: Record<string, string> = {
     low: '偏低 · 接近临界，注意补充摄入',
     moderate: '适中 · 减脂期正常区间',
-    good: '充足 · 状态良好',
+    good: '良好 · 摄入充足',
+    optimal: '最佳 · 摄入充裕',
   }
   return map[eaLevel.value ?? ''] ?? '适中 · 减脂期正常区间'
 })
@@ -467,6 +469,10 @@ function progressColor(pct: number): string {
 
 .ea-good .stat-value {
   color: #67c23a;
+}
+
+.ea-optimal .stat-value {
+  color: #409eff;
 }
 
 @media (max-width: 1200px) {

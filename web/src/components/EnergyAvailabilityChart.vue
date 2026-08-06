@@ -23,9 +23,26 @@ const chartRef = ref<HTMLDivElement>()
 const chart = ref<echarts.EChartsType | null>(null)
 useEChartsResize(chart)
 
+// EA 四档折线点颜色：<20 偏低(红) / 20-30 适中(橙) / 30-40 良好(绿) / >=40 最佳(蓝)
+function bandColorFor(ea: number | null): string {
+  if (ea == null) return '#909399'
+  if (ea < 20) return '#F56C6C'
+  if (ea < 30) return '#E6A23C'
+  if (ea < 40) return '#67C23A'
+  return '#409EFF'
+}
+
 function buildOption(): echarts.EChartsOption {
   const dates = props.rows.map((r) => r.date.substring(5))
   const ea = props.rows.map((r) => r.ea_kcal_per_kg_ffm)
+
+  const bandLabel = (formatter: string, color: string) => ({
+    show: true,
+    position: 'inside' as const,
+    formatter,
+    color,
+    fontSize: 11,
+  })
 
   return {
     backgroundColor: 'transparent',
@@ -52,6 +69,7 @@ function buildOption(): echarts.EChartsOption {
       type: 'value',
       name: 'kcal/kg FFM',
       axisLabel: { formatter: (v: number) => v.toFixed(0) },
+      max: (value: { max: number }) => Math.max(45, Math.ceil(value.max)),
     },
     series: [
       {
@@ -60,21 +78,44 @@ function buildOption(): echarts.EChartsOption {
         data: ea,
         smooth: true,
         lineStyle: { color: '#5470C6', width: 2 },
-        itemStyle: { color: '#5470C6' },
-        markLine: {
+        itemStyle: {
+          color: (params: any) => bandColorFor(params.value),
+        },
+        markArea: {
           silent: true,
-          symbol: 'none',
           data: [
-            {
-              yAxis: 20,
-              lineStyle: { color: '#F56C6C', type: 'dashed' },
-              label: { formatter: '偏低 20', color: '#F56C6C', position: 'insideEndTop' },
-            },
-            {
-              yAxis: 30,
-              lineStyle: { color: '#67C23A', type: 'dashed' },
-              label: { formatter: '充足 30', color: '#67C23A', position: 'insideEndTop' },
-            },
+            [
+              {
+                yAxis: 0,
+                itemStyle: { color: 'rgba(245,108,108,0.10)' },
+                label: bandLabel('偏低 <20', '#F56C6C'),
+              },
+              { yAxis: 20 },
+            ],
+            [
+              {
+                yAxis: 20,
+                itemStyle: { color: 'rgba(230,162,60,0.10)' },
+                label: bandLabel('适中 20-30', '#E6A23C'),
+              },
+              { yAxis: 30 },
+            ],
+            [
+              {
+                yAxis: 30,
+                itemStyle: { color: 'rgba(103,194,58,0.10)' },
+                label: bandLabel('良好 30-40', '#67C23A'),
+              },
+              { yAxis: 40 },
+            ],
+            [
+              {
+                yAxis: 40,
+                itemStyle: { color: 'rgba(64,158,255,0.10)' },
+                label: bandLabel('最佳 ≥40', '#409EFF'),
+              },
+              { yAxis: 'max' },
+            ],
           ],
         },
       },
