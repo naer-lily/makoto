@@ -38,6 +38,19 @@ class ActivityLevel(StrEnum):
         }[self]
 
 
+class EaLevel(StrEnum):
+    """能量可用性分级。
+
+    文献参考：运动员 RED-S 筛查常用 <30 kcal/kg FFM/天 为低阈值，
+    但该阈值源于高训练量人群；普通减脂人群的真实风险临界约 20-25，
+    因此采用 <20 偏低、20-30 适中、>=30 充足 的分档。
+    """
+
+    LOW = "low"
+    MODERATE = "moderate"
+    GOOD = "good"
+
+
 # ── 营养计算 ──
 
 
@@ -287,11 +300,48 @@ class TodayResponse(BaseModel):
     ctl: int | None = None
     tsb: int | None = None
     painting: TodayPainting
+    ffm_kg: float | None = None
+    ea_kcal_per_kg_ffm: float | None = None
+    ea_level: EaLevel | None = None
 
 
 # Alpert 公式：每磅体脂最多分解 ~31 kcal/天 → 68.34 kcal/kg/天
 # 保守取 60 kcal/kg/天（约 88% 理论极限，折合 27 kcal/lb/天）
 ALPERT_KCAL_PER_KG_FAT: float = 60.0
+
+# 能量可用性 (EA) = (摄入 − 运动消耗) / 去脂体重，单位 kcal/kg FFM/天。
+# 阈值依据见 EaLevel 文档：<20 偏低、20-30 适中、>=30 充足。
+EA_LOW_THRESHOLD: float = 20.0
+EA_ADEQUATE_THRESHOLD: float = 30.0
+
+
+def ea_level_for(ea_kcal_per_kg_ffm: float) -> EaLevel:
+    """按能量可用性数值分级。
+
+    Args:
+        ea_kcal_per_kg_ffm: 能量可用性（kcal/kg FFM/天）
+
+    Returns:
+        对应的 EaLevel 分级
+    """
+    if ea_kcal_per_kg_ffm < EA_LOW_THRESHOLD:
+        return EaLevel.LOW
+    if ea_kcal_per_kg_ffm < EA_ADEQUATE_THRESHOLD:
+        return EaLevel.MODERATE
+    return EaLevel.GOOD
+
+
+def ffm_from(weight_kg: float, body_fat_pct: float) -> float:
+    """按体重与体脂率计算去脂体重（kg）。
+
+    Args:
+        weight_kg: 体重（kg）
+        body_fat_pct: 体脂率（百分比，如 18.5 表示 18.5%）
+
+    Returns:
+        去脂体重（kg）
+    """
+    return weight_kg * (1 - body_fat_pct / 100.0)
 
 
 class ReportRow(BaseModel):
@@ -312,6 +362,8 @@ class ReportRow(BaseModel):
     weekly_loss_kg: float | None
     intake_kcal: float
     tdee_kcal: float
+    exercise_kcal: float = 0.0
+    ea_kcal_per_kg_ffm: float | None = None
     atl: int | None = None
     ctl: int | None = None
     tsb: int | None = None

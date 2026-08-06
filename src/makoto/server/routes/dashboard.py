@@ -30,6 +30,7 @@ from makoto.server.keep_client import Keep
 from makoto.server.models import ALPERT_KCAL_PER_KG_FAT
 from makoto.server.models import ActivityLevel
 from makoto.server.models import CircumferenceLogResponse
+from makoto.server.models import EaLevel
 from makoto.server.models import Gender
 from makoto.server.models import ReportResponse
 from makoto.server.models import ReportRow
@@ -40,6 +41,8 @@ from makoto.server.models import TodayExerciseItem
 from makoto.server.models import TodayPainting
 from makoto.server.models import TodayPaintingItem
 from makoto.server.models import TodayResponse
+from makoto.server.models import ea_level_for
+from makoto.server.models import ffm_from
 from makoto.server.models import nutrition_for
 from makoto.utils.timeseries import date_series
 from makoto.utils.timeseries import linear_interpolate
@@ -183,6 +186,24 @@ async def today_dashboard(
             note=body_row.note or None,
         )
 
+    # 能量可用性的 FFM：优先取今日身体记录，其次最近一条（不晚于今日）
+    ea_body_row = body_row
+    if ea_body_row is None:
+        ea_body_row = (
+            await session.execute(
+                select(BodyLog)
+                .where(col(BodyLog.log_date) <= today_iso)
+                .order_by(col(BodyLog.log_date).desc())
+            )
+        ).scalars().first()
+    ffm_kg: float | None = None
+    if (
+        ea_body_row is not None
+        and ea_body_row.weight_kg is not None
+        and ea_body_row.body_fat_pct is not None
+    ):
+        ffm_kg = round(ffm_from(ea_body_row.weight_kg, ea_body_row.body_fat_pct), 1)
+
     # 饮食
     diets: list[TodayDietItem] = []
     total_intake = 0.0
@@ -248,6 +269,14 @@ async def today_dashboard(
 
     netee = float(profile["netee_kcal"])
     net = netee + total_burned - total_intake
+
+    # 能量可用性 EA = (摄入 − 运动消耗) / 去脂体重
+    ea_kcal_per_kg_ffm: float | None = None
+    ea_level: EaLevel | None = None
+    if ffm_kg is not None and ffm_kg > 0:
+        ea_value = (total_intake - total_burned) / ffm_kg
+        ea_kcal_per_kg_ffm = round(ea_value, 1)
+        ea_level = ea_level_for(ea_value)
 
     # 当日围度
     circumference: CircumferenceLogResponse | None = None
@@ -391,6 +420,9 @@ async def today_dashboard(
         ctl=_fitness_latest(fitness)[1],
         tsb=_fitness_latest(fitness)[2],
         painting=painting,
+        ffm_kg=ffm_kg,
+        ea_kcal_per_kg_ffm=ea_kcal_per_kg_ffm,
+        ea_level=ea_level,
     )
 
 
@@ -527,6 +559,8 @@ async def dashboard_report(
         alpert_limit = round(fat * ALPERT_KCAL_PER_KG_FAT, 1)
         intake = round(daily_diet.get(d, 0.0), 1)
         tdee = round(netee + daily_exercise.get(d, 0.0), 1)
+        exercise = round(daily_exercise.get(d, 0.0), 1)
+        ea = round((intake - exercise) / ffm, 1) if ffm > 0 else None
         fr = fitness_map.get(str(d))
         data_rows.append(
             ReportRow(
@@ -547,6 +581,8 @@ async def dashboard_report(
                 ma_deficit_kcal=round(md, 1) if md is not None else None,
                 intake_kcal=intake,
                 tdee_kcal=tdee,
+                exercise_kcal=exercise,
+                ea_kcal_per_kg_ffm=ea,
                 atl=fr.atl if fr else None,
                 ctl=fr.ctl if fr else None,
                 tsb=fr.tsb if fr else None,
