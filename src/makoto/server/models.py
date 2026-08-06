@@ -43,12 +43,13 @@ class EaLevel(StrEnum):
 
     文献参考：运动员 RED-S 筛查常用 <30 kcal/kg FFM/天 为低阈值，
     但该阈值源于高训练量人群；普通减脂人群的真实风险临界约 20-25，
-    因此采用 <20 偏低、20-30 适中、>=30 充足 的分档。
+    因此采用 <20 偏低、20-30 适中、30-40 良好、>=40 最佳 的四档分档。
     """
 
     LOW = "low"
     MODERATE = "moderate"
     GOOD = "good"
+    OPTIMAL = "optimal"
 
 
 # ── 营养计算 ──
@@ -310,9 +311,10 @@ class TodayResponse(BaseModel):
 ALPERT_KCAL_PER_KG_FAT: float = 60.0
 
 # 能量可用性 (EA) = (摄入 − 运动消耗) / 去脂体重，单位 kcal/kg FFM/天。
-# 阈值依据见 EaLevel 文档：<20 偏低、20-30 适中、>=30 充足。
+# 阈值依据见 EaLevel 文档：<20 偏低、20-30 适中、30-40 良好、>=40 最佳。
 EA_LOW_THRESHOLD: float = 20.0
 EA_ADEQUATE_THRESHOLD: float = 30.0
+EA_OPTIMAL_THRESHOLD: float = 40.0
 
 
 def ea_level_for(ea_kcal_per_kg_ffm: float) -> EaLevel:
@@ -322,13 +324,15 @@ def ea_level_for(ea_kcal_per_kg_ffm: float) -> EaLevel:
         ea_kcal_per_kg_ffm: 能量可用性（kcal/kg FFM/天）
 
     Returns:
-        对应的 EaLevel 分级
+        对应的 EaLevel 分级（<20 偏低 / 20-30 适中 / 30-40 良好 / >=40 最佳）
     """
     if ea_kcal_per_kg_ffm < EA_LOW_THRESHOLD:
         return EaLevel.LOW
     if ea_kcal_per_kg_ffm < EA_ADEQUATE_THRESHOLD:
         return EaLevel.MODERATE
-    return EaLevel.GOOD
+    if ea_kcal_per_kg_ffm < EA_OPTIMAL_THRESHOLD:
+        return EaLevel.GOOD
+    return EaLevel.OPTIMAL
 
 
 def ffm_from(weight_kg: float, body_fat_pct: float) -> float:

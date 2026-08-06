@@ -280,7 +280,9 @@ def test_today_ea_without_body_record(client: TestClient) -> None:
         (1140, 19.9, "low"),  # <20 偏低
         (1150, 20.1, "moderate"),  # 20-30 适中
         (1710, 29.8, "moderate"),  # 20-30 适中
-        (1730, 30.2, "good"),  # >=30 充足
+        (1730, 30.2, "good"),  # 30-40 良好
+        (2280, 39.8, "good"),  # 30-40 良好
+        (2300, 40.1, "optimal"),  # >=40 最佳
     ],
 )
 def test_today_ea_level_boundaries(
@@ -289,7 +291,7 @@ def test_today_ea_level_boundaries(
     expected_ea: float,
     expected_level: str,
 ) -> None:
-    """验证 EA 分级阈值：<20 偏低 / 20-30 适中 / >=30 充足。"""
+    """验证 EA 分级阈值：<20 偏低 / 20-30 适中 / 30-40 良好 / >=40 最佳。"""
     _setup_profile(client)
     today = date.today().isoformat()
     client.post(
