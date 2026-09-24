@@ -109,6 +109,28 @@ def test_search_food(client: TestClient) -> None:
     assert len(resp2.json()) >= 1
 
 
+def test_search_food_substring_ranks_first(client: TestClient) -> None:
+    """查询词作为子串命中的食物，应排在编辑距离相近的无关条目之前。"""
+    client.post(
+        "/api/v1/foods",
+        json={"name": "鸡蛋", "search_keywords": ["蛋白"]},
+        headers=auth_headers(),
+    )
+    client.post(
+        "/api/v1/foods",
+        json={"name": "高蛋白吐司", "search_keywords": ["健身面包"]},
+        headers=auth_headers(),
+    )
+
+    resp = client.get(
+        "/api/v1/foods/search?q=高蛋白&limit=20", headers=auth_headers()
+    )
+    assert resp.status_code == 200
+    results = resp.json()
+    assert len(results) >= 2
+    assert results[0]["name"] == "高蛋白吐司"
+
+
 def test_delete_food(client: TestClient) -> None:
     resp = client.post(
         "/api/v1/foods",
