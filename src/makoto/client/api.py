@@ -191,7 +191,7 @@ class MakotoClient:
             params.append(f"start_date={start_date}")
         if end_date:
             params.append(f"end_date={end_date}")
-        qs = "&" + "&".join(params) if params else ""
+        qs = "?" + "&".join(params) if params else ""
         return self._get(f"/api/v1/dashboard/report{qs}")  # type: ignore[no-any-return]
 
     # ── Weather ──
