@@ -293,6 +293,7 @@ async def today_dashboard(
             waist_cm=circ_row.waist_cm,
             arm_cm=circ_row.arm_cm,
             thigh_cm=circ_row.thigh_cm,
+            forearm=circ_row.forearm,
             note=circ_row.note or None,
             created_at=circ_row.created_at or "",
         )

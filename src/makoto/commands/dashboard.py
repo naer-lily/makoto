@@ -69,12 +69,14 @@ def today() -> None:
     circ = data.get("circumference")
     if circ is not None:
         parts: list[str] = []
-        if circ.get("waist_cm"):
+        if circ.get("waist_cm") is not None:
             parts.append(f"腰围: {circ['waist_cm']} cm")
-        if circ.get("arm_cm"):
+        if circ.get("arm_cm") is not None:
             parts.append(f"臂围: {circ['arm_cm']} cm")
-        if circ.get("thigh_cm"):
+        if circ.get("thigh_cm") is not None:
             parts.append(f"大腿围: {circ['thigh_cm']} cm")
+        if circ.get("forearm") is not None:
+            parts.append(f"小臂围: {circ['forearm']} cm")
         if parts:
             console.print(f"  [bold]围度[/bold]  {'  '.join(parts)}")
 

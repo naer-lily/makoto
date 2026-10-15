@@ -22,6 +22,11 @@
           {{ row.thigh_cm != null ? row.thigh_cm.toFixed(1) + ' cm' : '-' }}
         </template>
       </el-table-column>
+      <el-table-column label="小臂围" width="100" align="right">
+        <template #default="{ row }">
+          {{ row.forearm != null ? row.forearm.toFixed(1) + ' cm' : '-' }}
+        </template>
+      </el-table-column>
       <el-table-column prop="note" label="备注" min-width="150" />
       <el-table-column label="操作" width="80" fixed="right">
         <template #default="{ row }">
@@ -53,6 +58,9 @@
         </el-form-item>
         <el-form-item label="大腿围">
           <el-input-number v-model="form.thigh_cm" :min="0" :precision="1" placeholder="cm" />
+        </el-form-item>
+        <el-form-item label="小臂围">
+          <el-input-number v-model="form.forearm" :min="0" :precision="1" placeholder="cm" />
         </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="form.note" />
@@ -87,6 +95,7 @@ const form = ref<CircumferenceCreate>({
   waist_cm: null,
   arm_cm: null,
   thigh_cm: null,
+  forearm: null,
   note: null,
 })
 
@@ -96,6 +105,7 @@ function resetForm() {
     waist_cm: null,
     arm_cm: null,
     thigh_cm: null,
+    forearm: null,
     note: null,
   }
 }

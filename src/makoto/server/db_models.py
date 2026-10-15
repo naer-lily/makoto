@@ -77,7 +77,7 @@ class BodyLog(SQLModel, table=True):
 
 
 class CircumferenceLog(SQLModel, table=True):
-    """围度测量记录（每日一条，三围可选）。"""
+    """围度测量记录（每日一条，四项围度可选）。"""
 
     __tablename__ = "circumference_log"
 
@@ -86,6 +86,7 @@ class CircumferenceLog(SQLModel, table=True):
     waist_cm: float | None = Field(default=None)
     arm_cm: float | None = Field(default=None)
     thigh_cm: float | None = Field(default=None)
+    forearm: float | None = Field(default=None)
     note: str | None = Field(default=None)
     created_at: str | None = Field(
         default=None,

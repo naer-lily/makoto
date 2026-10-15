@@ -6,6 +6,7 @@ export interface CircumferenceRecord {
   waist_cm: number | null
   arm_cm: number | null
   thigh_cm: number | null
+  forearm: number | null
   note: string | null
   created_at: string
 }
@@ -15,6 +16,7 @@ export interface CircumferenceCreate {
   waist_cm: number | null
   arm_cm: number | null
   thigh_cm: number | null
+  forearm: number | null
   note: string | null
 }
 

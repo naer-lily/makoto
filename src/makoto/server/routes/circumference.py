@@ -1,6 +1,6 @@
 """围度测量 API 路由。
 
-每个日期仅允许一条记录，三围均为可选字段。
+每个日期仅允许一条记录，四项围度均为可选字段。
 """
 
 from __future__ import annotations
@@ -33,6 +33,7 @@ def _to_response(row: CircumferenceLog) -> CircumferenceLogResponse:
         waist_cm=row.waist_cm,
         arm_cm=row.arm_cm,
         thigh_cm=row.thigh_cm,
+        forearm=row.forearm,
         note=row.note,
         created_at=row.created_at or "",
     )
@@ -73,7 +74,7 @@ async def list_circumference_logs(
     response_model=CircumferenceLogResponse,
     status_code=201,
     summary="记录围度测量数据",
-    description="录入当日的围度测量数据（每日仅一条）。三围全部可选。",
+    description="录入当日的围度测量数据（每日仅一条）。四项围度全部可选。",
 )
 async def create_circumference_log(
     data: CircumferenceLogCreate,
@@ -94,6 +95,7 @@ async def create_circumference_log(
         waist_cm=data.waist_cm,
         arm_cm=data.arm_cm,
         thigh_cm=data.thigh_cm,
+        forearm=data.forearm,
         note=data.note,
     )
     session.add(row)

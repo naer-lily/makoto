@@ -151,6 +151,7 @@ class CircumferenceLogCreate(BaseModel):
     waist_cm: float | None = Field(default=None, ge=0)
     arm_cm: float | None = Field(default=None, ge=0)
     thigh_cm: float | None = Field(default=None, ge=0)
+    forearm: float | None = Field(default=None, ge=0)
     note: str | None = None
 
 

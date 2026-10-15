@@ -37,6 +37,7 @@ def _circumference_detail_fields(r: dict[str, Any]) -> list[tuple[str, str]]:
         ("腰围", _fmt_cm(r.get("waist_cm"))),
         ("臂围", _fmt_cm(r.get("arm_cm"))),
         ("大腿围", _fmt_cm(r.get("thigh_cm"))),
+        ("小臂围", _fmt_cm(r.get("forearm"))),
         ("备注", str(note) if note else "—"),
         ("创建时间", str(r.get("created_at", ""))),
     ]
@@ -59,14 +60,17 @@ def log(
     thigh: float | None = typer.Option(
         None, "--thigh", min=0, help="大腿围（厘米），可选，非负数。"
     ),
+    forearm: float | None = typer.Option(
+        None, "--forearm", min=0, help="小臂围（厘米），可选，非负数。"
+    ),
     note: str | None = typer.Option(
         None, "--note", "-n", help="可选备注，自由文本。"
     ),
 ) -> None:
-    """记录围度测量数据（每天仅一条，三围均可选）。
+    """记录围度测量数据（每天仅一条，四项围度均可选）。
 
     成功后会打印这条记录的完整数据：记录 ID、测量日期、腰围、臂围、大腿围、
-    备注与创建时间。
+    小臂围、备注与创建时间。
     """
     console = get_console()
     try:
@@ -82,6 +86,7 @@ def log(
             "waist_cm": waist,
             "arm_cm": arm,
             "thigh_cm": thigh,
+            "forearm": forearm,
             "note": note,
         })
     except ClientError as e:
@@ -157,19 +162,20 @@ def list_circumference(
         return
 
     render_table(
-        columns=["ID", "日期", "腰围", "臂围", "大腿围", "备注"],
+        columns=["ID", "日期", "腰围", "臂围", "大腿围", "小臂围", "备注"],
         rows=[
             [
                 str(r.get("id", "")),
                 str(r["log_date"]),
-                f"{r['waist_cm']:.1f}" if r.get("waist_cm") else "-",
-                f"{r['arm_cm']:.1f}" if r.get("arm_cm") else "-",
-                f"{r['thigh_cm']:.1f}" if r.get("thigh_cm") else "-",
+                f"{r['waist_cm']:.1f}" if r.get("waist_cm") is not None else "-",
+                f"{r['arm_cm']:.1f}" if r.get("arm_cm") is not None else "-",
+                f"{r['thigh_cm']:.1f}" if r.get("thigh_cm") is not None else "-",
+                f"{r['forearm']:.1f}" if r.get("forearm") is not None else "-",
                 r.get("note") or "",
             ]
             for r in logs
         ],
         title="围度测量记录",
-        align=["right", "left", "right", "right", "right", "left"],
-        col_styles=["magenta", "cyan", "yellow", "", "", "dim"],
+        align=["right", "left", "right", "right", "right", "right", "left"],
+        col_styles=["magenta", "cyan", "yellow", "", "", "", "dim"],
     )

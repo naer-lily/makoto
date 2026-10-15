@@ -35,7 +35,7 @@ function buildOption(): echarts.EChartsOption {
     backgroundColor: 'transparent',
     title: { text: '围度变化趋势', left: 'center', textStyle: { fontSize: 14 } },
     tooltip: { trigger: 'axis' },
-    legend: { data: ['腰围', '臂围', '大腿围'], top: 28 },
+    legend: { data: ['腰围', '臂围', '大腿围', '小臂围'], top: 28 },
     grid: { top: 60, right: 30, bottom: 30, left: 55 },
     xAxis: { type: 'category', data: dates },
     yAxis: {
@@ -77,6 +77,17 @@ function buildOption(): echarts.EChartsOption {
         symbol: 'circle',
         symbolSize: 6,
       },
+      {
+        name: '小臂围',
+        type: 'line',
+        data: sorted.map((r) => r.forearm),
+        smooth: true,
+        connectNulls: true,
+        lineStyle: { color: '#FAC858' },
+        itemStyle: { color: '#FAC858' },
+        symbol: 'circle',
+        symbolSize: 6,
+      },
     ],
   }
 }
@@ -97,8 +108,9 @@ function handleCopy() {
     r.waist_cm != null ? String(r.waist_cm) : '-',
     r.arm_cm != null ? String(r.arm_cm) : '-',
     r.thigh_cm != null ? String(r.thigh_cm) : '-',
+    r.forearm != null ? String(r.forearm) : '-',
   ])
-  copyChartMd('围度变化趋势', ['日期', '腰围 (cm)', '臂围 (cm)', '大腿围 (cm)'], rows)
+  copyChartMd('围度变化趋势', ['日期', '腰围 (cm)', '臂围 (cm)', '大腿围 (cm)', '小臂围 (cm)'], rows)
 }
 
 onMounted(() => {
