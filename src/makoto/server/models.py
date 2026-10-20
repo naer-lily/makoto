@@ -364,6 +364,7 @@ class ReportRow(BaseModel):
     ma_deficit_kcal: float | None
     alpert_limit_kcal: float
     is_interpolated: bool
+    has_diet_data: bool = True
     weekly_loss_kg: float | None
     intake_kcal: float
     tdee_kcal: float
@@ -383,6 +384,7 @@ class ReportSummary(BaseModel):
     ma_ffm_delta: float
     total_deficit_kcal: float
     total_expected_kcal: float | None
+    recorded_days: int
     met_target: bool | None
 
 

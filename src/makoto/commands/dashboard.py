@@ -253,16 +253,22 @@ def report(
         mb_val = float(rd.get("ma_body_fat_pct", 0))
         mf_val = float(rd.get("ma_ffm_kg", 0))
         bal_val = float(rd.get("deficit_kcal", 0))
+        has_diet = bool(rd.get("has_diet_data", True))
         exp_val = rd.get("expected_deficit_kcal")
         alpert_val = float(rd.get("alpert_limit_kcal", 0))
         interp = bool(rd.get("is_interpolated", False))
         atl_val = rd.get("atl")
         ctl_val = rd.get("ctl")
 
-        sign = "+" if bal_val > 0 else ""
-        bal_str = f"{sign}{bal_val:.0f} kcal"
-        exp_str = f"{exp_val:.0f} kcal" if exp_val is not None else "-"
-        alpert_str = f"{alpert_val:.0f} kcal"
+        if has_diet:
+            sign = "+" if bal_val > 0 else ""
+            bal_str = f"{sign}{bal_val:.0f} kcal"
+            exp_str = f"{exp_val:.0f} kcal" if exp_val is not None else "-"
+            alpert_str = f"{alpert_val:.0f} kcal"
+        else:
+            bal_str = "—"
+            exp_str = "—"
+            alpert_str = "—"
         atl_str = str(atl_val) if atl_val is not None else "-"
         ctl_str = str(ctl_val) if ctl_val is not None else "-"
 
@@ -300,6 +306,7 @@ def report(
     mf_delta = last_mf - first_mf
     total_balance = float(summary.get("total_deficit_kcal", 0))
     total_expected = summary.get("total_expected_kcal")
+    recorded_days = int(summary.get("recorded_days", data.get("days", 0)))
     exp_total_str = f"{total_expected:.0f} kcal" if total_expected is not None else "-"
 
     ea_values = [
@@ -310,7 +317,7 @@ def report(
     avg_ea_str = f"{sum(ea_values) / len(ea_values):.1f}" if ea_values else "-"
 
     table_rows.append([
-        f"[bold]总计 ({data.get('days', 0)}天)[/bold]",
+        f"[bold]总计 ({data.get('days', 0)}天, 实记{recorded_days}天)[/bold]",
         f"[bold]{w_delta:+.1f} kg[/bold]",
         f"[bold]{bf_delta:+.1f}%[/bold]",
         f"[bold]{ffm_delta:+.1f} kg[/bold]",
@@ -353,7 +360,8 @@ def report(
     alpert_exceeded = sum(
         1
         for rd in rows_data
-        if float(rd.get("deficit_kcal", 0)) > float(rd.get("alpert_limit_kcal", 0)) > 0
+        if bool(rd.get("has_diet_data", True))
+        and float(rd.get("deficit_kcal", 0)) > float(rd.get("alpert_limit_kcal", 0)) > 0
     )
     if alpert_exceeded > 0:
         console.print(

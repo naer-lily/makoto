@@ -47,6 +47,7 @@ from makoto.server.models import nutrition_for
 from makoto.utils.timeseries import date_series
 from makoto.utils.timeseries import linear_interpolate
 from makoto.utils.timeseries import rolling_mean
+from makoto.utils.timeseries import rolling_mean_available
 from makoto.utils.tz import today_local
 
 router = APIRouter(prefix="/api/v1/dashboard", tags=["dashboard"])
@@ -65,6 +66,7 @@ async def _compute_deficit(
     缺口 = NETEE * 天数 + 运动消耗 - 饮食摄入
     """
     diet_total = 0.0
+    diet_days: set[date] = set()
     diet_rows = (
         await session.execute(
             select(DietLog).where(
@@ -74,6 +76,7 @@ async def _compute_deficit(
         )
     ).scalars().all()
     for dr in diet_rows:
+        diet_days.add(datetime.fromisoformat(dr.log_time).date())
         food = (
             await session.execute(select(Food).where(Food.id == dr.food_id))
         ).scalar_one_or_none()
@@ -81,6 +84,10 @@ async def _compute_deficit(
             diet_total += nutrition_for(
                 food.calories_per_100g, 0, 0, 0, 0, dr.grams
             )["calories_kcal"]
+
+    # 没有饮食记录的日子不参与缺口：既不算 NETEE，也不算当天运动。
+    if not diet_days:
+        return 0.0
 
     ex_total = 0.0
     ex_rows = (
@@ -92,9 +99,10 @@ async def _compute_deficit(
         )
     ).scalars().all()
     for er in ex_rows:
-        ex_total += er.calories_kcal
+        if datetime.fromisoformat(er.log_time).date() in diet_days:
+            ex_total += er.calories_kcal
 
-    days = (end_date - start_date).days + 1
+    days = len(diet_days)
     return round(daily_netee * days + ex_total - diet_total, 1)
 
 
@@ -498,11 +506,13 @@ async def dashboard_report(
 
     # 饮食汇总
     daily_diet: dict[date, float] = dict.fromkeys(display_dates, 0.0)
+    diet_days: set[date] = set()
     diet_rows = (await session.execute(select(DietLog))).scalars().all()
     for dr in diet_rows:
         d_date = datetime.fromisoformat(dr.log_time).date()
         if d_date not in daily_diet:
             continue
+        diet_days.add(d_date)
         food = (
             await session.execute(select(Food).where(Food.id == dr.food_id))
         ).scalar_one_or_none()
@@ -530,11 +540,12 @@ async def dashboard_report(
         f.date.replace(".", "-"): f for f in fitness_records
     }
 
-    # 热量缺口 7 日均线
+    # 热量缺口：只有当天有饮食记录才计算；空白日不参与均值和总计。
     daily_balance: dict[date, float] = {}
     for d in display_dates:
-        daily_balance[d] = netee + daily_exercise.get(d, 0.0) - daily_diet.get(d, 0.0)
-    ma_deficit = rolling_mean(daily_balance, window=7)
+        if d in diet_days:
+            daily_balance[d] = netee + daily_exercise.get(d, 0.0) - daily_diet.get(d, 0.0)
+    ma_deficit = rolling_mean_available(daily_balance, display_dates, window=7)
 
     data_rows: list[ReportRow] = []
     total_balance = 0.0
@@ -551,17 +562,20 @@ async def dashboard_report(
         mfa = ma_fat_full.get(d, 0)
         prev_mw = ma_weight_full.get(d - timedelta(days=7))
         weekly_loss = round(prev_mw - mw, 2) if prev_mw is not None else None
-        balance = daily_balance[d]
-        total_balance += balance
+        has_diet = d in diet_days
+        balance = daily_balance.get(d, 0.0)
+        if has_diet:
+            total_balance += balance
         exp = daily_expected if daily_expected is not None else 0
-        total_expected += exp
+        if has_diet:
+            total_expected += exp
         is_orig = weight_original.get(d, False)
         md = ma_deficit.get(d)
         alpert_limit = round(fat * ALPERT_KCAL_PER_KG_FAT, 1)
         intake = round(daily_diet.get(d, 0.0), 1)
         tdee = round(netee + daily_exercise.get(d, 0.0), 1)
         exercise = round(daily_exercise.get(d, 0.0), 1)
-        ea = round((intake - exercise) / ffm, 1) if ffm > 0 else None
+        ea = round((intake - exercise) / ffm, 1) if has_diet and ffm > 0 else None
         fr = fitness_map.get(str(d))
         data_rows.append(
             ReportRow(
@@ -575,9 +589,14 @@ async def dashboard_report(
                 ma_ffm_kg=round(mf, 1),
                 ma_fat_kg=round(mfa, 1),
                 deficit_kcal=round(balance, 1),
-                expected_deficit_kcal=round(exp, 1) if daily_expected is not None else None,
+                expected_deficit_kcal=(
+                    round(exp, 1)
+                    if has_diet and daily_expected is not None
+                    else None
+                ),
                 alpert_limit_kcal=alpert_limit,
                 is_interpolated=not is_orig,
+                has_diet_data=has_diet,
                 weekly_loss_kg=weekly_loss,
                 ma_deficit_kcal=round(md, 1) if md is not None else None,
                 intake_kcal=intake,
@@ -608,7 +627,12 @@ async def dashboard_report(
         ma_ffm_delta=round(last.ma_ffm_kg - first.ma_ffm_kg, 1),
         total_deficit_kcal=round(total_balance, 1),
         total_expected_kcal=round(total_expected, 1) if daily_expected is not None else None,
-        met_target=total_balance >= total_expected if daily_expected is not None else None,
+        recorded_days=len(diet_days),
+        met_target=(
+            total_balance >= total_expected
+            if daily_expected is not None and diet_days
+            else None
+        ),
     )
 
     return ReportResponse(

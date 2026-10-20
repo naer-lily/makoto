@@ -182,6 +182,42 @@ def test_report_custom_date_range(client: TestClient) -> None:
     assert rows[-1]["date"] == "2026-06-08"
 
 
+def test_report_skips_days_without_diet_logs(client: TestClient) -> None:
+    """没有饮食记录的日子不计缺口、不计期望值，也不进总天数。"""
+    _setup_profile(client)
+    _seed_body_logs(client)
+    food_id = _seed_food(client)
+
+    client.post(
+        "/api/v1/diet-logs",
+        json={"log_time": "2026-06-02T12:30:00", "food_id": food_id, "grams": 100},
+        headers=auth_headers(),
+    )
+
+    resp = client.get(
+        "/api/v1/dashboard/report?start_date=2026-06-01&end_date=2026-06-04",
+        headers=auth_headers(),
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    rows = {row["date"]: row for row in data["rows"]}
+
+    assert rows["2026-06-01"]["has_diet_data"] is False
+    assert rows["2026-06-01"]["deficit_kcal"] == 0
+    assert rows["2026-06-01"]["expected_deficit_kcal"] is None
+    assert rows["2026-06-01"]["ea_kcal_per_kg_ffm"] is None
+
+    assert rows["2026-06-02"]["has_diet_data"] is True
+    assert rows["2026-06-02"]["deficit_kcal"] != 0
+
+    assert rows["2026-06-03"]["has_diet_data"] is False
+    assert rows["2026-06-03"]["deficit_kcal"] == 0
+
+    summary = data["summary"]
+    assert summary["recorded_days"] == 1
+    assert summary["total_deficit_kcal"] == rows["2026-06-02"]["deficit_kcal"]
+
+
 def test_report_interpolation(client: TestClient) -> None:
     """验证缺少日期的数据会被插值。"""
     _setup_profile(client)
@@ -358,8 +394,8 @@ def test_report_ea_fields(client: TestClient) -> None:
     assert row_3["intake_kcal"] == 133.0
     assert row_3["ea_kcal_per_kg_ffm"] == 1.4  # (133 − 50) / 57.56 = 1.44
 
-    # 6/1：无饮食无运动 → EA 为 0
-    assert rows[0]["ea_kcal_per_kg_ffm"] == 0.0
+    # 6/1：无饮食记录 → 不算缺口，EA 为空
+    assert rows[0]["ea_kcal_per_kg_ffm"] is None
 
 
 def test_weekly_loss_computed(client: TestClient) -> None:

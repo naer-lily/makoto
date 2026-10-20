@@ -132,3 +132,30 @@ def rolling_mean(
         result[d] = round(sum(window_vals) / len(window_vals), 1)
 
     return result
+
+
+def rolling_mean_available(
+    series: dict[date, float],
+    dates: list[date],
+    window: int,
+) -> dict[date, float | None]:
+    """按自然日窗口计算滑动均值，缺失日不参与分母。
+
+    Args:
+        series: 稀疏的 {日期: 值} 映射；不存在的日期视为无数据。
+        dates: 需要输出的完整日期序列。
+        window: 窗口大小（天，含当天）。
+
+    Returns:
+        {日期: 窗口内有数据时的均值，否则 None}。
+    """
+    result: dict[date, float | None] = {}
+    for d in dates:
+        start = d - timedelta(days=window - 1)
+        window_vals = [
+            series[day]
+            for day in date_series(start, d)
+            if day in series
+        ]
+        result[d] = round(sum(window_vals) / len(window_vals), 1) if window_vals else None
+    return result
