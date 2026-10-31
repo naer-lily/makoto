@@ -46,7 +46,7 @@ def today() -> None:
     if body is None:
         console.print("  [dim]本日未录入[/dim]")
     else:
-        console.print(f"  体重: {body['weight_kg']} kg    体脂率: {body['body_fat_pct']}%")
+        console.print(f"  体重: {body['weight_kg']} kg")
         if body.get("note"):
             console.print(f"  [dim]备注: {body['note']}[/dim]")
 
@@ -178,30 +178,6 @@ def today() -> None:
         label = "平衡"
     console.print(f"  {label}  {abs(net):>8.0f} kcal")
 
-    # 能量可用性 EA = (摄入 − 运动) / 去脂体重
-    ffm_kg = data.get("ffm_kg")
-    ea_val = data.get("ea_kcal_per_kg_ffm")
-    ea_level = data.get("ea_level")
-    console.print("\n[bold underline]能量可用性[/bold underline]")
-    if ffm_kg is None or ea_val is None:
-        console.print("  [dim]无身体记录，无法计算（需先记录体重与体脂）[/dim]")
-    else:
-        if ea_level == "low":
-            ea_label = "[red]偏低[/red]"
-        elif ea_level == "good":
-            ea_label = "[green]良好[/green]"
-        elif ea_level == "optimal":
-            ea_label = "[blue]最佳[/blue]"
-        else:
-            ea_label = "[yellow]适中[/yellow]"
-        console.print(f"  摄入   -{total_intake:>6.0f} kcal")
-        console.print(f"  运动   +{total_burned:>6.0f} kcal")
-        console.print(f"  FFM    {float(ffm_kg):>6.1f} kg")
-        console.print(f"  {'─' * 22}")
-        console.print(f"  EA     {float(ea_val):>6.1f} kcal/kg FFM  {ea_label}")
-        if ea_level == "low":
-            console.print("  [red]偏低：接近临界，建议适当增加摄入[/red]")
-
 
 @dashboard_app.command()
 def report(
@@ -215,7 +191,7 @@ def report(
         False, "--json", help="以 JSON 格式输出原始数据"
     ),
 ) -> None:
-    """多日趋势报告：体重/体脂率/FFM/七日均线 + 每日热量缺口。"""
+    """多日趋势报告：体重、七日均重、每日热量缺口与 Keep 体能数据。"""
     console = get_console()
     cli = get_client()
     try:
@@ -234,28 +210,15 @@ def report(
     table_rows: list[list[str]] = []
     first_w = 0.0
     last_w = 0.0
-    first_bf = 0.0
-    last_bf = 0.0
-    first_ffm = 0.0
-    last_ffm = 0.0
     first_mw = 0.0
     last_mw = 0.0
-    first_mb = 0.0
-    last_mb = 0.0
-    first_mf = 0.0
-    last_mf = 0.0
 
     for i, rd in enumerate(rows_data):
         w_val = float(rd.get("weight_kg", 0))
-        bf_val = float(rd.get("body_fat_pct", 0))
-        ffm_val = float(rd.get("ffm_kg", 0))
         mw_val = float(rd.get("ma_weight_kg", 0))
-        mb_val = float(rd.get("ma_body_fat_pct", 0))
-        mf_val = float(rd.get("ma_ffm_kg", 0))
         bal_val = float(rd.get("deficit_kcal", 0))
         has_diet = bool(rd.get("has_diet_data", True))
         exp_val = rd.get("expected_deficit_kcal")
-        alpert_val = float(rd.get("alpert_limit_kcal", 0))
         interp = bool(rd.get("is_interpolated", False))
         atl_val = rd.get("atl")
         ctl_val = rd.get("ctl")
@@ -264,83 +227,47 @@ def report(
             sign = "+" if bal_val > 0 else ""
             bal_str = f"{sign}{bal_val:.0f} kcal"
             exp_str = f"{exp_val:.0f} kcal" if exp_val is not None else "-"
-            alpert_str = f"{alpert_val:.0f} kcal"
         else:
             bal_str = "—"
             exp_str = "—"
-            alpert_str = "—"
         atl_str = str(atl_val) if atl_val is not None else "-"
         ctl_str = str(ctl_val) if ctl_val is not None else "-"
 
-        ea_val = rd.get("ea_kcal_per_kg_ffm")
-        if ea_val is None:
-            ea_str = "-"
-        else:
-            ea_num = float(ea_val)
-            ea_str = f"[red]{ea_num:.1f}[/red]" if ea_num < 20 else f"{ea_num:.1f}"
-
         w_str = f"{w_val:.1f} kg{'*' if interp else ''}"
-        bf_str = f"{bf_val:.1f}%{'*' if interp else ''}"
-        ffm_str = f"{ffm_val:.1f} kg{'*' if interp else ''}"
         mw_str = f"{mw_val:.1f} kg"
-        mb_str = f"{mb_val:.1f}%"
-        mf_str = f"{mf_val:.1f} kg"
-
         if i == 0:
-            first_w, first_bf, first_ffm = w_val, bf_val, ffm_val
-            first_mw, first_mb, first_mf = mw_val, mb_val, mf_val
-        last_w, last_bf, last_ffm = w_val, bf_val, ffm_val
-        last_mw, last_mb, last_mf = mw_val, mb_val, mf_val
+            first_w, first_mw = w_val, mw_val
+        last_w, last_mw = w_val, mw_val
 
         table_rows.append([
-            str(rd.get("date", "")), w_str, bf_str, ffm_str,
-            mw_str, mb_str, mf_str, bal_str, alpert_str, exp_str,
-            atl_str, ctl_str, ea_str,
+            str(rd.get("date", "")), w_str, mw_str, bal_str, exp_str,
+            atl_str, ctl_str,
         ])
 
     w_delta = last_w - first_w
-    bf_delta = last_bf - first_bf
-    ffm_delta = last_ffm - first_ffm
     mw_delta = last_mw - first_mw
-    mb_delta = last_mb - first_mb
-    mf_delta = last_mf - first_mf
     total_balance = float(summary.get("total_deficit_kcal", 0))
     total_expected = summary.get("total_expected_kcal")
     recorded_days = int(summary.get("recorded_days", data.get("days", 0)))
     exp_total_str = f"{total_expected:.0f} kcal" if total_expected is not None else "-"
 
-    ea_values = [
-        float(rd["ea_kcal_per_kg_ffm"])
-        for rd in rows_data
-        if rd.get("ea_kcal_per_kg_ffm") is not None
-    ]
-    avg_ea_str = f"{sum(ea_values) / len(ea_values):.1f}" if ea_values else "-"
-
     table_rows.append([
         f"[bold]总计 ({data.get('days', 0)}天, 实记{recorded_days}天)[/bold]",
         f"[bold]{w_delta:+.1f} kg[/bold]",
-        f"[bold]{bf_delta:+.1f}%[/bold]",
-        f"[bold]{ffm_delta:+.1f} kg[/bold]",
         f"[bold]{mw_delta:+.1f} kg[/bold]",
-        f"[bold]{mb_delta:+.1f}%[/bold]",
-        f"[bold]{mf_delta:+.1f} kg[/bold]",
         f"[bold]{total_balance:+.0f} kcal[/bold]",
-        "",
         f"[bold]{exp_total_str}[/bold]",
-        "", "", f"[bold]{avg_ea_str}[/bold]",
+        "",
+        "",
     ])
 
     title_text = f"{data['start_date']} ~ {data['end_date']} ({data['days']} 天)"
     render_table(
-        columns=[
-            "日期", "体重", "体脂率", "FFM",
-            "7日均重", "7日均脂", "7均FFM", "热量缺口", "安全上限", "日期望",
-            "ATL", "CTL", "EA",
-        ],
+        columns=["日期", "体重", "7日均重", "热量缺口", "日期望", "ATL", "CTL"],
         rows=table_rows,
         title=title_text,
-        align=["left"] + ["right"] * 12,
-        col_styles=["cyan", "", "", "", "", "", "", "yellow", "red", "dim", "", "", ""],
+        align=["left"] + ["right"] * 6,
+        col_styles=["cyan", "", "", "yellow", "dim", "", ""],
     )
 
     has_interp = any(bool(r.get("is_interpolated")) for r in rows_data)
@@ -355,27 +282,4 @@ def report(
     elif met is True:
         console.print(
             f"[green]实际缺口 {total_balance:.0f} >= 期望 {total_expected:.0f} kcal，达标[/green]"
-        )
-
-    alpert_exceeded = sum(
-        1
-        for rd in rows_data
-        if bool(rd.get("has_diet_data", True))
-        and float(rd.get("deficit_kcal", 0)) > float(rd.get("alpert_limit_kcal", 0)) > 0
-    )
-    if alpert_exceeded > 0:
-        console.print(
-            f"[red]⚠ {alpert_exceeded} 天缺口超过 Alpert 安全上限，可能伴随瘦体重流失[/red]"
-        )
-
-    ea_low_days = sum(
-        1
-        for rd in rows_data
-        if rd.get("ea_kcal_per_kg_ffm") is not None
-        and float(rd["ea_kcal_per_kg_ffm"]) < 20
-    )
-    if ea_low_days > 0:
-        console.print(
-            f"[yellow]⚠ {ea_low_days} 天能量可用性偏低"
-            "（<20 kcal/kg FFM），注意保证基础摄入[/yellow]"
         )

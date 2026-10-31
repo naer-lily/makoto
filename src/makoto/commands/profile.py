@@ -34,13 +34,11 @@ def _profile_detail_fields(p: dict[str, Any]) -> list[tuple[str, str]]:
         ("年龄", f"{p.get('age', '')} 岁"),
         ("身高", f"{p.get('height_cm', '')} cm"),
         ("体重", f"{p.get('weight_kg', '')} kg"),
-        ("体脂率", f"{p.get('body_fat_pct', '')} %"),
         ("目标体重", f"{p.get('target_weight_kg', '')} kg"),
         ("目标日期", str(p.get("target_date", ""))),
         ("活动系数", str(p.get("activity_level", ""))),
         ("Keep 令牌", keep),
         ("── 推算指标 ──", ""),
-        ("FFM (去脂体重)", f"{float(p.get('ffm_kg', 0)):.1f} kg"),
         ("BMR (基础代谢)", f"{float(p.get('bmr_kcal', 0)):.1f} kcal/天"),
         ("NETEE (非运动总能量消耗)", f"{float(p.get('netee_kcal', 0)):.1f} kcal/天"),
         ("每周缺口需求", deficit_str),
@@ -61,8 +59,14 @@ def set(
     weight: float = typer.Option(
         ..., "--weight", "-w", min=0, help="当前体重（公斤），非负数。"
     ),
-    body_fat: float = typer.Option(
-        ..., "--body-fat", "-b", min=0, max=60, help="体脂率（百分比），取值 0-60。"
+    body_fat: float | None = typer.Option(
+        None,
+        "--body-fat",
+        "-b",
+        min=0,
+        max=60,
+        hidden=True,
+        help="已弃用：BIA 体脂读数不再保存，传入也会被忽略。",
     ),
     target_weight: float = typer.Option(
         ..., "--target-weight", min=0, help="目标体重（公斤），非负数。"
@@ -83,7 +87,7 @@ def set(
     """设置或更新用户画像（覆盖式写入）。
 
     成功后会打印完整画像，包括录入的基本信息与据此推算的
-    FFM、BMR、NETEE、每周缺口需求、距目标日剩余天数。
+    BMR、NETEE、每周缺口需求、距目标日剩余天数。
 
     NETEE (Non-Exercise Total Energy Expenditure，非运动总能量消耗)
     计算公式为 BMR × 活动系数，代表不含刻意运动的一日总消耗基线。
@@ -97,13 +101,13 @@ def set(
 
     cli = get_client()
     try:
+        # body_fat 仅为旧参数兼容，不写入请求体。
         result = cli.set_profile({
             "name": name,
             "gender": gender,
             "age": age,
             "height_cm": height,
             "weight_kg": weight,
-            "body_fat_pct": body_fat,
             "target_weight_kg": target_weight,
             "target_date": target_date,
             "activity_level": activity,
@@ -112,6 +116,8 @@ def set(
         console.print(f"[red]请求失败: {e.detail}[/red]")
         raise typer.Exit(1) from e
 
+    if body_fat is not None:
+        console.print("[dim]--body-fat 已弃用，BIA 体脂读数不会被保存。[/dim]")
     console.print(f"[green]用户画像已保存: {name}[/green]")
     render_detail("当前用户画像", _profile_detail_fields(result))
 
@@ -135,7 +141,6 @@ def show() -> None:
     console.print(f"  年龄:     {p['age']} 岁")
     console.print(f"  身高:     {p['height_cm']} cm")
     console.print(f"  体重:     {p['weight_kg']} kg")
-    console.print(f"  体脂率:   {p['body_fat_pct']}%")
     console.print(f"  目标体重: {p['target_weight_kg']} kg")
     console.print(f"  目标日期: {p['target_date']}")
     console.print(f"  活动系数: {p['activity_level']}")
@@ -147,7 +152,6 @@ def show() -> None:
     render_table(
         columns=["指标", "数值", "说明"],
         rows=[
-            ["FFM (去脂体重)", f"{p['ffm_kg']:.1f} kg", "体重 x (1 - 体脂率)"],
             ["BMR (基础代谢)", f"{p['bmr_kcal']:.1f} kcal/天", "Mifflin-St Jeor 公式"],
             [
                 "NETEE (非运动总消耗)",

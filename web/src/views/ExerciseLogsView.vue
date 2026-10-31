@@ -1,11 +1,11 @@
 <template>
   <div>
     <div class="toolbar">
-      <h2 style="margin:0">运动记录</h2>
+      <h2 class="page-title">运动记录</h2>
       <el-button type="primary" @click="openAdd">添加记录</el-button>
     </div>
 
-    <el-table :data="logs" v-loading="loading" stripe>
+    <el-table v-if="!isMobile" :data="logs" v-loading="loading" stripe>
       <el-table-column prop="log_time" label="时间" min-width="150" />
       <el-table-column prop="exercise_name" label="运动名称" min-width="120" />
       <el-table-column prop="duration_desc" label="时长" min-width="100" />
@@ -18,12 +18,41 @@
       </el-table-column>
     </el-table>
 
+    <div v-else v-loading="loading" class="mobile-card-list">
+      <el-empty v-if="!logs.length && !loading" description="暂无运动记录" :image-size="72" />
+      <article v-for="row in logs" :key="row.id" class="mobile-card">
+        <div class="mobile-card-head">
+          <div class="mobile-card-title">{{ row.exercise_name }}</div>
+          <el-tag size="small" effect="plain" type="success">{{ row.calories_kcal }} kcal</el-tag>
+        </div>
+        <div class="mobile-card-grid">
+          <div class="mobile-card-field">
+            <div class="mobile-card-label">时间</div>
+            <div class="mobile-card-value">{{ formatTime(row.log_time) }}</div>
+          </div>
+          <div class="mobile-card-field">
+            <div class="mobile-card-label">时长</div>
+            <div class="mobile-card-value">{{ row.duration_desc }}</div>
+          </div>
+        </div>
+        <div v-if="row.note" class="mobile-card-note">{{ row.note }}</div>
+        <div class="mobile-card-actions">
+          <el-button size="small" type="primary" plain @click="openEdit(row)">编辑</el-button>
+          <el-button size="small" type="danger" plain @click="handleDelete(row)">删除</el-button>
+        </div>
+      </article>
+    </div>
+
     <el-dialog
       v-model="dialogVisible"
       :title="editing ? '编辑运动记录' : '添加运动记录'"
       width="480px"
     >
-      <el-form :model="form" label-width="80px">
+      <el-form
+        :model="form"
+        :label-width="isMobile ? 'auto' : '80px'"
+        :label-position="isMobile ? 'top' : 'right'"
+      >
         <el-form-item label="时间" required>
           <el-date-picker
             v-model="form.log_time"
@@ -65,7 +94,9 @@ import {
   type ExerciseLogResponse,
   type ExerciseLogCreate,
 } from '../api/exercise'
+import { useMobile } from '../composables/useMobile'
 
+const isMobile = useMobile()
 const logs = ref<ExerciseLogResponse[]>([])
 const loading = ref(false)
 const saving = ref(false)
@@ -80,6 +111,10 @@ const form = ref<ExerciseLogCreate>({
   calories_kcal: 0,
   note: null,
 })
+
+function formatTime(value: string): string {
+  return value.slice(0, 16).replace('T', ' ')
+}
 
 function resetForm() {
   form.value = {
@@ -160,6 +195,28 @@ onMounted(() => loadLogs())
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   margin-bottom: 20px;
+}
+
+.page-title {
+  margin: 0;
+  white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+  .toolbar {
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .page-title {
+    font-size: 18px;
+  }
+
+  .toolbar .el-button {
+    min-height: 40px;
+  }
 }
 </style>

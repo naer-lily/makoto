@@ -1,11 +1,11 @@
 <template>
   <div>
     <div class="toolbar">
-      <h2 style="margin:0">饮食记录</h2>
+      <h2 class="page-title">饮食记录</h2>
       <el-button type="primary" @click="openAdd">添加记录</el-button>
     </div>
 
-    <el-table :data="logs" v-loading="loading" stripe>
+    <el-table v-if="!isMobile" :data="logs" v-loading="loading" stripe>
       <el-table-column prop="log_time" label="时间" min-width="150" />
       <el-table-column prop="food_name" label="食物" min-width="120" />
       <el-table-column prop="grams" label="克数" width="80" />
@@ -22,12 +22,57 @@
       </el-table-column>
     </el-table>
 
+    <div v-else v-loading="loading" class="mobile-card-list">
+      <el-empty v-if="!logs.length && !loading" description="暂无饮食记录" :image-size="72" />
+      <article v-for="row in logs" :key="row.id" class="mobile-card">
+        <div class="mobile-card-head">
+          <div class="mobile-card-title">{{ row.food_name }}</div>
+          <el-tag size="small" effect="plain" type="warning">{{ row.calories_kcal }} kcal</el-tag>
+        </div>
+        <div class="mobile-card-grid">
+          <div class="mobile-card-field">
+            <div class="mobile-card-label">时间</div>
+            <div class="mobile-card-value">{{ formatTime(row.log_time) }}</div>
+          </div>
+          <div class="mobile-card-field">
+            <div class="mobile-card-label">克数</div>
+            <div class="mobile-card-value">{{ row.grams }} g</div>
+          </div>
+          <div class="mobile-card-field">
+            <div class="mobile-card-label">蛋白质</div>
+            <div class="mobile-card-value">{{ row.protein_g }} g</div>
+          </div>
+          <div class="mobile-card-field">
+            <div class="mobile-card-label">碳水</div>
+            <div class="mobile-card-value">{{ row.carbs_g }} g</div>
+          </div>
+          <div class="mobile-card-field">
+            <div class="mobile-card-label">脂肪</div>
+            <div class="mobile-card-value">{{ row.fat_g }} g</div>
+          </div>
+          <div class="mobile-card-field">
+            <div class="mobile-card-label">纤维</div>
+            <div class="mobile-card-value">{{ row.fiber_g }} g</div>
+          </div>
+        </div>
+        <div v-if="row.note" class="mobile-card-note">{{ row.note }}</div>
+        <div class="mobile-card-actions">
+          <el-button size="small" type="primary" plain @click="openEdit(row)">编辑</el-button>
+          <el-button size="small" type="danger" plain @click="handleDelete(row)">删除</el-button>
+        </div>
+      </article>
+    </div>
+
     <el-dialog
       v-model="dialogVisible"
       :title="editing ? '编辑饮食记录' : '添加饮食记录'"
       width="480px"
     >
-      <el-form :model="form" label-width="80px">
+      <el-form
+        :model="form"
+        :label-width="isMobile ? 'auto' : '80px'"
+        :label-position="isMobile ? 'top' : 'right'"
+      >
         <el-form-item label="时间" required>
           <el-date-picker
             v-model="form.log_time"
@@ -74,7 +119,9 @@ import {
   type DietLogCreate,
 } from '../api/diet'
 import { fetchFoods, type FoodResponse } from '../api/foods'
+import { useMobile } from '../composables/useMobile'
 
+const isMobile = useMobile()
 const logs = ref<DietLogResponse[]>([])
 const foodOptions = ref<FoodResponse[]>([])
 const loading = ref(false)
@@ -96,6 +143,10 @@ const form = ref<DietForm>({
   grams: 0,
   note: null,
 })
+
+function formatTime(value: string): string {
+  return value.slice(0, 16).replace('T', ' ')
+}
 
 function resetForm() {
   form.value = {
@@ -191,6 +242,28 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   margin-bottom: 20px;
+}
+
+.page-title {
+  margin: 0;
+  white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+  .toolbar {
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .page-title {
+    font-size: 18px;
+  }
+
+  .toolbar .el-button {
+    min-height: 40px;
+  }
 }
 </style>

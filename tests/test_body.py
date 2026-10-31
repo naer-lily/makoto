@@ -1,4 +1,4 @@
-"""测试 /api/v1/body-logs 端点。"""
+"""测试 /api/v1/body-logs 端点（仅体重，BIA 体脂不再保存）。"""
 
 from fastapi.testclient import TestClient
 
@@ -6,6 +6,7 @@ from tests.conftest import auth_headers
 
 
 def _setup_profile(client: TestClient) -> None:
+    """画像不再要求体脂率。"""
     client.put(
         "/api/v1/profile",
         json={
@@ -14,7 +15,6 @@ def _setup_profile(client: TestClient) -> None:
             "age": 30,
             "height_cm": 175,
             "weight_kg": 70,
-            "body_fat_pct": 18,
             "target_weight_kg": 65,
             "target_date": "2026-12-31",
             "activity_level": "moderate",
@@ -29,7 +29,31 @@ def test_list_body_logs_empty(client: TestClient) -> None:
     assert resp.json() == []
 
 
-def test_create_and_list_body_log(client: TestClient) -> None:
+def test_create_without_body_fat_keeps_weight(client: TestClient) -> None:
+    _setup_profile(client)
+    payload = {
+        "log_date": "2026-06-15",
+        "weight_kg": 69.5,
+        "note": "早上空腹",
+    }
+    resp = client.post("/api/v1/body-logs", json=payload, headers=auth_headers())
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["weight_kg"] == 69.5
+    assert data["body_fat_pct"] is None
+    assert "waist_cm" not in data
+
+    profile_resp = client.get("/api/v1/profile", headers=auth_headers())
+    assert profile_resp.json()["weight_kg"] == 69.5
+    assert profile_resp.json()["body_fat_pct"] is None
+
+    list_resp = client.get("/api/v1/body-logs", headers=auth_headers())
+    assert len(list_resp.json()) == 1
+    assert list_resp.json()[0]["body_fat_pct"] is None
+
+
+def test_create_stores_home_scale_body_fat(client: TestClient) -> None:
+    """家秤体脂仍应保存；健身房 BIA 机数据不写 makoto。"""
     _setup_profile(client)
     payload = {
         "log_date": "2026-06-15",
@@ -39,15 +63,11 @@ def test_create_and_list_body_log(client: TestClient) -> None:
     }
     resp = client.post("/api/v1/body-logs", json=payload, headers=auth_headers())
     assert resp.status_code == 201
-    data = resp.json()
-    assert data["weight_kg"] == 69.5
-    assert "waist_cm" not in data
+    assert resp.json()["body_fat_pct"] == 17.5
 
     profile_resp = client.get("/api/v1/profile", headers=auth_headers())
-    assert profile_resp.json()["weight_kg"] == 69.5
-
-    list_resp = client.get("/api/v1/body-logs", headers=auth_headers())
-    assert len(list_resp.json()) == 1
+    assert profile_resp.json()["body_fat_pct"] == 17.5
+    assert profile_resp.json()["ffm_kg"] == 57.3
 
 
 def test_create_body_log_same_date(client: TestClient) -> None:
@@ -55,7 +75,6 @@ def test_create_body_log_same_date(client: TestClient) -> None:
     payload = {
         "log_date": "2026-06-15",
         "weight_kg": 69.0,
-        "body_fat_pct": 18.0,
     }
     resp1 = client.post("/api/v1/body-logs", json=payload, headers=auth_headers())
     assert resp1.status_code == 201
@@ -68,7 +87,7 @@ def test_delete_body_log(client: TestClient) -> None:
     _setup_profile(client)
     resp = client.post(
         "/api/v1/body-logs",
-        json={"log_date": "2026-06-14", "weight_kg": 70.0, "body_fat_pct": 18.0},
+        json={"log_date": "2026-06-14", "weight_kg": 70.0},
         headers=auth_headers(),
     )
     log_id = resp.json()["id"]
@@ -79,7 +98,7 @@ def test_delete_body_log(client: TestClient) -> None:
     assert len(resp3.json()) == 0
 
 
-def test_delete_body_log_returns_full_record(client: TestClient) -> None:
+def test_delete_body_log_returns_weight_record(client: TestClient) -> None:
     _setup_profile(client)
     resp = client.post(
         "/api/v1/body-logs",
@@ -101,7 +120,7 @@ def test_list_body_logs_date_filter(client: TestClient) -> None:
     for day in ("2026-06-18", "2026-06-19", "2026-06-20"):
         client.post(
             "/api/v1/body-logs",
-            json={"log_date": day, "weight_kg": 70.0, "body_fat_pct": 18.0},
+            json={"log_date": day, "weight_kg": 70.0},
             headers=auth_headers(),
         )
 

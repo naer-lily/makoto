@@ -30,23 +30,26 @@ def _bmr(weight: float, height: float, age: int, gender: Gender) -> float:
 
 def _compute_profile_fields(
     d: dict[str, Any], target_date: date
-) -> tuple[float, float, float, float | None, int]:
+) -> tuple[float, float, float | None, int, float | None]:
+    """计算不依赖 BIA 体脂的画像指标（BMR / NETEE / 每周缺口 / 剩余天数）。"""
     weight = float(d["weight_kg"])
     height = float(d["height_cm"])
     age = int(d["age"])
-    bf = float(d["body_fat_pct"])
     gender = Gender(str(d["gender"]))
     activity = ActivityLevel(str(d["activity_level"]))
     target = float(d["target_weight_kg"])
+    body_fat = d.get("body_fat_pct")
 
-    ffm = round(weight * (1 - bf / 100), 1)
     bmr = _bmr(weight, height, age, gender)
     netee = round(bmr * activity.multiplier, 1)
     days = (target_date - today_local()).days
     weekly = None
     if days > 0:
         weekly = round((weight - target) * 7700 / (max(days / 7, 1)), 1)
-    return ffm, bmr, netee, weekly, days
+    ffm = None
+    if body_fat is not None:
+        ffm = round(weight * (1 - float(body_fat) / 100.0), 1)
+    return bmr, netee, weekly, days, ffm
 
 
 async def _load_profile(session: AsyncSession) -> Profile | None:
@@ -61,12 +64,12 @@ def _build_response(row: Profile) -> ProfileResponse:
         "weight_kg": row.weight_kg,
         "height_cm": row.height_cm,
         "age": row.age,
-        "body_fat_pct": row.body_fat_pct,
         "gender": row.gender,
         "activity_level": row.activity_level,
         "target_weight_kg": row.target_weight_kg,
+        "body_fat_pct": row.body_fat_pct,
     }
-    ffm, bmr, netee, weekly, days_remaining = _compute_profile_fields(d, target_date)
+    bmr, netee, weekly, days_remaining, ffm = _compute_profile_fields(d, target_date)
     return ProfileResponse(
         name=row.name,
         gender=Gender(row.gender),
@@ -106,7 +109,7 @@ async def get_profile(
     "",
     response_model=ProfileResponse,
     summary="创建或更新用户画像",
-    description="设置或覆盖用户的姓名、性别、年龄、身高、体重、体脂率、目标体重、目标日期和活动水平。",
+    description="设置或覆盖用户的姓名、性别、年龄、身高、体重、目标体重、目标日期和活动水平。",
 )
 async def set_profile(
     data: ProfileCreate,
@@ -114,6 +117,7 @@ async def set_profile(
     session: AsyncSession = Depends(get_session),
 ) -> ProfileResponse:
     row = await _load_profile(session)
+    # 家秤体脂保留；健身房 BIA 机数据不经过这个接口。
     if row is None:
         row = Profile(id=1, name=data.name, gender=data.gender.value, age=data.age,
                       height_cm=data.height_cm, weight_kg=data.weight_kg,
@@ -128,7 +132,8 @@ async def set_profile(
         row.age = data.age
         row.height_cm = data.height_cm
         row.weight_kg = data.weight_kg
-        row.body_fat_pct = data.body_fat_pct
+        if data.body_fat_pct is not None:
+            row.body_fat_pct = data.body_fat_pct
         row.target_weight_kg = data.target_weight_kg
         row.target_date = data.target_date.isoformat()
         row.activity_level = data.activity_level.value

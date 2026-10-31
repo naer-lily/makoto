@@ -43,7 +43,7 @@ def _to_response(row: BodyLog) -> BodyLogResponse:
     response_model=list[BodyLogResponse],
     summary="列出身体测量记录",
     description=(
-        "按日期倒序返回身体测量记录，包含体重、体脂率。"
+        "按日期倒序返回身体测量记录（体重）。"
         "支持 start/end 按日期前闭后闭过滤。"
     ),
 )
@@ -74,7 +74,7 @@ async def list_body_logs(
     response_model=BodyLogResponse,
     status_code=201,
     summary="记录身体测量数据",
-    description="录入当日的身体测量数据（每日仅一条），录入后自动同步画像中的体重和体脂率。",
+    description="录入当日的身体测量数据（每日仅一条），录入后自动同步画像中的体重。",
 )
 async def create_body_log(
     data: BodyLogCreate,
@@ -88,6 +88,7 @@ async def create_body_log(
     if existing is not None:
         raise HTTPException(status_code=409, detail=f"{date_str} 已有记录")
 
+    # 家秤的体脂率仍按主人原有口径记录；健身房 BIA 机数据不写入这里。
     row = BodyLog(
         log_date=date_str,
         weight_kg=data.weight_kg,
@@ -101,7 +102,8 @@ async def create_body_log(
     ).scalar_one_or_none()
     if profile is not None:
         profile.weight_kg = data.weight_kg
-        profile.body_fat_pct = data.body_fat_pct
+        if data.body_fat_pct is not None:
+            profile.body_fat_pct = data.body_fat_pct
         session.add(profile)
 
     await session.commit()

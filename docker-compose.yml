@@ -4,7 +4,7 @@ services:
   makoto-server:
     build: .
     ports:
-      - "8000:8000"
+      - "8788:8000"
     environment:
       - MAKOTO_HOST=0.0.0.0
       - MAKOTO_PORT=8000

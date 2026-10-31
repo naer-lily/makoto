@@ -57,15 +57,21 @@ async function handleLogin() {
 
 <style scoped>
 .login-page {
-  height: 100vh;
+  min-height: 100vh;
+  min-height: 100dvh;
+  height: auto;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: max(16px, env(safe-area-inset-top, 0px)) 16px
+    max(16px, env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  overflow-y: auto;
   background: var(--el-bg-color-page);
 }
 
 .login-card {
-  width: 400px;
+  width: min(400px, calc(100vw - 32px));
   text-align: center;
 }
 
@@ -83,5 +89,26 @@ async function handleLogin() {
 
 .login-btn {
   width: 100%;
+  min-height: 44px;
+}
+
+@media (max-width: 767px) {
+  .login-card :deep(.el-card__body) {
+    padding: 20px 16px;
+  }
+
+  .login-title {
+    font-size: 24px;
+  }
+
+  .login-desc {
+    margin-bottom: 18px;
+  }
+}
+
+@media (max-height: 520px) {
+  .login-page {
+    align-items: flex-start;
+  }
 }
 </style>

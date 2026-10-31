@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="toolbar">
-      <h2 style="margin:0">天气监视</h2>
+      <h2 class="page-title">天气监视</h2>
       <el-button type="primary" :loading="refreshing" @click="handleRefresh">
         <el-icon :size="16"><Refresh /></el-icon>
         刷新预报
@@ -10,8 +10,13 @@
 
     <el-tabs v-model="activeTab">
       <el-tab-pane label="监视地点" name="watches">
-        <div style="margin-bottom:16px">
-          <el-form :inline="true" :model="watchForm" class="watch-form">
+        <div class="watch-form-wrap">
+          <el-form
+            :inline="!isMobile"
+            :model="watchForm"
+            class="watch-form"
+            :label-position="isMobile ? 'top' : 'right'"
+          >
             <el-form-item label="标签">
               <el-input v-model="watchForm.label" placeholder="例如: 北京" clearable />
             </el-form-item>
@@ -21,7 +26,7 @@
             <el-form-item label="经度">
               <el-input-number v-model="watchForm.longitude" :min="-180" :max="180" :precision="4" />
             </el-form-item>
-            <el-form-item>
+            <el-form-item class="watch-form-actions">
               <el-button type="primary" :loading="adding" @click="handleAdd">
                 {{ editingId ? '保存修改' : '添加地点' }}
               </el-button>
@@ -30,7 +35,7 @@
           </el-form>
         </div>
 
-        <el-table :data="watches" stripe style="width:100%">
+        <el-table v-if="!isMobile" :data="watches" stripe style="width:100%">
           <el-table-column prop="id" label="ID" width="60" align="right" />
           <el-table-column prop="label" label="标签" min-width="100" />
           <el-table-column prop="latitude" label="纬度" width="120" align="right">
@@ -50,10 +55,41 @@
             </template>
           </el-table-column>
         </el-table>
+
+        <div v-else class="mobile-card-list">
+          <el-empty v-if="!watches.length" description="暂无监视地点" :image-size="72" />
+          <article v-for="row in watches" :key="row.id" class="mobile-card">
+            <div class="mobile-card-head">
+              <div>
+                <div class="mobile-card-title">{{ row.label }}</div>
+                <div class="mobile-card-sub">ID {{ row.id }}</div>
+              </div>
+              <el-tag size="small" effect="plain" type="info">{{ row.latitude.toFixed(2) }}, {{ row.longitude.toFixed(2) }}</el-tag>
+            </div>
+            <div class="mobile-card-grid">
+              <div class="mobile-card-field">
+                <div class="mobile-card-label">纬度</div>
+                <div class="mobile-card-value">{{ row.latitude.toFixed(4) }}</div>
+              </div>
+              <div class="mobile-card-field">
+                <div class="mobile-card-label">经度</div>
+                <div class="mobile-card-value">{{ row.longitude.toFixed(4) }}</div>
+              </div>
+            </div>
+            <div class="mobile-card-actions">
+              <el-button size="small" type="primary" plain @click="startEdit(row)">编辑</el-button>
+              <el-popconfirm title="确定删除该监视地点？" @confirm="handleDelete(row.id)">
+                <template #reference>
+                  <el-button size="small" type="danger" plain>删除</el-button>
+                </template>
+              </el-popconfirm>
+            </div>
+          </article>
+        </div>
       </el-tab-pane>
 
       <el-tab-pane label="天气预报" name="forecast">
-        <div v-if="forecasts.length === 0" style="text-align:center;padding:40px">
+        <div v-if="forecasts.length === 0" class="empty-forecast">
           <el-empty description="暂无天气数据，请先添加监视地点" :image-size="80" />
         </div>
         <div v-for="fc in forecasts" :key="fc.watch_id" class="forecast-section">
@@ -136,7 +172,9 @@ import {
   type WeatherWatch,
   type WeatherForecast,
 } from '../api/weather'
+import { useMobile } from '../composables/useMobile'
 
+const isMobile = useMobile()
 const activeTab = ref('watches')
 const watches = ref<WeatherWatch[]>([])
 const forecasts = ref<WeatherForecast[]>([])
@@ -227,6 +265,16 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.page-title {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.watch-form-wrap {
   margin-bottom: 16px;
 }
 
@@ -409,20 +457,60 @@ onMounted(() => {
   gap: 2px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .toolbar {
-    flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .page-title {
+    font-size: 18px;
+  }
+
+  .toolbar .el-button {
+    min-height: 40px;
+    flex: 0 0 auto;
   }
 
   .watch-form {
     flex-direction: column;
   }
 
-  .watch-form .el-form-item {
+  .watch-form :deep(.el-form-item) {
+    display: flex;
     margin-right: 0;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
+    width: 100%;
+  }
+
+  .watch-form :deep(.el-form-item__content) {
+    margin-left: 0 !important;
+    width: 100%;
+  }
+
+  .watch-form :deep(.el-input),
+  .watch-form :deep(.el-input-number) {
+    width: 100%;
+  }
+
+  .watch-form-actions :deep(.el-form-item__content) {
+    display: flex;
+    gap: 8px;
+  }
+
+  .watch-form-actions :deep(.el-button) {
+    flex: 1 1 0;
+    min-height: 44px;
+    margin: 0;
+  }
+
+  .forecast-header {
+    gap: 6px;
+  }
+
+  .forecast-time {
+    margin-left: 0;
   }
 
   .day-cards {

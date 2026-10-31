@@ -88,7 +88,7 @@ class ProfileCreate(BaseModel):
     age: int = Field(ge=1, le=120)
     height_cm: float = Field(ge=0)
     weight_kg: float = Field(ge=0)
-    body_fat_pct: float = Field(ge=0, le=60)
+    body_fat_pct: float | None = Field(default=None, ge=0, le=60)
     target_weight_kg: float = Field(ge=0)
     target_date: date
     activity_level: ActivityLevel
@@ -96,7 +96,7 @@ class ProfileCreate(BaseModel):
 
 
 class ProfileResponse(ProfileCreate):
-    ffm_kg: float
+    ffm_kg: float | None = None
     bmr_kcal: float
     netee_kcal: float
     weekly_deficit_needed: float | None
@@ -134,7 +134,8 @@ class FoodSearchResult(BaseModel):
 class BodyLogCreate(BaseModel):
     log_date: date
     weight_kg: float = Field(ge=0)
-    body_fat_pct: float = Field(ge=0, le=60)
+    # 家秤体脂；健身房 BIA 机数据不写这里。
+    body_fat_pct: float | None = Field(default=None, ge=0, le=60)
     note: str | None = None
 
 
@@ -307,62 +308,21 @@ class TodayResponse(BaseModel):
     ea_level: EaLevel | None = None
 
 
-# Alpert 公式：每磅体脂最多分解 ~31 kcal/天 → 68.34 kcal/kg/天
-# 保守取 60 kcal/kg/天（约 88% 理论极限，折合 27 kcal/lb/天）
-ALPERT_KCAL_PER_KG_FAT: float = 60.0
-
-# 能量可用性 (EA) = (摄入 − 运动消耗) / 去脂体重，单位 kcal/kg FFM/天。
-# 阈值依据见 EaLevel 文档：<20 偏低、20-30 适中、30-40 良好、>=40 最佳。
-EA_LOW_THRESHOLD: float = 20.0
-EA_ADEQUATE_THRESHOLD: float = 30.0
-EA_OPTIMAL_THRESHOLD: float = 40.0
-
-
-def ea_level_for(ea_kcal_per_kg_ffm: float) -> EaLevel:
-    """按能量可用性数值分级。
-
-    Args:
-        ea_kcal_per_kg_ffm: 能量可用性（kcal/kg FFM/天）
-
-    Returns:
-        对应的 EaLevel 分级（<20 偏低 / 20-30 适中 / 30-40 良好 / >=40 最佳）
-    """
-    if ea_kcal_per_kg_ffm < EA_LOW_THRESHOLD:
-        return EaLevel.LOW
-    if ea_kcal_per_kg_ffm < EA_ADEQUATE_THRESHOLD:
-        return EaLevel.MODERATE
-    if ea_kcal_per_kg_ffm < EA_OPTIMAL_THRESHOLD:
-        return EaLevel.GOOD
-    return EaLevel.OPTIMAL
-
-
-def ffm_from(weight_kg: float, body_fat_pct: float) -> float:
-    """按体重与体脂率计算去脂体重（kg）。
-
-    Args:
-        weight_kg: 体重（kg）
-        body_fat_pct: 体脂率（百分比，如 18.5 表示 18.5%）
-
-    Returns:
-        去脂体重（kg）
-    """
-    return weight_kg * (1 - body_fat_pct / 100.0)
-
-
 class ReportRow(BaseModel):
     date: str
     weight_kg: float
-    body_fat_pct: float
-    ffm_kg: float
-    fat_kg: float
+    # BIA 体成分字段仅为兼容旧前端保留，始终返回 None。
+    body_fat_pct: float | None = None
+    ffm_kg: float | None = None
+    fat_kg: float | None = None
     ma_weight_kg: float
-    ma_body_fat_pct: float
-    ma_ffm_kg: float
-    ma_fat_kg: float
+    ma_body_fat_pct: float | None = None
+    ma_ffm_kg: float | None = None
+    ma_fat_kg: float | None = None
     deficit_kcal: float
     expected_deficit_kcal: float | None
     ma_deficit_kcal: float | None
-    alpert_limit_kcal: float
+    alpert_limit_kcal: float | None = None
     is_interpolated: bool
     has_diet_data: bool = True
     weekly_loss_kg: float | None
@@ -377,11 +337,11 @@ class ReportRow(BaseModel):
 
 class ReportSummary(BaseModel):
     weight_delta: float
-    body_fat_delta: float
-    ffm_delta: float
+    body_fat_delta: float | None = None
+    ffm_delta: float | None = None
     ma_weight_delta: float
-    ma_body_fat_delta: float
-    ma_ffm_delta: float
+    ma_body_fat_delta: float | None = None
+    ma_ffm_delta: float | None = None
     total_deficit_kcal: float
     total_expected_kcal: float | None
     recorded_days: int

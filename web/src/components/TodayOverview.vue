@@ -482,10 +482,34 @@ function progressColor(pct: number): string {
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .stat-row,
   .stat-row + .stat-row {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  /* Five summary cards would leave the fifth alone in a row; span it instead. */
+  .stat-row:first-child .stat-card:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .stat-card :deep(.el-card__body) {
+    padding: 10px;
+  }
+
+  .stat-icon-wrap {
+    width: 30px;
+    height: 30px;
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-size: 20px;
+  }
+
+  .nutrition-card {
+    grid-column: 1 / -1;
   }
 }
 </style>

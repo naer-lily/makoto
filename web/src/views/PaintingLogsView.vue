@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="toolbar">
-      <h2 style="margin:0">绘画记录</h2>
+      <h2 class="page-title">绘画记录</h2>
       <el-button type="primary" @click="openAdd">添加会话</el-button>
     </div>
 
@@ -9,7 +9,7 @@
       <div ref="heatmapRef" class="heatmap-chart" style="height: 200px"></div>
     </div>
 
-    <el-table :data="logs" v-loading="loading" stripe style="margin-top: 16px">
+    <el-table v-if="!isMobile" :data="logs" v-loading="loading" stripe style="margin-top: 16px">
       <el-table-column prop="log_time" label="绘画时间" min-width="150" />
       <el-table-column prop="file_id" label="文件 ID" min-width="180" />
       <el-table-column prop="duration_seconds" label="时长" width="120" align="right">
@@ -28,12 +28,41 @@
       </el-table-column>
     </el-table>
 
+    <div v-else v-loading="loading" class="mobile-card-list painting-list">
+      <el-empty v-if="!logs.length && !loading" description="暂无绘画记录" :image-size="72" />
+      <article v-for="row in logs" :key="row.id" class="mobile-card">
+        <div class="mobile-card-head">
+          <div class="mobile-card-title">{{ formatTime(row.log_time) }}</div>
+          <el-tag size="small" effect="plain" type="success">{{ formatDuration(row.duration_seconds) }}</el-tag>
+        </div>
+        <div class="mobile-card-grid">
+          <div class="mobile-card-field painting-file">
+            <div class="mobile-card-label">文件 ID</div>
+            <div class="mobile-card-value">{{ row.file_id || '未记录' }}</div>
+          </div>
+          <div class="mobile-card-field">
+            <div class="mobile-card-label">时长</div>
+            <div class="mobile-card-value">{{ formatDuration(row.duration_seconds) }}</div>
+          </div>
+        </div>
+        <div v-if="row.note" class="mobile-card-note">{{ row.note }}</div>
+        <div class="mobile-card-actions">
+          <el-button size="small" type="primary" plain @click="openEdit(row)">编辑</el-button>
+          <el-button size="small" type="danger" plain @click="handleDelete(row)">删除</el-button>
+        </div>
+      </article>
+    </div>
+
     <el-dialog
       v-model="dialogVisible"
       :title="editing ? '编辑绘画会话' : '添加绘画会话'"
       width="520px"
     >
-      <el-form :model="form" label-width="80px">
+      <el-form
+        :model="form"
+        :label-width="isMobile ? 'auto' : '80px'"
+        :label-position="isMobile ? 'top' : 'right'"
+      >
         <el-form-item label="时间" required>
           <el-date-picker
             v-model="form.log_time"
@@ -77,8 +106,10 @@ import {
   type PaintingLogCreate,
 } from '../api/painting'
 import { useTheme } from '../composables/useTheme'
+import { useMobile } from '../composables/useMobile'
 
 const { isDark } = useTheme()
+const isMobile = useMobile()
 
 const logs = ref<PaintingLogResponse[]>([])
 const loading = ref(false)
@@ -107,6 +138,10 @@ function formatDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600)
   const m = Math.floor((seconds % 3600) / 60)
   return `${h} 小时 ${m} 分`
+}
+
+function formatTime(value: string): string {
+  return value.slice(0, 16).replace('T', ' ')
 }
 
 function resetForm() {
@@ -280,7 +315,13 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   margin-bottom: 20px;
+}
+
+.page-title {
+  margin: 0;
+  white-space: nowrap;
 }
 
 .heatmap-container {
@@ -288,5 +329,30 @@ onUnmounted(() => {
   border: 1px solid var(--el-border-color-light);
   border-radius: 8px;
   padding: 8px;
+  overflow: hidden;
+}
+
+.painting-list {
+  margin-top: 12px;
+}
+
+.painting-file {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 767px) {
+  .toolbar {
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .page-title {
+    font-size: 18px;
+  }
+
+  .toolbar .el-button {
+    min-height: 40px;
+  }
 }
 </style>

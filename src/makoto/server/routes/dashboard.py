@@ -27,10 +27,8 @@ from makoto.server.db_models import PaintingLog
 from makoto.server.db_models import Profile
 from makoto.server.keep_client import FitnessRecord
 from makoto.server.keep_client import Keep
-from makoto.server.models import ALPERT_KCAL_PER_KG_FAT
 from makoto.server.models import ActivityLevel
 from makoto.server.models import CircumferenceLogResponse
-from makoto.server.models import EaLevel
 from makoto.server.models import Gender
 from makoto.server.models import ReportResponse
 from makoto.server.models import ReportRow
@@ -41,8 +39,6 @@ from makoto.server.models import TodayExerciseItem
 from makoto.server.models import TodayPainting
 from makoto.server.models import TodayPaintingItem
 from makoto.server.models import TodayResponse
-from makoto.server.models import ea_level_for
-from makoto.server.models import ffm_from
 from makoto.server.models import nutrition_for
 from makoto.utils.timeseries import date_series
 from makoto.utils.timeseries import linear_interpolate
@@ -157,7 +153,6 @@ async def _get_profile_computed(session: AsyncSession) -> dict[str, Any]:
         "weight_kg": weight,
         "height_cm": height,
         "age": age,
-        "body_fat_pct": row.body_fat_pct,
         "gender": gender,
         "activity_level": activity,
         "target_weight_kg": target,
@@ -194,23 +189,7 @@ async def today_dashboard(
             note=body_row.note or None,
         )
 
-    # 能量可用性的 FFM：优先取今日身体记录，其次最近一条（不晚于今日）
-    ea_body_row = body_row
-    if ea_body_row is None:
-        ea_body_row = (
-            await session.execute(
-                select(BodyLog)
-                .where(col(BodyLog.log_date) <= today_iso)
-                .order_by(col(BodyLog.log_date).desc())
-            )
-        ).scalars().first()
-    ffm_kg: float | None = None
-    if (
-        ea_body_row is not None
-        and ea_body_row.weight_kg is not None
-        and ea_body_row.body_fat_pct is not None
-    ):
-        ffm_kg = round(ffm_from(ea_body_row.weight_kg, ea_body_row.body_fat_pct), 1)
+    # BIA 体脂/FFM/EA 已按主人要求移除，不再由体重反推任何体成分数值。
 
     # 饮食
     diets: list[TodayDietItem] = []
@@ -278,13 +257,7 @@ async def today_dashboard(
     netee = float(profile["netee_kcal"])
     net = netee + total_burned - total_intake
 
-    # 能量可用性 EA = (摄入 − 运动消耗) / 去脂体重
-    ea_kcal_per_kg_ffm: float | None = None
-    ea_level: EaLevel | None = None
-    if ffm_kg is not None and ffm_kg > 0:
-        ea_value = (total_intake - total_burned) / ffm_kg
-        ea_kcal_per_kg_ffm = round(ea_value, 1)
-        ea_level = ea_level_for(ea_value)
+    # BIA 体成分（体脂/FFM/EA）不再计算，相关字段固定返回 None。
 
     # 当日围度
     circumference: CircumferenceLogResponse | None = None
@@ -308,9 +281,7 @@ async def today_dashboard(
 
     # 昨日与上周差值
     weight_delta_day: float | None = None
-    body_fat_delta_day: float | None = None
     weight_delta_week: float | None = None
-    body_fat_delta_week: float | None = None
     if body is not None:
         yesterday = (today_date - timedelta(days=1)).isoformat()
         week_ago = (today_date - timedelta(days=7)).isoformat()
@@ -320,16 +291,12 @@ async def today_dashboard(
         ).scalar_one_or_none()
         if prev_day is not None and body.weight_kg is not None:
             weight_delta_day = round(body.weight_kg - prev_day.weight_kg, 1)
-        if prev_day is not None and body.body_fat_pct is not None:
-            body_fat_delta_day = round(body.body_fat_pct - prev_day.body_fat_pct, 1)
 
         prev_week = (
             await session.execute(select(BodyLog).where(BodyLog.log_date == week_ago))
         ).scalar_one_or_none()
         if prev_week is not None and body.weight_kg is not None:
             weight_delta_week = round(body.weight_kg - prev_week.weight_kg, 1)
-        if prev_week is not None and body.body_fat_pct is not None:
-            body_fat_delta_week = round(body.body_fat_pct - prev_week.body_fat_pct, 1)
 
     # 本周、本月热量缺口（不含今日）
     deficit_week: float | None = None
@@ -419,9 +386,9 @@ async def today_dashboard(
         netee_kcal=netee,
         net_kcal=round(net, 1),
         weight_delta_day=weight_delta_day,
-        body_fat_delta_day=body_fat_delta_day,
+        body_fat_delta_day=None,
         weight_delta_week=weight_delta_week,
-        body_fat_delta_week=body_fat_delta_week,
+        body_fat_delta_week=None,
         deficit_week_kcal=deficit_week,
         deficit_month_kcal=deficit_month,
         circumference=circumference,
@@ -429,9 +396,9 @@ async def today_dashboard(
         ctl=_fitness_latest(fitness)[1],
         tsb=_fitness_latest(fitness)[2],
         painting=painting,
-        ffm_kg=ffm_kg,
-        ea_kcal_per_kg_ffm=ea_kcal_per_kg_ffm,
-        ea_level=ea_level,
+        ffm_kg=None,
+        ea_kcal_per_kg_ffm=None,
+        ea_level=None,
     )
 
 
@@ -439,8 +406,9 @@ async def today_dashboard(
     "/report",
     response_model=ReportResponse,
     summary="多日趋势报告",
-    description="返回体重/体脂率/FFM 的逐日数据及七日均线，每日热量缺口，周减重速率。"
-    "默认从首条记录到目标日期。支持 start_date/end_date 自定义范围。",
+    description="返回体重的逐日数据及七日均线，每日热量缺口，周减重速率。"
+    "不再计算或返回 BIA 体脂/FFM/EA。默认从首条记录到目标日期。"
+    "支持 start_date/end_date 自定义范围。",
 )
 async def dashboard_report(
     start_date_str: str | None = Query(None, alias="start_date"),
@@ -473,33 +441,17 @@ async def dashboard_report(
     buffer_start = start_date - timedelta(days=14)
     all_dates = date_series(buffer_start, end_date_date)
 
-    # 身体数据
+    # 身体数据（只保留体重，BIA 体脂/FFM 不再参与计算）
     raw_weight: dict[date, float] = {}
-    raw_body_fat: dict[date, float] = {}
     body_rows = (await session.execute(select(BodyLog))).scalars().all()
     for r in body_rows:
         d_date = date.fromisoformat(r.log_date)
         if d_date >= buffer_start:
             raw_weight[d_date] = r.weight_kg
-            raw_body_fat[d_date] = r.body_fat_pct
 
     weight_filled = linear_interpolate(raw_weight, all_dates)
-    bf_filled = linear_interpolate(raw_body_fat, all_dates)
-
     weight_cont = {d: v for d, (v, _) in weight_filled.items()}
-    bf_cont = {d: v for d, (v, _) in bf_filled.items()}
-
-    ffm_cont: dict[date, float] = {
-        d: round(w * (1 - bf_cont.get(d, 0) / 100), 1) for d, w in weight_cont.items()
-    }
-    fat_cont: dict[date, float] = {
-        d: round(w * bf_cont.get(d, 0) / 100, 1) for d, w in weight_cont.items()
-    }
-
     ma_weight_full = rolling_mean(weight_cont, window=7)
-    ma_bf_full = rolling_mean(bf_cont, window=7)
-    ma_ffm_full = rolling_mean(ffm_cont, window=7)
-    ma_fat_full = rolling_mean(fat_cont, window=7)
 
     display_dates = date_series(start_date, end_date_date)
     weight_original = {d: weight_filled[d][1] for d in display_dates if d in weight_filled}
@@ -553,13 +505,7 @@ async def dashboard_report(
 
     for d in display_dates:
         w = weight_cont.get(d, 0)
-        bf = bf_cont.get(d, 0)
-        ffm = ffm_cont.get(d, 0)
-        fat = fat_cont.get(d, 0)
         mw = ma_weight_full.get(d, 0)
-        mb = ma_bf_full.get(d, 0)
-        mf = ma_ffm_full.get(d, 0)
-        mfa = ma_fat_full.get(d, 0)
         prev_mw = ma_weight_full.get(d - timedelta(days=7))
         weekly_loss = round(prev_mw - mw, 2) if prev_mw is not None else None
         has_diet = d in diet_days
@@ -571,30 +517,28 @@ async def dashboard_report(
             total_expected += exp
         is_orig = weight_original.get(d, False)
         md = ma_deficit.get(d)
-        alpert_limit = round(fat * ALPERT_KCAL_PER_KG_FAT, 1)
         intake = round(daily_diet.get(d, 0.0), 1)
         tdee = round(netee + daily_exercise.get(d, 0.0), 1)
         exercise = round(daily_exercise.get(d, 0.0), 1)
-        ea = round((intake - exercise) / ffm, 1) if has_diet and ffm > 0 else None
         fr = fitness_map.get(str(d))
         data_rows.append(
             ReportRow(
                 date=str(d),
                 weight_kg=round(w, 1),
-                body_fat_pct=round(bf, 1),
-                ffm_kg=round(ffm, 1),
-                fat_kg=round(fat, 1),
+                body_fat_pct=None,
+                ffm_kg=None,
+                fat_kg=None,
                 ma_weight_kg=round(mw, 1),
-                ma_body_fat_pct=round(mb, 1),
-                ma_ffm_kg=round(mf, 1),
-                ma_fat_kg=round(mfa, 1),
+                ma_body_fat_pct=None,
+                ma_ffm_kg=None,
+                ma_fat_kg=None,
                 deficit_kcal=round(balance, 1),
                 expected_deficit_kcal=(
                     round(exp, 1)
                     if has_diet and daily_expected is not None
                     else None
                 ),
-                alpert_limit_kcal=alpert_limit,
+                alpert_limit_kcal=None,
                 is_interpolated=not is_orig,
                 has_diet_data=has_diet,
                 weekly_loss_kg=weekly_loss,
@@ -602,7 +546,7 @@ async def dashboard_report(
                 intake_kcal=intake,
                 tdee_kcal=tdee,
                 exercise_kcal=exercise,
-                ea_kcal_per_kg_ffm=ea,
+                ea_kcal_per_kg_ffm=None,
                 atl=fr.atl if fr else None,
                 ctl=fr.ctl if fr else None,
                 tsb=fr.tsb if fr else None,
@@ -610,9 +554,9 @@ async def dashboard_report(
         )
 
     first: ReportRow = data_rows[0] if data_rows else ReportRow(
-        date="", weight_kg=0, body_fat_pct=0, ffm_kg=0, fat_kg=0,
-        ma_weight_kg=0, ma_body_fat_pct=0, ma_ffm_kg=0, ma_fat_kg=0,
-        deficit_kcal=0, expected_deficit_kcal=None, alpert_limit_kcal=0,
+        date="", weight_kg=0,
+        ma_weight_kg=0,
+        deficit_kcal=0, expected_deficit_kcal=None,
         is_interpolated=False, weekly_loss_kg=None, ma_deficit_kcal=None,
         intake_kcal=0, tdee_kcal=0,
     )
@@ -620,11 +564,11 @@ async def dashboard_report(
 
     summary = ReportSummary(
         weight_delta=round(last.weight_kg - first.weight_kg, 1),
-        body_fat_delta=round(last.body_fat_pct - first.body_fat_pct, 1),
-        ffm_delta=round(last.ffm_kg - first.ffm_kg, 1),
+        body_fat_delta=None,
+        ffm_delta=None,
         ma_weight_delta=round(last.ma_weight_kg - first.ma_weight_kg, 1),
-        ma_body_fat_delta=round(last.ma_body_fat_pct - first.ma_body_fat_pct, 1),
-        ma_ffm_delta=round(last.ma_ffm_kg - first.ma_ffm_kg, 1),
+        ma_body_fat_delta=None,
+        ma_ffm_delta=None,
         total_deficit_kcal=round(total_balance, 1),
         total_expected_kcal=round(total_expected, 1) if daily_expected is not None else None,
         recorded_days=len(diet_days),

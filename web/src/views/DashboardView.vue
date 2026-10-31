@@ -1,19 +1,38 @@
 <template>
   <div>
     <div class="toolbar">
-      <h2 style="margin:0">数据总览</h2>
-      <div style="display:flex;gap:12px">
-        <el-date-picker
-          v-model="dateRange"
-          type="daterange"
-          range-separator="至"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期"
-          value-format="YYYY-MM-DD"
-          size="default"
-          @change="loadReport"
-        />
-      </div>
+      <h2 class="page-title">数据总览</h2>
+      <el-date-picker
+        v-if="!isMobile"
+        v-model="dateRange"
+        class="desktop-date"
+        type="daterange"
+        range-separator="至"
+        start-placeholder="开始日期"
+        end-placeholder="结束日期"
+        value-format="YYYY-MM-DD"
+        size="default"
+        @change="loadReport"
+      />
+      <el-button v-else class="date-toggle" @click="dateFilterOpen = !dateFilterOpen">
+        <el-icon :size="16"><Calendar /></el-icon>
+        {{ dateLabel }}
+        <el-icon :size="14"><ArrowDown v-if="!dateFilterOpen" /><ArrowUp v-else /></el-icon>
+      </el-button>
+    </div>
+
+    <div v-if="isMobile && dateFilterOpen" class="mobile-date-panel">
+      <el-date-picker
+        v-model="dateRange"
+        type="daterange"
+        range-separator="至"
+        start-placeholder="开始日期"
+        end-placeholder="结束日期"
+        value-format="YYYY-MM-DD"
+        size="default"
+        @change="onMobileDateChange"
+      />
+      <el-button text :disabled="!dateRange" @click="clearDateRange">重置</el-button>
     </div>
 
     <el-tabs v-model="activeTab" class="dash-tabs" @tab-change="onTabChange">
@@ -36,7 +55,7 @@
               </div>
             </template>
             <el-empty v-if="!todayData.diets.length" description="今天还没有饮食记录" :image-size="60" />
-            <el-table v-else :data="todayData.diets" size="small" stripe>
+            <el-table v-else-if="!isMobile" :data="todayData.diets" size="small" stripe>
               <el-table-column label="时间" width="65">
                 <template #default="{ row }">
                   <span class="time-cell">{{ row.log_time.slice(11, 16) }}</span>
@@ -62,6 +81,22 @@
                 <template #default="{ row }">{{ row.fiber_g }}g</template>
               </el-table-column>
             </el-table>
+            <div v-else class="dash-mobile-list">
+              <div v-for="(row, index) in todayData.diets" :key="`${row.log_time}-${index}`" class="dash-mobile-row">
+                <div class="dash-mobile-main">
+                  <span class="time-cell">{{ row.log_time.slice(11, 16) }}</span>
+                  <strong>{{ row.food_name }}</strong>
+                </div>
+                <div class="dash-mobile-metrics">
+                  <span>{{ row.grams }}g</span>
+                  <span>{{ row.calories_kcal }} kcal</span>
+                  <span>蛋 {{ row.protein_g }}g</span>
+                  <span>碳 {{ row.carbs_g }}g</span>
+                  <span>脂 {{ row.fat_g }}g</span>
+                  <span>纤 {{ row.fiber_g }}g</span>
+                </div>
+              </div>
+            </div>
           </el-card>
 
           <el-card shadow="hover">
@@ -77,7 +112,7 @@
               </div>
             </template>
             <el-empty v-if="!todayData.exercises.length" description="今天还没有运动记录" :image-size="60" />
-            <el-table v-else :data="todayData.exercises" size="small" stripe>
+            <el-table v-else-if="!isMobile" :data="todayData.exercises" size="small" stripe>
               <el-table-column label="时间" width="65">
                 <template #default="{ row }">
                   <span class="time-cell">{{ row.log_time.slice(11, 16) }}</span>
@@ -89,6 +124,18 @@
                 <template #default="{ row }">{{ row.calories_kcal }} kcal</template>
               </el-table-column>
             </el-table>
+            <div v-else class="dash-mobile-list">
+              <div v-for="(row, index) in todayData.exercises" :key="`${row.log_time}-${index}`" class="dash-mobile-row">
+                <div class="dash-mobile-main">
+                  <span class="time-cell">{{ row.log_time.slice(11, 16) }}</span>
+                  <strong>{{ row.exercise_name }}</strong>
+                </div>
+                <div class="dash-mobile-metrics">
+                  <span>{{ row.duration_desc }}</span>
+                  <span>{{ row.calories_kcal }} kcal</span>
+                </div>
+              </div>
+            </div>
           </el-card>
         </div>
 
@@ -108,7 +155,7 @@
             </div>
           </template>
           <el-empty v-if="!todayData.painting.sessions.length" description="今天还没有绘画记录" :image-size="60" />
-          <el-table v-else :data="todayData.painting.sessions" size="small" stripe>
+          <el-table v-else-if="!isMobile" :data="todayData.painting.sessions" size="small" stripe>
             <el-table-column label="时间" width="65">
               <template #default="{ row }">
                 <span class="time-cell">{{ row.log_time.slice(11, 16) }}</span>
@@ -119,13 +166,22 @@
               <template #default="{ row }">{{ formatDuration(row.duration_seconds) }}</template>
             </el-table-column>
           </el-table>
+          <div v-else class="dash-mobile-list">
+            <div v-for="(row, index) in todayData.painting.sessions" :key="`${row.log_time}-${index}`" class="dash-mobile-row">
+              <div class="dash-mobile-main">
+                <span class="time-cell">{{ row.log_time.slice(11, 16) }}</span>
+                <strong>{{ formatDuration(row.duration_seconds) }}</strong>
+              </div>
+              <div class="dash-mobile-file">{{ row.file_id }}</div>
+            </div>
+          </div>
           <div v-if="todayData.painting.sessions.length" class="painting-summary">
             今日 {{ todayData.painting.session_count }} 次会话 · 合计 {{ formatDuration(todayData.painting.duration_seconds) }}
           </div>
         </el-card>
       </el-tab-pane>
 
-      <el-tab-pane label="体重与体成分" name="weight">
+      <el-tab-pane :label="isMobile ? '体成分' : '体重与体成分'" name="weight">
         <div v-if="reportLoading" style="text-align:center;padding:40px">
           <el-icon class="is-loading" :size="32"><Loading /></el-icon>
         </div>
@@ -145,7 +201,7 @@
         </template>
       </el-tab-pane>
 
-      <el-tab-pane label="热量与运动负荷" name="calories">
+      <el-tab-pane :label="isMobile ? '热量负荷' : '热量与运动负荷'" name="calories">
         <div v-if="reportLoading" style="text-align:center;padding:40px">
           <el-icon class="is-loading" :size="32"><Loading /></el-icon>
         </div>
@@ -179,7 +235,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { fetchToday, fetchReport, type TodayResponse, type ReportResponse } from '../api/dashboard'
 import {
@@ -206,16 +262,35 @@ import BodyCompChart from '../components/BodyCompChart.vue'
 import WeeklyLossChart from '../components/WeeklyLossChart.vue'
 import RawWeightChart from '../components/RawWeightChart.vue'
 import CircumferenceChart from '../components/CircumferenceChart.vue'
+import { useMobile } from '../composables/useMobile'
 
+const isMobile = useMobile()
 const activeTab = ref('overview')
 const todayData = ref<TodayResponse | null>(null)
 const todayLoading = ref(false)
 const reportData = ref<ReportResponse | null>(null)
 const reportLoading = ref(false)
 const dateRange = ref<[string, string] | null>(null)
+const dateFilterOpen = ref(false)
 const circData = ref<CircumferenceRecord[]>([])
 const fitnessData = ref<FitnessRecord[]>([])
 const weeklyLoadData = ref<WeeklyLoadRecord[]>([])
+
+const dateLabel = computed(() => {
+  if (!dateRange.value) return '日期范围'
+  return `${dateRange.value[0].slice(5)} 至 ${dateRange.value[1].slice(5)}`
+})
+
+function onMobileDateChange(): void {
+  dateFilterOpen.value = false
+  loadReport()
+}
+
+function clearDateRange(): void {
+  dateRange.value = null
+  dateFilterOpen.value = false
+  loadReport()
+}
 
 function formatDuration(seconds: number): string {
   if (seconds < 60) return `${seconds} 秒`
@@ -323,7 +398,44 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   margin-bottom: 12px;
+}
+
+.page-title {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.date-toggle {
+  max-width: 100%;
+}
+
+.desktop-date {
+  width: 350px;
+  max-width: 100%;
+  flex: 0 0 auto;
+}
+
+.toolbar :deep(.desktop-date) {
+  width: 350px;
+  flex: 0 0 auto;
+}
+
+.mobile-date-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.mobile-date-panel .el-date-editor {
+  width: 100%;
+}
+
+.mobile-date-panel .el-button {
+  align-self: flex-end;
+  min-height: 36px;
 }
 
 .dash-tabs {
@@ -370,23 +482,81 @@ onMounted(() => {
   text-align: right;
 }
 
-@media (max-width: 768px) {
+.dash-mobile-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.dash-mobile-row {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.dash-mobile-row:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.dash-mobile-main {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dash-mobile-main strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dash-mobile-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.dash-mobile-file {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 767px) {
   .toolbar {
-    flex-direction: column;
-    align-items: flex-start;
     gap: 8px;
+    margin-bottom: 8px;
   }
 
-  .toolbar > div {
-    width: 100%;
+  .page-title {
+    font-size: 18px;
   }
 
-  .toolbar > div > .el-date-editor {
-    width: 100%;
+  .date-toggle {
+    min-height: 40px;
+    flex: 0 0 auto;
   }
 
   .detail-grid {
     grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .detail-card-header {
+    flex-wrap: wrap;
+  }
+
+  .streak-info {
+    width: 100%;
+  }
+
+  .painting-card {
+    margin-bottom: 12px;
   }
 }
 </style>

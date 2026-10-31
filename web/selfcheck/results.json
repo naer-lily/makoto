@@ -1,0 +1,364 @@
+{
+  "base": "http://127.0.0.1:4173",
+  "pages": {
+    "390x844-login": {
+      "path": "/login",
+      "screenshot": "/root/.hermes/skills/makoto/web/selfcheck/390x844-login.png",
+      "overflow": {
+        "innerWidth": 390,
+        "docScrollWidth": 390,
+        "bodyScrollWidth": 390,
+        "overflowX": false
+      },
+      "bottomNav": {
+        "present": false
+      },
+      "errors": []
+    },
+    "390x844-dashboard": {
+      "path": "/",
+      "screenshot": "/root/.hermes/skills/makoto/web/selfcheck/390x844-dashboard.png",
+      "overflow": {
+        "innerWidth": 390,
+        "docScrollWidth": 390,
+        "bodyScrollWidth": 390,
+        "overflowX": false
+      },
+      "bottomNav": {
+        "present": true,
+        "navTop": 787,
+        "navHeight": 57,
+        "maxContentBottom": 772,
+        "covered": false,
+        "mainScrollHeight": 1814,
+        "mainClientHeight": 796
+      },
+      "errors": []
+    },
+    "390x844-foods": {
+      "path": "/foods",
+      "screenshot": "/root/.hermes/skills/makoto/web/selfcheck/390x844-foods.png",
+      "overflow": {
+        "innerWidth": 390,
+        "docScrollWidth": 390,
+        "bodyScrollWidth": 390,
+        "overflowX": false
+      },
+      "bottomNav": {
+        "present": true,
+        "navTop": 787,
+        "navHeight": 57,
+        "maxContentBottom": 772,
+        "covered": false,
+        "mainScrollHeight": 92116,
+        "mainClientHeight": 796
+      },
+      "errors": []
+    },
+    "390x844-body": {
+      "path": "/body",
+      "screenshot": "/root/.hermes/skills/makoto/web/selfcheck/390x844-body.png",
+      "overflow": {
+        "innerWidth": 390,
+        "docScrollWidth": 390,
+        "bodyScrollWidth": 390,
+        "overflowX": false
+      },
+      "bottomNav": {
+        "present": true,
+        "navTop": 787,
+        "navHeight": 57,
+        "maxContentBottom": 772,
+        "covered": false,
+        "mainScrollHeight": 19889,
+        "mainClientHeight": 796
+      },
+      "errors": []
+    },
+    "390x844-diet": {
+      "path": "/diet",
+      "screenshot": "/root/.hermes/skills/makoto/web/selfcheck/390x844-diet.png",
+      "overflow": {
+        "innerWidth": 390,
+        "docScrollWidth": 390,
+        "bodyScrollWidth": 390,
+        "overflowX": false
+      },
+      "bottomNav": {
+        "present": true,
+        "navTop": 787,
+        "navHeight": 57,
+        "maxContentBottom": 772,
+        "covered": false,
+        "mainScrollHeight": 53224,
+        "mainClientHeight": 796
+      },
+      "errors": []
+    },
+    "390x844-exercise": {
+      "path": "/exercise",
+      "screenshot": "/root/.hermes/skills/makoto/web/selfcheck/390x844-exercise.png",
+      "overflow": {
+        "innerWidth": 390,
+        "docScrollWidth": 390,
+        "bodyScrollWidth": 390,
+        "overflowX": false
+      },
+      "bottomNav": {
+        "present": true,
+        "navTop": 787,
+        "navHeight": 57,
+        "maxContentBottom": 772,
+        "covered": false,
+        "mainScrollHeight": 36617,
+        "mainClientHeight": 796
+      },
+      "errors": []
+    },
+    "390x844-profile": {
+      "path": "/profile",
+      "screenshot": "/root/.hermes/skills/makoto/web/selfcheck/390x844-profile.png",
+      "overflow": {
+        "innerWidth": 390,
+        "docScrollWidth": 390,
+        "bodyScrollWidth": 390,
+        "overflowX": false
+      },
+      "bottomNav": {
+        "present": true,
+        "navTop": 787,
+        "navHeight": 57,
+        "maxContentBottom": 772,
+        "covered": false,
+        "mainScrollHeight": 1330,
+        "mainClientHeight": 796
+      },
+      "errors": []
+    },
+    "390x844-circumference": {
+      "path": "/circumference",
+      "screenshot": "/root/.hermes/skills/makoto/web/selfcheck/390x844-circumference.png",
+      "overflow": {
+        "innerWidth": 390,
+        "docScrollWidth": 390,
+        "bodyScrollWidth": 390,
+        "overflowX": false
+      },
+      "bottomNav": {
+        "present": true,
+        "navTop": 787,
+        "navHeight": 57,
+        "maxContentBottom": 772,
+        "covered": false,
+        "mainScrollHeight": 2090,
+        "mainClientHeight": 796
+      },
+      "errors": []
+    },
+    "390x844-painting": {
+      "path": "/painting",
+      "screenshot": "/root/.hermes/skills/makoto/web/selfcheck/390x844-painting.png",
+      "overflow": {
+        "innerWidth": 390,
+        "docScrollWidth": 390,
+        "bodyScrollWidth": 390,
+        "overflowX": false
+      },
+      "bottomNav": {
+        "present": true,
+        "navTop": 787,
+        "navHeight": 57,
+        "maxContentBottom": 772,
+        "covered": false,
+        "mainScrollHeight": 2211,
+        "mainClientHeight": 796
+      },
+      "errors": []
+    },
+    "390x844-weather": {
+      "path": "/weather",
+      "screenshot": "/root/.hermes/skills/makoto/web/selfcheck/390x844-weather.png",
+      "overflow": {
+        "innerWidth": 390,
+        "docScrollWidth": 390,
+        "bodyScrollWidth": 390,
+        "overflowX": false
+      },
+      "bottomNav": {
+        "present": true,
+        "navTop": 787,
+        "navHeight": 57,
+        "maxContentBottom": 772,
+        "covered": false,
+        "mainScrollHeight": 1463,
+        "mainClientHeight": 796
+      },
+      "errors": []
+    },
+    "1440x1000-login": {
+      "path": "/login",
+      "screenshot": "/root/.hermes/skills/makoto/web/selfcheck/1440x1000-login.png",
+      "overflow": {
+        "innerWidth": 1440,
+        "docScrollWidth": 1440,
+        "bodyScrollWidth": 1440,
+        "overflowX": false
+      },
+      "bottomNav": null,
+      "errors": []
+    },
+    "1440x1000-dashboard": {
+      "path": "/",
+      "screenshot": "/root/.hermes/skills/makoto/web/selfcheck/1440x1000-dashboard.png",
+      "overflow": {
+        "innerWidth": 1440,
+        "docScrollWidth": 1440,
+        "bodyScrollWidth": 1440,
+        "overflowX": false
+      },
+      "bottomNav": null,
+      "errors": []
+    },
+    "1440x1000-foods": {
+      "path": "/foods",
+      "screenshot": "/root/.hermes/skills/makoto/web/selfcheck/1440x1000-foods.png",
+      "overflow": {
+        "innerWidth": 1440,
+        "docScrollWidth": 1440,
+        "bodyScrollWidth": 1440,
+        "overflowX": false
+      },
+      "bottomNav": null,
+      "errors": []
+    },
+    "1440x1000-body": {
+      "path": "/body",
+      "screenshot": "/root/.hermes/skills/makoto/web/selfcheck/1440x1000-body.png",
+      "overflow": {
+        "innerWidth": 1440,
+        "docScrollWidth": 1440,
+        "bodyScrollWidth": 1440,
+        "overflowX": false
+      },
+      "bottomNav": null,
+      "errors": []
+    },
+    "1440x1000-diet": {
+      "path": "/diet",
+      "screenshot": "/root/.hermes/skills/makoto/web/selfcheck/1440x1000-diet.png",
+      "overflow": {
+        "innerWidth": 1440,
+        "docScrollWidth": 1440,
+        "bodyScrollWidth": 1440,
+        "overflowX": false
+      },
+      "bottomNav": null,
+      "errors": []
+    },
+    "1440x1000-exercise": {
+      "path": "/exercise",
+      "screenshot": "/root/.hermes/skills/makoto/web/selfcheck/1440x1000-exercise.png",
+      "overflow": {
+        "innerWidth": 1440,
+        "docScrollWidth": 1440,
+        "bodyScrollWidth": 1440,
+        "overflowX": false
+      },
+      "bottomNav": null,
+      "errors": []
+    },
+    "1440x1000-profile": {
+      "path": "/profile",
+      "screenshot": "/root/.hermes/skills/makoto/web/selfcheck/1440x1000-profile.png",
+      "overflow": {
+        "innerWidth": 1440,
+        "docScrollWidth": 1440,
+        "bodyScrollWidth": 1440,
+        "overflowX": false
+      },
+      "bottomNav": null,
+      "errors": []
+    },
+    "1440x1000-circumference": {
+      "path": "/circumference",
+      "screenshot": "/root/.hermes/skills/makoto/web/selfcheck/1440x1000-circumference.png",
+      "overflow": {
+        "innerWidth": 1440,
+        "docScrollWidth": 1440,
+        "bodyScrollWidth": 1440,
+        "overflowX": false
+      },
+      "bottomNav": null,
+      "errors": []
+    },
+    "1440x1000-painting": {
+      "path": "/painting",
+      "screenshot": "/root/.hermes/skills/makoto/web/selfcheck/1440x1000-painting.png",
+      "overflow": {
+        "innerWidth": 1440,
+        "docScrollWidth": 1440,
+        "bodyScrollWidth": 1440,
+        "overflowX": false
+      },
+      "bottomNav": null,
+      "errors": []
+    },
+    "1440x1000-weather": {
+      "path": "/weather",
+      "screenshot": "/root/.hermes/skills/makoto/web/selfcheck/1440x1000-weather.png",
+      "overflow": {
+        "innerWidth": 1440,
+        "docScrollWidth": 1440,
+        "bodyScrollWidth": 1440,
+        "overflowX": false
+      },
+      "bottomNav": null,
+      "errors": []
+    }
+  },
+  "navigation": {
+    "390x844": {
+      "tabs": {
+        "饮食": {
+          "clicked": true,
+          "url": "/diet",
+          "expected": "/diet",
+          "pass": true
+        },
+        "运动": {
+          "clicked": true,
+          "url": "/exercise",
+          "expected": "/exercise",
+          "pass": true
+        },
+        "身体": {
+          "clicked": true,
+          "url": "/body",
+          "expected": "/body",
+          "pass": true
+        },
+        "总览": {
+          "clicked": true,
+          "url": "/",
+          "expected": "/",
+          "pass": true
+        }
+      },
+      "drawerItems": [
+        "仪表盘",
+        "食物库",
+        "身体测量",
+        "饮食记录",
+        "运动记录",
+        "个人画像",
+        "围度记录",
+        "绘画记录",
+        "天气监视"
+      ],
+      "drawerLogout": true,
+      "errors": [],
+      "drawerVisible": true
+    }
+  },
+  "console_errors": []
+}

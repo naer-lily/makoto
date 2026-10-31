@@ -74,7 +74,7 @@ app.add_typer(
 app.add_typer(
     _LazyApp("makoto.commands.body", "body_app"),  # type: ignore[arg-type]
     name="body",
-    help="身体测量记录（体重、体脂率）",
+    help="身体测量记录（体重）",
 )
 app.add_typer(
     _LazyApp("makoto.commands.circumference", "circumference_app"),  # type: ignore[arg-type]

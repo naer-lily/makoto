@@ -33,7 +33,7 @@ class Profile(SQLModel, table=True):
     age: int
     height_cm: float
     weight_kg: float
-    body_fat_pct: float
+    body_fat_pct: float | None = Field(default=None)
     target_weight_kg: float
     target_date: str
     activity_level: str
@@ -68,7 +68,7 @@ class BodyLog(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     log_date: str = Field(sa_column=sa.Column(sa.Text, nullable=False, unique=True))
     weight_kg: float
-    body_fat_pct: float
+    body_fat_pct: float | None = Field(default=None)
     note: str | None = Field(default=None)
     created_at: str | None = Field(
         default=None,

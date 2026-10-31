@@ -1,0 +1,49 @@
+INFO:     Started server process [7138]
+INFO:     Waiting for application startup.
+[makoto-server] 数据库: /root/.hermes/skills/makoto/data/makoto.db
+[makoto-server] Token: VxLKxu1gbouoZBEGj9WgtmjbL31bnp84
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8788 (Press CTRL+C to quit)
+INFO:     10.19.76.1:54792 - "GET /api/v1/profile HTTP/1.1" 200 OK
+INFO:     10.19.76.1:50102 - "GET /api/v1/profile HTTP/1.1" 200 OK
+INFO:     10.19.76.1:50102 - "GET /api/v1/foods/search?q=%E8%84%B1%E8%84%82%E7%89%9B%E5%A5%B6&limit=20 HTTP/1.1" 200 OK
+INFO:     10.19.76.1:50116 - "GET /api/v1/profile HTTP/1.1" 200 OK
+INFO:     10.19.76.1:50116 - "GET /api/v1/foods/search?q=%E8%8F%8A%E7%B2%89&limit=20 HTTP/1.1" 200 OK
+INFO:     10.19.76.1:50120 - "GET /api/v1/profile HTTP/1.1" 200 OK
+INFO:     10.19.76.1:50120 - "GET /api/v1/foods/search?q=%E5%85%A8%E9%BA%A6%E9%9D%A2%E5%8C%85&limit=20 HTTP/1.1" 200 OK
+INFO:     10.19.76.1:50130 - "GET /api/v1/profile HTTP/1.1" 200 OK
+INFO:     10.19.76.1:50130 - "GET /api/v1/foods/search?q=%E7%94%9C%E7%8E%89%E7%B1%B3&limit=20 HTTP/1.1" 200 OK
+INFO:     10.19.76.1:50146 - "GET /api/v1/profile HTTP/1.1" 200 OK
+INFO:     10.19.76.1:50162 - "GET /api/v1/profile HTTP/1.1" 200 OK
+INFO:     10.19.76.1:50164 - "GET /api/v1/profile HTTP/1.1" 200 OK
+2026-10-27 08:08:33.055 | INFO     | makoto.server.app:_scheduler_loop:63 - 天气缓存已刷新
+INFO:     10.19.76.1:44066 - "GET /api/v1/profile HTTP/1.1" 200 OK
+INFO:     10.19.76.1:44074 - "GET /api/v1/profile HTTP/1.1" 200 OK
+INFO:     10.19.76.1:44074 - "GET /api/v1/dashboard/today HTTP/1.1" 200 OK
+INFO:     10.19.76.1:44080 - "GET /api/v1/profile HTTP/1.1" 200 OK
+INFO:     10.19.76.1:44080 - "GET /api/v1/foods HTTP/1.1" 200 OK
+INFO:     10.19.76.1:44080 - "POST /api/v1/diet-logs HTTP/1.1" 201 Created
+INFO:     10.19.76.1:44090 - "GET /api/v1/profile HTTP/1.1" 200 OK
+INFO:     10.19.76.1:44090 - "GET /api/v1/foods HTTP/1.1" 200 OK
+INFO:     10.19.76.1:44090 - "POST /api/v1/diet-logs HTTP/1.1" 201 Created
+INFO:     10.19.76.1:44096 - "GET /api/v1/profile HTTP/1.1" 200 OK
+INFO:     10.19.76.1:44096 - "GET /api/v1/foods HTTP/1.1" 200 OK
+INFO:     10.19.76.1:44096 - "POST /api/v1/diet-logs HTTP/1.1" 201 Created
+INFO:     10.19.76.1:48882 - "GET /api/v1/profile HTTP/1.1" 200 OK
+INFO:     10.19.76.1:48882 - "GET /api/v1/foods HTTP/1.1" 200 OK
+INFO:     10.19.76.1:48882 - "POST /api/v1/diet-logs HTTP/1.1" 201 Created
+INFO:     10.19.76.1:48896 - "GET /api/v1/profile HTTP/1.1" 200 OK
+INFO:     10.19.76.1:48896 - "GET /api/v1/dashboard/today HTTP/1.1" 200 OK
+INFO:     10.19.76.1:41256 - "GET /api/v1/profile HTTP/1.1" 200 OK
+INFO:     10.19.76.1:41256 - "GET /api/v1/foods/search?q=%E5%8D%B3%E9%A3%9F%E9%B8%A1%E8%83%B8%E8%82%89&limit=20 HTTP/1.1" 200 OK
+INFO:     10.19.76.1:41260 - "GET /api/v1/profile HTTP/1.1" 200 OK
+INFO:     10.19.76.1:41260 - "GET /api/v1/foods HTTP/1.1" 200 OK
+INFO:     10.19.76.1:41260 - "POST /api/v1/diet-logs HTTP/1.1" 201 Created
+INFO:     10.19.76.1:55364 - "GET /api/v1/profile HTTP/1.1" 200 OK
+INFO:     10.19.76.1:55364 - "GET /api/v1/dashboard/today HTTP/1.1" 200 OK
+2026-10-27 09:00:02.108 | WARNING  | makoto.server.routes.weather:refresh_all_watches:209 - 刷新天气失败: watch_id=2 label=通州
+2026-10-27 09:00:10.817 | INFO     | makoto.server.app:_scheduler_loop:63 - 天气缓存已刷新
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [7138]

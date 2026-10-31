@@ -1,9 +1,14 @@
 <template>
   <div>
-    <h2 style="margin-bottom:20px">个人画像</h2>
+    <h2 class="page-title">个人画像</h2>
 
     <el-card v-loading="loading">
-      <el-form :model="form" label-width="120px" style="max-width:600px">
+      <el-form
+        :model="form"
+        :label-width="isMobile ? 'auto' : '120px'"
+        :label-position="isMobile ? 'top' : 'right'"
+        class="profile-form"
+      >
         <el-form-item label="昵称" required>
           <el-input v-model="form.name" />
         </el-form-item>
@@ -56,20 +61,26 @@
           </el-select>
         </el-form-item>
         <el-form-item label="Keep Token">
-          <el-input v-model="form.keep_token" placeholder="粘贴 Keep JWT Token" type="textarea" :rows="3" />
-          <div style="font-size:12px;color:var(--el-text-color-secondary);margin-top:4px">
+          <el-input
+            v-model="form.keep_token"
+            placeholder="粘贴 Keep JWT Token"
+            type="password"
+            show-password
+            autocomplete="off"
+          />
+          <div class="field-hint">
             用于同步 Keep 运动数据（体能水平、周运动负荷）
           </div>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" :loading="saving" @click="handleSave">保存画像</el-button>
+          <el-button class="save-btn" type="primary" :loading="saving" @click="handleSave">保存画像</el-button>
         </el-form-item>
       </el-form>
     </el-card>
 
     <el-card v-if="profile" style="margin-top:20px">
       <template #header><strong>计算结果</strong></template>
-      <el-descriptions :column="3" border>
+      <el-descriptions :column="isMobile ? 1 : 3" border>
         <el-descriptions-item label="BMR">{{ profile.bmr_kcal.toFixed(0) }} kcal/天</el-descriptions-item>
         <el-descriptions-item>
           <template #label>
@@ -104,7 +115,9 @@ import {
   type ProfileCreate,
   type ProfileResponse,
 } from '../api/profile'
+import { useMobile } from '../composables/useMobile'
 
+const isMobile = useMobile()
 const profile = ref<ProfileResponse | null>(null)
 const loading = ref(false)
 const saving = ref(false)
@@ -159,9 +172,52 @@ onMounted(() => loadProfile())
 </script>
 
 <style scoped>
-@media (max-width: 600px) {
-  .el-form {
-    --el-form-label-width: 80px !important;
+.page-title {
+  margin: 0 0 20px;
+}
+
+.profile-form {
+  max-width: 600px;
+}
+
+.field-hint {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.save-btn {
+  min-width: 120px;
+}
+
+@media (max-width: 767px) {
+  .page-title {
+    margin-bottom: 12px;
+    font-size: 18px;
+  }
+
+  .profile-form {
+    max-width: none;
+  }
+
+  .profile-form :deep(.el-form-item) {
+    display: block;
+  }
+
+  .profile-form :deep(.el-form-item__label) {
+    display: block;
+    width: auto !important;
+    padding-bottom: 4px;
+  }
+
+  .profile-form :deep(.el-form-item__content) {
+    margin-left: 0 !important;
+    width: 100%;
+  }
+
+  .save-btn {
+    width: 100%;
+    min-height: 44px;
   }
 
   .el-descriptions {

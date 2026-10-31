@@ -1,20 +1,20 @@
 <template>
   <div>
     <div class="toolbar">
-      <h2 style="margin:0">食物库</h2>
-      <div style="display:flex;gap:12px">
+      <h2 class="page-title">食物库</h2>
+      <div class="toolbar-actions">
         <el-input
           v-model="searchQuery"
+          class="food-search"
           placeholder="搜索食物..."
           clearable
-          style="width:240px"
           @input="onSearchInput"
         />
         <el-button type="primary" @click="openAdd">添加食物</el-button>
       </div>
     </div>
 
-    <el-table :data="foods" v-loading="loading" stripe>
+    <el-table v-if="!isMobile" :data="foods" v-loading="loading" stripe>
       <el-table-column prop="name" label="名称" min-width="120" />
       <el-table-column prop="calories_per_100g" label="热量/100g" width="100" />
       <el-table-column prop="protein_per_100g" label="蛋白/100g" width="100" />
@@ -29,12 +29,49 @@
       </el-table-column>
     </el-table>
 
+    <div v-else v-loading="loading" class="mobile-card-list">
+      <el-empty v-if="!foods.length && !loading" description="暂无食物" :image-size="72" />
+      <article v-for="food in foods" :key="food.id" class="mobile-card">
+        <div class="mobile-card-head">
+          <div class="mobile-card-title">{{ food.name }}</div>
+          <el-tag size="small" effect="plain" type="warning">{{ food.calories_per_100g }} kcal</el-tag>
+        </div>
+        <div class="mobile-card-grid">
+          <div class="mobile-card-field">
+            <div class="mobile-card-label">蛋白质 / 100g</div>
+            <div class="mobile-card-value">{{ food.protein_per_100g }} g</div>
+          </div>
+          <div class="mobile-card-field">
+            <div class="mobile-card-label">碳水 / 100g</div>
+            <div class="mobile-card-value">{{ food.carbs_per_100g }} g</div>
+          </div>
+          <div class="mobile-card-field">
+            <div class="mobile-card-label">脂肪 / 100g</div>
+            <div class="mobile-card-value">{{ food.fat_per_100g }} g</div>
+          </div>
+          <div class="mobile-card-field">
+            <div class="mobile-card-label">纤维 / 100g</div>
+            <div class="mobile-card-value">{{ food.fiber_per_100g }} g</div>
+          </div>
+        </div>
+        <div v-if="food.note" class="mobile-card-note">{{ food.note }}</div>
+        <div class="mobile-card-actions">
+          <el-button size="small" type="primary" plain @click="openEdit(food)">编辑</el-button>
+          <el-button size="small" type="danger" plain @click="handleDelete(food)">删除</el-button>
+        </div>
+      </article>
+    </div>
+
     <el-dialog
       v-model="dialogVisible"
       :title="editingFood ? '编辑食物' : '添加食物'"
       width="520px"
     >
-      <el-form :model="form" label-width="100px">
+      <el-form
+        :model="form"
+        :label-width="isMobile ? 'auto' : '100px'"
+        :label-position="isMobile ? 'top' : 'right'"
+      >
         <el-form-item label="名称" required>
           <el-input v-model="form.name" />
         </el-form-item>
@@ -80,7 +117,9 @@ import {
   type FoodResponse,
   type FoodCreate,
 } from '../api/foods'
+import { useMobile } from '../composables/useMobile'
 
+const isMobile = useMobile()
 const foods = ref<FoodResponse[]>([])
 const loading = ref(false)
 const saving = ref(false)
@@ -209,6 +248,51 @@ onMounted(() => loadFoods())
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   margin-bottom: 20px;
+}
+
+.page-title {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.food-search {
+  width: 240px;
+}
+
+@media (max-width: 767px) {
+  .toolbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .page-title {
+    font-size: 18px;
+  }
+
+  .toolbar-actions {
+    gap: 8px;
+  }
+
+  .food-search {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+  }
+
+  .toolbar-actions .el-button {
+    min-height: 40px;
+    flex: 0 0 auto;
+  }
 }
 </style>

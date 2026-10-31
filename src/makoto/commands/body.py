@@ -26,11 +26,15 @@ def _body_detail_fields(r: dict[str, Any]) -> list[tuple[str, str]]:
         供 render_detail 使用的 (字段名, 值) 列表。
     """
     note = r.get("note")
+    body_fat = r.get("body_fat_pct")
     return [
         ("记录 ID", str(r.get("id", ""))),
         ("测量日期", str(r.get("log_date", ""))),
         ("体重", f"{float(r.get('weight_kg', 0)):.1f} kg"),
-        ("体脂率", f"{float(r.get('body_fat_pct', 0)):.1f} %"),
+        (
+            "体脂率",
+            f"{float(body_fat):.1f}%" if body_fat is not None else "—",
+        ),
         ("备注", str(note) if note else "—"),
         ("创建时间", str(r.get("created_at", ""))),
     ]
@@ -47,17 +51,21 @@ def log(
     weight: float = typer.Option(
         ..., "--weight", "-w", min=0, help="体重（公斤），需为非负数。"
     ),
-    body_fat: float = typer.Option(
-        ..., "--body-fat", "-b", min=0, max=60, help="体脂率（百分比），取值 0-60。"
+    body_fat: float | None = typer.Option(
+        None,
+        "--body-fat",
+        "-b",
+        min=0,
+        max=60,
+        help="家秤体脂率（%）；不填则只记体重。",
     ),
     note: str | None = typer.Option(
         None, "--note", "-n", help="可选备注，自由文本，例如「晨起空腹」。"
     ),
 ) -> None:
-    """记录晨起身体测量数据（每天仅一条），录入后服务端会同步画像。
+    """记录晨起体重（每天仅一条），录入后服务端会同步画像中的体重。
 
-    成功后会打印这条记录的完整数据：记录 ID、测量日期、体重、体脂率、
-    备注与创建时间。
+    成功后会打印这条记录的完整数据：记录 ID、测量日期、体重、备注与创建时间。
     """
     console = get_console()
     try:
@@ -68,12 +76,14 @@ def log(
 
     cli = get_client()
     try:
-        result = cli.create_body_log({
+        payload = {
             "log_date": log_date,
             "weight_kg": weight,
-            "body_fat_pct": body_fat,
             "note": note,
-        })
+        }
+        if body_fat is not None:
+            payload["body_fat_pct"] = body_fat
+        result = cli.create_body_log(payload)
     except ClientError as e:
         console.print(f"[red]请求失败: {e.detail}[/red]")
         raise typer.Exit(1) from e
@@ -153,12 +163,14 @@ def list_body(
                 str(r.get("id", "")),
                 str(r["log_date"]),
                 f"{r['weight_kg']:.1f} kg",
-                f"{r['body_fat_pct']:.1f}%",
+                f"{r['body_fat_pct']:.1f}%"
+                if r.get("body_fat_pct") is not None
+                else "—",
                 r.get("note") or "",
             ]
             for r in logs
         ],
         title="身体测量记录",
         align=["right", "left", "right", "right", "left"],
-        col_styles=["magenta", "cyan", "yellow", "", "dim"],
+        col_styles=["magenta", "cyan", "yellow", "yellow", "dim"],
     )

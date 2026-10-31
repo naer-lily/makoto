@@ -1,0 +1,431 @@
+{
+  "dialogs": {
+    "foods": {
+      "normal": {
+        "present": true,
+        "viewportWidth": 390,
+        "viewportHeight": 844,
+        "width": 366,
+        "left": 12,
+        "right": 378,
+        "top": 16,
+        "bottom": 808,
+        "fitsWidth": true,
+        "footerPresent": true,
+        "footerBottom": 792,
+        "footerVisible": true,
+        "bodyScrolls": false,
+        "buttons": [
+          {
+            "text": "取消",
+            "top": 736,
+            "bottom": 780,
+            "width": 147
+          },
+          {
+            "text": "保存",
+            "top": 736,
+            "bottom": 780,
+            "width": 147
+          }
+        ]
+      },
+      "keyboard": {
+        "present": true,
+        "viewportWidth": 390,
+        "viewportHeight": 500,
+        "width": 366,
+        "left": 12,
+        "right": 378,
+        "top": 16,
+        "bottom": 484,
+        "fitsWidth": true,
+        "footerPresent": true,
+        "footerBottom": 468,
+        "footerVisible": true,
+        "bodyScrolls": true,
+        "buttons": [
+          {
+            "text": "取消",
+            "top": 412,
+            "bottom": 456,
+            "width": 147
+          },
+          {
+            "text": "保存",
+            "top": 412,
+            "bottom": 456,
+            "width": 147
+          }
+        ]
+      }
+    },
+    "body": {
+      "normal": {
+        "present": true,
+        "viewportWidth": 390,
+        "viewportHeight": 844,
+        "width": 366,
+        "left": 12,
+        "right": 378,
+        "top": 16,
+        "bottom": 484,
+        "fitsWidth": true,
+        "footerPresent": true,
+        "footerBottom": 468,
+        "footerVisible": true,
+        "bodyScrolls": false,
+        "buttons": [
+          {
+            "text": "取消",
+            "top": 412,
+            "bottom": 456,
+            "width": 147
+          },
+          {
+            "text": "保存",
+            "top": 412,
+            "bottom": 456,
+            "width": 147
+          }
+        ]
+      },
+      "keyboard": {
+        "present": true,
+        "viewportWidth": 390,
+        "viewportHeight": 500,
+        "width": 366,
+        "left": 12,
+        "right": 378,
+        "top": 16,
+        "bottom": 484,
+        "fitsWidth": true,
+        "footerPresent": true,
+        "footerBottom": 468,
+        "footerVisible": true,
+        "bodyScrolls": false,
+        "buttons": [
+          {
+            "text": "取消",
+            "top": 412,
+            "bottom": 456,
+            "width": 147
+          },
+          {
+            "text": "保存",
+            "top": 412,
+            "bottom": 456,
+            "width": 147
+          }
+        ]
+      }
+    },
+    "diet": {
+      "normal": {
+        "present": true,
+        "viewportWidth": 390,
+        "viewportHeight": 844,
+        "width": 366,
+        "left": 12,
+        "right": 378,
+        "top": 16,
+        "bottom": 484,
+        "fitsWidth": true,
+        "footerPresent": true,
+        "footerBottom": 468,
+        "footerVisible": true,
+        "bodyScrolls": false,
+        "buttons": [
+          {
+            "text": "取消",
+            "top": 412,
+            "bottom": 456,
+            "width": 147
+          },
+          {
+            "text": "保存",
+            "top": 412,
+            "bottom": 456,
+            "width": 147
+          }
+        ]
+      },
+      "keyboard": {
+        "present": true,
+        "viewportWidth": 390,
+        "viewportHeight": 500,
+        "width": 366,
+        "left": 12,
+        "right": 378,
+        "top": 16,
+        "bottom": 484,
+        "fitsWidth": true,
+        "footerPresent": true,
+        "footerBottom": 468,
+        "footerVisible": true,
+        "bodyScrolls": false,
+        "buttons": [
+          {
+            "text": "取消",
+            "top": 412,
+            "bottom": 456,
+            "width": 147
+          },
+          {
+            "text": "保存",
+            "top": 412,
+            "bottom": 456,
+            "width": 147
+          }
+        ]
+      }
+    },
+    "exercise": {
+      "normal": {
+        "present": true,
+        "viewportWidth": 390,
+        "viewportHeight": 844,
+        "width": 366,
+        "left": 12,
+        "right": 378,
+        "top": 16,
+        "bottom": 560,
+        "fitsWidth": true,
+        "footerPresent": true,
+        "footerBottom": 544,
+        "footerVisible": true,
+        "bodyScrolls": false,
+        "buttons": [
+          {
+            "text": "取消",
+            "top": 488,
+            "bottom": 532,
+            "width": 147
+          },
+          {
+            "text": "保存",
+            "top": 488,
+            "bottom": 532,
+            "width": 147
+          }
+        ]
+      },
+      "keyboard": {
+        "present": true,
+        "viewportWidth": 390,
+        "viewportHeight": 500,
+        "width": 366,
+        "left": 12,
+        "right": 378,
+        "top": 16,
+        "bottom": 484,
+        "fitsWidth": true,
+        "footerPresent": true,
+        "footerBottom": 468,
+        "footerVisible": true,
+        "bodyScrolls": true,
+        "buttons": [
+          {
+            "text": "取消",
+            "top": 412,
+            "bottom": 456,
+            "width": 147
+          },
+          {
+            "text": "保存",
+            "top": 412,
+            "bottom": 456,
+            "width": 147
+          }
+        ]
+      }
+    },
+    "circumference": {
+      "normal": {
+        "present": true,
+        "viewportWidth": 390,
+        "viewportHeight": 844,
+        "width": 366,
+        "left": 12,
+        "right": 378,
+        "top": 16,
+        "bottom": 636,
+        "fitsWidth": true,
+        "footerPresent": true,
+        "footerBottom": 620,
+        "footerVisible": true,
+        "bodyScrolls": false,
+        "buttons": [
+          {
+            "text": "取消",
+            "top": 564,
+            "bottom": 608,
+            "width": 147
+          },
+          {
+            "text": "保存",
+            "top": 564,
+            "bottom": 608,
+            "width": 147
+          }
+        ]
+      },
+      "keyboard": {
+        "present": true,
+        "viewportWidth": 390,
+        "viewportHeight": 500,
+        "width": 366,
+        "left": 12,
+        "right": 378,
+        "top": 16,
+        "bottom": 484,
+        "fitsWidth": true,
+        "footerPresent": true,
+        "footerBottom": 468,
+        "footerVisible": true,
+        "bodyScrolls": true,
+        "buttons": [
+          {
+            "text": "取消",
+            "top": 412,
+            "bottom": 456,
+            "width": 147
+          },
+          {
+            "text": "保存",
+            "top": 412,
+            "bottom": 456,
+            "width": 147
+          }
+        ]
+      }
+    },
+    "painting": {
+      "normal": {
+        "present": true,
+        "viewportWidth": 390,
+        "viewportHeight": 844,
+        "width": 366,
+        "left": 12,
+        "right": 378,
+        "top": 16,
+        "bottom": 560,
+        "fitsWidth": true,
+        "footerPresent": true,
+        "footerBottom": 544,
+        "footerVisible": true,
+        "bodyScrolls": false,
+        "buttons": [
+          {
+            "text": "取消",
+            "top": 488,
+            "bottom": 532,
+            "width": 147
+          },
+          {
+            "text": "保存",
+            "top": 488,
+            "bottom": 532,
+            "width": 147
+          }
+        ]
+      },
+      "keyboard": {
+        "present": true,
+        "viewportWidth": 390,
+        "viewportHeight": 500,
+        "width": 366,
+        "left": 12,
+        "right": 378,
+        "top": 16,
+        "bottom": 484,
+        "fitsWidth": true,
+        "footerPresent": true,
+        "footerBottom": 468,
+        "footerVisible": true,
+        "bodyScrolls": true,
+        "buttons": [
+          {
+            "text": "取消",
+            "top": 412,
+            "bottom": 456,
+            "width": 147
+          },
+          {
+            "text": "保存",
+            "top": 412,
+            "bottom": 456,
+            "width": 147
+          }
+        ]
+      }
+    }
+  },
+  "weatherForecast": {
+    "overflowX": false,
+    "scrollWidth": 390,
+    "innerWidth": 390,
+    "dayCards": 42,
+    "hourCards": 144
+  },
+  "profile": {
+    "passwordInputs": 1,
+    "sensitiveValueLengths": [
+      0
+    ],
+    "bodyContainsMakotoToken": false
+  },
+  "pwa": {
+    "serviceWorker": {
+      "scope": "http://127.0.0.1:4173/",
+      "activeState": "activated",
+      "controlled": true,
+      "updateViaCache": "none"
+    },
+    "manifestCache": {
+      "name": "makoto 健康数据",
+      "shortName": "makoto",
+      "startUrl": "/",
+      "scope": "/",
+      "display": "standalone",
+      "background": "#f5f7fa",
+      "theme": "#409eff",
+      "purposes": [
+        "any",
+        "any",
+        "maskable",
+        "maskable"
+      ],
+      "sizes": [
+        "192x192",
+        "512x512",
+        "192x192",
+        "512x512"
+      ],
+      "iconStatuses": {
+        "/icons/icon-192.png": 200,
+        "/icons/icon-512.png": 200,
+        "/icons/maskable-192.png": 200,
+        "/icons/maskable-512.png": 200
+      },
+      "cacheNames": [
+        "makoto-shell-v1"
+      ],
+      "cachedCount": 38,
+      "cachedAllAssets": true,
+      "missingAssets": [],
+      "cachedApiPaths": [],
+      "shellPresent": true
+    },
+    "offline": {
+      "url": "/foods",
+      "title": "makoto",
+      "hasLayout": true,
+      "hasApp": true
+    }
+  },
+  "desktopDate": {
+    "present": true,
+    "width": 370
+  }
+}
